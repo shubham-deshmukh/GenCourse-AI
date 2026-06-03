@@ -43,11 +43,20 @@ interface Module {
   lessons: Lesson[]
 }
 
+interface QuizQuestion {
+  id: string
+  question: string
+  options: string[]
+  correctIndex: number
+  explanation: string
+}
+
 interface CourseData {
   title: string
   description: string
   modules: Module[]
   resources: { name: string; size: string; type: string }[]
+  quizzes: QuizQuestion[]
 }
 
 const COURSES_DATABASE: Record<string, CourseData> = {
@@ -100,6 +109,39 @@ const COURSES_DATABASE: Record<string, CourseData> = {
       { name: 'React_Hooks_Cheat_Sheet.pdf', size: '2.4 MB', type: 'PDF' },
       { name: 'React_State_Exercise_Code.zip', size: '15.8 MB', type: 'ZIP' },
       { name: 'Hooks_Best_Practices_Slide_Deck.pdf', size: '5.1 MB', type: 'PDF' }
+    ],
+    quizzes: [
+      {
+        id: 'rh-q1',
+        question: 'What version of React introduced Hooks?',
+        options: ['v16.0', 'v16.3', 'v16.8', 'v17.0'],
+        correctIndex: 2,
+        explanation: 'React Hooks were introduced in version 16.8.0, allowing functional components to handle state and side effects.'
+      },
+      {
+        id: 'rh-q2',
+        question: 'Which of the following is a rule of React Hooks?',
+        options: [
+          'Hooks can be called inside loops',
+          'Hooks must only be called at the top level of your component',
+          'Hooks must be called inside regular JavaScript helper functions',
+          'Hooks can be called conditionally'
+        ],
+        correctIndex: 1,
+        explanation: 'React Hooks must only be called at the top level of functional components (not inside loops, conditions, or nested functions) to preserve hook execution order.'
+      },
+      {
+        id: 'rh-q3',
+        question: 'What is the purpose of the dependency array in the useEffect hook?',
+        options: [
+          'To list components that depend on this hook',
+          'To declare variables that trigger a re-render of the parent component',
+          'To control when the effect function runs based on value changes',
+          'To register cleanups for garbage collection'
+        ],
+        correctIndex: 2,
+        explanation: 'The dependency array controls when the effect executes. If empty [], it runs once on mount. If it contains values, it runs when those values change.'
+      }
     ]
   },
   'Basics of Copyright Law': {
@@ -150,6 +192,44 @@ const COURSES_DATABASE: Record<string, CourseData> = {
     resources: [
       { name: 'Copyright_Fair_Use_Guide.pdf', size: '1.8 MB', type: 'PDF' },
       { name: 'IP_Law_Statutory_Definitions.pdf', size: '3.2 MB', type: 'PDF' }
+    ],
+    quizzes: [
+      {
+        id: 'cr-q1',
+        question: 'At what point does copyright protection begin for an original work?',
+        options: [
+          'Automatically when the work is fixed in a tangible medium',
+          'Once it is formally registered with the national copyright office',
+          'When it is first published or distributed online',
+          'Only after the creator attaches a © symbol'
+        ],
+        correctIndex: 0,
+        explanation: 'Copyright protection is automatic and starts the moment an original work is fixed in a tangible medium of expression (written down, recorded, drawn, etc.).'
+      },
+      {
+        id: 'cr-q2',
+        question: 'Which of the following describes the "Idea-Expression Dichotomy"?',
+        options: [
+          'Ideas and expressions receive equal legal protections',
+          'Copyright protects the expression of an idea, not the idea itself',
+          'Copyright protects concepts, while patents protect expressions',
+          'Expressions are free to copy, but ideas require licensing'
+        ],
+        correctIndex: 1,
+        explanation: 'Copyright law protects the specific expression of an idea (e.g. the text of a novel) but never the underlying idea or concept itself.'
+      },
+      {
+        id: 'cr-q3',
+        question: 'Which factor is NOT analyzed under the Fair Use doctrine?',
+        options: [
+          'The purpose and character of the use',
+          'The net worth of the copyright creator',
+          'The amount and substantiality of the portion used',
+          'The effect of the use upon the potential market value'
+        ],
+        correctIndex: 1,
+        explanation: 'Fair Use analyzes four factors: purpose/character of use, nature of work, amount used, and market effect. The creator\'s net worth is completely irrelevant.'
+      }
     ]
   },
   'Quantum Mechanics for Beginners': {
@@ -185,6 +265,32 @@ const COURSES_DATABASE: Record<string, CourseData> = {
     resources: [
       { name: 'Quantum_Physics_Cheat_Sheet.pdf', size: '4.2 MB', type: 'PDF' },
       { name: 'Double_Slit_Simulation_Software.zip', size: '28.1 MB', type: 'ZIP' }
+    ],
+    quizzes: [
+      {
+        id: 'qm-q1',
+        question: 'What does wave-particle duality imply about matter and light?',
+        options: [
+          'They always behave like solid billard balls',
+          'They are strictly waves and never act like particles',
+          'They exhibit properties of both waves and particles depending on measurement',
+          'They have no physical reality until they travel faster than light'
+        ],
+        correctIndex: 2,
+        explanation: 'Matter and light show wave-like properties (e.g., interference) and particle-like properties (e.g., localized impacts) depending on the observation setup.'
+      },
+      {
+        id: 'qm-q2',
+        question: 'What is quantum superposition?',
+        options: [
+          'A system existing in a combination of multiple states simultaneously until measured',
+          'The speed at which quantum particles rotate around an orbit',
+          'The state of two particles sharing connected properties across distance',
+          'When subatomic particles crash into each other to form heat'
+        ],
+        correctIndex: 0,
+        explanation: 'Superposition means a quantum state exists as a linear combination of all possible outcomes until an observation collapses it into a single state.'
+      }
     ]
   },
   'Acoustic Guitar 101': {
@@ -220,6 +326,22 @@ const COURSES_DATABASE: Record<string, CourseData> = {
     resources: [
       { name: 'Guitar_Chords_Basic_Chart.pdf', size: '3.6 MB', type: 'PDF' },
       { name: 'Rhythm_Strumming_Patterns_Tracks.zip', size: '12.4 MB', type: 'ZIP' }
+    ],
+    quizzes: [
+      {
+        id: 'ag-q1',
+        question: 'What is the standard tuning of an acoustic guitar, from 6th (thickest) string to 1st (thinnest)?',
+        options: ['E-A-D-G-B-E', 'D-A-D-G-B-E', 'E-B-G-D-A-E', 'E-A-D-G-C-F'],
+        correctIndex: 0,
+        explanation: 'Standard acoustic guitar tuning is E-A-D-G-B-E. A popular mnemonic is "Eddie Ate Dynamite, Good Bye Eddie".'
+      },
+      {
+        id: 'ag-q2',
+        question: 'Which part of the guitar contains the frets?',
+        options: ['The Soundboard', 'The Bridge', 'The Neck (Fretboard)', 'The Headstock'],
+        correctIndex: 2,
+        explanation: 'Frets are metal strips placed along the neck (fretboard) of the guitar, allowing the guitarist to change the pitch of the strings.'
+      }
     ]
   }
 }
@@ -240,7 +362,7 @@ export default function InteractiveSimulator({
   const [activeCourse, setActiveCourse] = useState<CourseData | null>(null)
   const [activeModuleIndex, setActiveModuleIndex] = useState(0)
   const [activeLessonIndex, setActiveLessonIndex] = useState(0)
-  const [activeTab, setActiveTab] = useState<'content' | 'video' | 'downloads'>('content')
+  const [activeTab, setActiveTab] = useState<'content' | 'quiz' | 'downloads'>('content')
   const [language, setLanguage] = useState<'en' | 'es' | 'fr'>('en')
 
   // Pipeline Simulation states
@@ -256,6 +378,10 @@ export default function InteractiveSimulator({
   // Interactive tracking states
   const [completedLessons, setCompletedLessons] = useState<Record<string, boolean>>({})
   const [downloadProgress, setDownloadProgress] = useState<Record<string, number>>({})
+
+  // Quiz interaction states
+  const [selectedAnswers, setSelectedAnswers] = useState<Record<string, number>>({})
+  const [showExplanation, setShowExplanation] = useState<Record<string, boolean>>({})
 
   // Telemetry Console Ref
   const logsContainerRef = useRef<HTMLDivElement>(null)
@@ -355,6 +481,8 @@ export default function InteractiveSimulator({
         setVideoProgress(0)
         setIsPlayingVideo(false)
         setActiveTab('content')
+        setSelectedAnswers({})
+        setShowExplanation({})
       }
     }, 150)
   }
@@ -381,7 +509,7 @@ export default function InteractiveSimulator({
     setActiveCourse(COURSES_DATABASE['Intro to React Hooks'])
   }, [])
 
-  const currentLesson = activeCourse?.modules[activeModuleIndex]?.lessons[activeLessonIndex]
+  const currentLesson = activeCourse?.modules?.[activeModuleIndex]?.lessons?.[activeLessonIndex]
   const lessonKey = activeCourse ? `${activeCourse.title}-${activeModuleIndex}-${activeLessonIndex}` : ''
   const isLessonDone = completedLessons[lessonKey]
 
@@ -840,12 +968,12 @@ export default function InteractiveSimulator({
                 {/* Segmented Sliding Tab Control */}
                 <div className="p-3 bg-white/1 border-b border-white/5">
                   <div className="flex p-1 bg-black/50 border border-white/5 rounded-xl gap-1">
-                    {(['content', 'video', 'downloads'] as const).map((tab) => {
+                    {(['content', 'quiz', 'downloads'] as const).map((tab) => {
                       const isActive = activeTab === tab
                       const getTabConfig = () => {
                         switch (tab) {
                           case 'content': return { label: 'Read Lesson', icon: BookOpen }
-                          case 'video': return { label: 'Video Script', icon: Play }
+                          case 'quiz': return { label: 'Practice Quiz', icon: HelpCircle }
                           case 'downloads': return { label: 'Downloads', icon: Download }
                         }
                       }
@@ -863,6 +991,12 @@ export default function InteractiveSimulator({
                         >
                           <Icon className={`w-3.5 h-3.5 transition-transform duration-300 ${isActive ? 'scale-110 text-cyan-400' : 'text-gray-400'}`} />
                           <span>{config.label}</span>
+                          {tab === 'quiz' && (
+                            <span className={`px-1.5 py-0.5 rounded-full text-[9px] ${isActive ? 'bg-purple-500/20 text-purple-300' : 'bg-white/5 text-gray-500'
+                              }`}>
+                              {activeCourse?.quizzes?.length || 0}
+                            </span>
+                          )}
                           {tab === 'downloads' && (
                             <span className={`px-1.5 py-0.5 rounded-full text-[9px] ${isActive ? 'bg-cyan-500/20 text-cyan-300' : 'bg-white/5 text-gray-500'
                               }`}>
@@ -890,7 +1024,7 @@ export default function InteractiveSimulator({
                       <div key={mod.title} className="p-2 border-b border-white/5 last:border-b-0">
                         <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-purple-400">{mod.title}</div>
                         <div className="space-y-1 mt-1.5">
-                          {mod.lessons.map((les, lesIdx) => {
+                          {mod?.lessons?.map((les, lesIdx) => {
                             const isSelected = activeModuleIndex === modIdx && activeLessonIndex === lesIdx
                             const currentLessonKey = `${activeCourse.title}-${modIdx}-${lesIdx}`
                             const isCompleted = completedLessons[currentLessonKey]
@@ -955,7 +1089,7 @@ export default function InteractiveSimulator({
 
                       {/* Reader Tab */}
                       {activeTab === 'content' && currentLesson && (
-                        <div>
+                        <div className="space-y-8">
                           <div className="prose prose-invert max-w-none text-sm text-gray-300 leading-relaxed font-sans">
                             <h4 className="text-white text-lg font-bold font-display mb-4 pb-2 border-b border-white/5 flex items-center gap-2">
                               <BookOpen className="w-5 h-5 text-purple-primary" />
@@ -965,125 +1099,243 @@ export default function InteractiveSimulator({
                               {renderFormattedContent(currentLesson.content?.[language] || '')}
                             </div>
                           </div>
-                        </div>
-                      )}
 
-                      {/* Video Tab */}
-                      {activeTab === 'video' && currentLesson && (
-                        <div className="h-full flex flex-col justify-between">
-                          {/* Custom video sandbox renderer */}
-                          <div className="relative rounded-2xl aspect-video bg-black/90 border border-white/10 overflow-hidden flex flex-col justify-between p-4 shadow-2xl">
-
-                            {/* Visual Slides representation */}
-                            <div className="flex-1 flex flex-col justify-center items-center text-center p-4 bg-[radial-gradient(circle_at_center,rgba(124,58,237,0.1),transparent_70%)] relative">
-                              <div className="absolute inset-0 bg-grid-pattern opacity-10 pointer-events-none"></div>
-                              <div className="px-3 py-1 rounded-full bg-cyan-primary/10 border border-cyan-primary/20 text-[9px] text-cyan-300 font-bold uppercase tracking-widest mb-3">
-                                Generated Lecture Slide
-                              </div>
-                              <h3 className="font-display font-extrabold text-sm md:text-base text-white max-w-sm drop-shadow-md leading-snug">
-                                {currentLesson.videoSlide}
-                              </h3>
-                              <div className="mt-4 flex gap-1.5 items-center">
-                                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping"></span>
-                                <span className="text-[10px] text-gray-500 uppercase tracking-widest font-semibold">AI Rendering Engine</span>
-                              </div>
+                          {/* AI Video Lecture Section */}
+                          <div className="pt-8 border-t border-white/5 space-y-6">
+                            <div>
+                              <h4 className="text-white text-base font-bold font-display flex items-center gap-2">
+                                <Play className="w-4 h-4 text-cyan-primary animate-pulse" />
+                                AI Lecture Video Mockup
+                              </h4>
+                              <p className="text-xs text-gray-400 mt-1">
+                                Simulated lecture visualizer presenting slides synced with voice synthesis voiceovers.
+                              </p>
                             </div>
 
-                            {/* Progress scrubbing line */}
-                            <div
-                              className="relative h-1.5 w-full bg-white/10 rounded-full cursor-pointer overflow-hidden group mb-4"
-                              onClick={(e) => {
-                                const rect = e.currentTarget.getBoundingClientRect()
-                                const clickX = e.clientX - rect.left
-                                const percentage = Math.max(0, Math.min(100, Math.round((clickX / rect.width) * 100)))
-                                setVideoProgress(percentage)
-                              }}
-                            >
-                              <div
-                                className="absolute top-0 left-0 h-full bg-gradient-to-r from-purple-primary to-cyan-primary group-hover:from-purple-500 group-hover:to-cyan-400 transition-all duration-100"
-                                style={{ width: `${videoProgress}%` }}
-                              ></div>
-                            </div>
+                            {/* Custom video sandbox renderer */}
+                            <div className="relative rounded-2xl aspect-video bg-black/90 border border-white/10 overflow-hidden flex flex-col justify-between p-4 shadow-2xl">
 
-                            {/* Controls bar */}
-                            <div className="pt-2 flex items-center justify-between gap-4">
-                              <div className="flex items-center gap-3">
-                                <button
-                                  onClick={() => setIsPlayingVideo(!isPlayingVideo)}
-                                  className="p-2 rounded-full bg-gradient-to-r from-purple-primary to-cyan-primary text-white hover:scale-105 transition shadow-lg cursor-pointer flex items-center justify-center"
-                                >
-                                  {isPlayingVideo ? (
-                                    <div className="flex gap-0.5 justify-center items-center w-3 h-3">
-                                      <div className="w-1 h-2.5 bg-black rounded-sm"></div>
-                                      <div className="w-1 h-2.5 bg-black rounded-sm"></div>
-                                    </div>
-                                  ) : (
-                                    <Play className="w-3 h-3 fill-white text-white ml-0.5" />
-                                  )}
-                                </button>
-
-                                <span className="text-[10px] text-gray-400 font-mono">
-                                  {formatTime(Math.floor((videoProgress / 100) * 120))} / 2:00
-                                </span>
-                              </div>
-
-                              {/* Waveform visualizer */}
-                              <div className="flex-1 flex justify-center">
-                                <div className="flex items-end gap-[3px] h-6 justify-center w-full max-w-[120px]">
-                                  {Array.from({ length: 16 }).map((_, idx) => {
-                                    return (
-                                      <div
-                                        key={idx}
-                                        className={`w-[3px] rounded-full transition-all duration-300 soundwave-bar ${isPlayingVideo ? 'bg-cyan-primary shadow-[0_0_4px_#06b6d4]' : 'bg-gray-700'}`}
-                                        style={{
-                                          animationDelay: `${idx * 0.08}s`,
-                                          animationPlayState: isPlayingVideo ? 'running' : 'paused',
-                                          ...(isPlayingVideo ? {} : { height: '4px' })
-                                        }}
-                                      ></div>
-                                    )
-                                  })}
+                              {/* Visual Slides representation */}
+                              <div className="flex-1 flex flex-col justify-center items-center text-center p-4 bg-[radial-gradient(circle_at_center,rgba(124,58,237,0.1),transparent_70%)] relative">
+                                <div className="absolute inset-0 bg-grid-pattern opacity-10 pointer-events-none"></div>
+                                <div className="px-3 py-1 rounded-full bg-cyan-primary/10 border border-cyan-primary/20 text-[9px] text-cyan-300 font-bold uppercase tracking-widest mb-3">
+                                  Generated Lecture Slide
+                                </div>
+                                <h3 className="font-display font-extrabold text-sm md:text-base text-white max-w-sm drop-shadow-md leading-snug">
+                                  {currentLesson.videoSlide}
+                                </h3>
+                                <div className="mt-4 flex gap-1.5 items-center">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping"></span>
+                                  <span className="text-[10px] text-gray-500 uppercase tracking-widest font-semibold">AI Rendering Engine</span>
                                 </div>
                               </div>
 
-                              {/* Audio badge */}
-                              <div className="flex items-center gap-1 text-[9px] text-gray-400">
-                                <Volume2 className="w-3.5 h-3.5 text-cyan-primary animate-pulse" />
-                                <span>AI voice synth</span>
+                              {/* Progress scrubbing line */}
+                              <div
+                                className="relative h-1.5 w-full bg-white/10 rounded-full cursor-pointer overflow-hidden group mb-4"
+                                onClick={(e) => {
+                                  const rect = e.currentTarget.getBoundingClientRect()
+                                  const clickX = e.clientX - rect.left
+                                  const percentage = Math.max(0, Math.min(100, Math.round((clickX / rect.width) * 100)))
+                                  setVideoProgress(percentage)
+                                }}
+                              >
+                                <div
+                                  className="absolute top-0 left-0 h-full bg-gradient-to-r from-purple-primary to-cyan-primary group-hover:from-purple-500 group-hover:to-cyan-400 transition-all duration-100"
+                                  style={{ width: `${videoProgress}%` }}
+                                ></div>
+                              </div>
+
+                              {/* Controls bar */}
+                              <div className="pt-2 flex items-center justify-between gap-4">
+                                <div className="flex items-center gap-3">
+                                  <button
+                                    onClick={() => setIsPlayingVideo(!isPlayingVideo)}
+                                    className="p-2 rounded-full bg-gradient-to-r from-purple-primary to-cyan-primary text-white hover:scale-105 transition shadow-lg cursor-pointer flex items-center justify-center"
+                                  >
+                                    {isPlayingVideo ? (
+                                      <div className="flex gap-0.5 justify-center items-center w-3 h-3">
+                                        <div className="w-1 h-2.5 bg-black rounded-sm"></div>
+                                        <div className="w-1 h-2.5 bg-black rounded-sm"></div>
+                                      </div>
+                                    ) : (
+                                      <Play className="w-3 h-3 fill-white text-white ml-0.5" />
+                                    )}
+                                  </button>
+
+                                  <span className="text-[10px] text-gray-400 font-mono">
+                                    {formatTime(Math.floor((videoProgress / 100) * 120))} / 2:00
+                                  </span>
+                                </div>
+
+                                {/* Waveform visualizer */}
+                                <div className="flex-1 flex justify-center">
+                                  <div className="flex items-end gap-[3px] h-6 justify-center w-full max-w-[120px]">
+                                    {Array.from({ length: 16 }).map((_, idx) => {
+                                      return (
+                                        <div
+                                          key={idx}
+                                          className={`w-[3px] rounded-full transition-all duration-300 soundwave-bar ${isPlayingVideo ? 'bg-cyan-primary shadow-[0_0_4px_#06b6d4]' : 'bg-gray-700'}`}
+                                          style={{
+                                            animationDelay: `${idx * 0.08}s`,
+                                            animationPlayState: isPlayingVideo ? 'running' : 'paused',
+                                            ...(isPlayingVideo ? {} : { height: '4px' })
+                                          }}
+                                        ></div>
+                                      )
+                                    })}
+                                  </div>
+                                </div>
+
+                                {/* Audio badge */}
+                                <div className="flex items-center gap-1 text-[9px] text-gray-400">
+                                  <Volume2 className="w-3.5 h-3.5 text-cyan-primary animate-pulse" />
+                                  <span>AI voice synth</span>
+                                </div>
+                              </div>
+
+                            </div>
+
+                            {/* Video voiceover script with synced subtitles */}
+                            <div className="p-4 rounded-xl bg-black/40 border border-white/5 relative overflow-hidden">
+                              <div className="absolute top-0 left-0 w-1 h-full bg-purple-primary"></div>
+                              <h5 className="text-[10px] font-bold text-purple-400 mb-2 uppercase tracking-wider flex items-center gap-1">
+                                <FileText className="w-3.5 h-3.5" />
+                                Real-Time Transcription (Closed Captions)
+                              </h5>
+                              <div className="text-xs text-gray-400 leading-relaxed space-y-1">
+                                {getScriptSegments(currentLesson.script).map((segment, idx, arr) => {
+                                  const segProgressStart = (idx / arr.length) * 100
+                                  const segProgressEnd = ((idx + 1) / arr.length) * 100
+                                  const isCurrent = videoProgress >= segProgressStart && videoProgress < segProgressEnd
+                                  const isPast = videoProgress >= segProgressEnd
+
+                                  return (
+                                    <span
+                                      key={idx}
+                                      className={`transition-all duration-300 mr-1.5 ${isCurrent
+                                          ? 'text-white font-medium bg-purple-primary/10 px-1 py-0.5 rounded border border-purple-primary/20 shadow-[0_0_8px_rgba(124,58,237,0.1)]'
+                                          : isPast
+                                            ? 'text-gray-500'
+                                            : 'text-gray-600'
+                                        }`}
+                                    >
+                                      {segment}{' '}
+                                    </span>
+                                  )
+                                })}
                               </div>
                             </div>
+                          </div>
+                        </div>
+                      )}
 
+                      {/* Practice Quiz Tab */}
+                      {activeTab === 'quiz' && activeCourse && (
+                        <div className="space-y-6">
+                          <div className="flex items-center justify-between border-b border-white/5 pb-4">
+                            <div>
+                              <h4 className="text-white text-base font-bold font-display flex items-center gap-2">
+                                <HelpCircle className="w-5 h-5 text-purple-primary" />
+                                Interactive Course Review
+                              </h4>
+                              <p className="text-xs text-gray-400 mt-1">
+                                Test your understanding of the generated curriculum.
+                              </p>
+                            </div>
+                            {Object.keys(selectedAnswers).length > 0 && (
+                              <button
+                                onClick={() => {
+                                  setSelectedAnswers({})
+                                  setShowExplanation({})
+                                }}
+                                className="px-3.5 py-1.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:text-white text-gray-400 text-xs font-semibold cursor-pointer transition-all duration-300"
+                              >
+                                Retake Quiz
+                              </button>
+                            )}
                           </div>
 
-                          {/* Video voiceover script with synced subtitles */}
-                          <div className="mt-4 p-4 rounded-xl bg-black/40 border border-white/5 relative overflow-hidden">
-                            <div className="absolute top-0 left-0 w-1 h-full bg-purple-primary"></div>
-                            <h5 className="text-[10px] font-bold text-purple-400 mb-2 uppercase tracking-wider flex items-center gap-1">
-                              <FileText className="w-3.5 h-3.5" />
-                              Real-Time Transcription (Closed Captions)
-                            </h5>
-                            <div className="text-xs text-gray-400 leading-relaxed space-y-1">
-                              {getScriptSegments(currentLesson.script).map((segment, idx, arr) => {
-                                const segProgressStart = (idx / arr.length) * 100
-                                const segProgressEnd = ((idx + 1) / arr.length) * 100
-                                const isCurrent = videoProgress >= segProgressStart && videoProgress < segProgressEnd
-                                const isPast = videoProgress >= segProgressEnd
+                          <div className="space-y-6 max-h-[480px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-white/10">
+                            {(!activeCourse.quizzes || activeCourse.quizzes.length === 0) ? (
+                              <div className="text-center py-12 text-gray-500 italic">
+                                No quizzes generated for this course.
+                              </div>
+                            ) : (
+                              activeCourse.quizzes.map((q, qIdx) => {
+                                const selectedIdx = selectedAnswers[q.id]
+                                const isAnswered = selectedIdx !== undefined
+                                const isCorrect = isAnswered && selectedIdx === q.correctIndex
+                                const explanationVisible = showExplanation[q.id]
 
                                 return (
-                                  <span
-                                    key={idx}
-                                    className={`transition-all duration-300 mr-1.5 ${isCurrent
-                                        ? 'text-white font-medium bg-purple-primary/10 px-1 py-0.5 rounded border border-purple-primary/20 shadow-[0_0_8px_rgba(124,58,237,0.1)]'
-                                        : isPast
-                                          ? 'text-gray-500'
-                                          : 'text-gray-600'
-                                      }`}
-                                  >
-                                    {segment}{' '}
-                                  </span>
+                                  <div key={q.id} className="p-4 rounded-xl border border-white/5 bg-white/2 space-y-4">
+                                    <div className="flex items-start gap-3">
+                                      <span className="flex items-center justify-center w-5 h-5 rounded-full bg-purple-primary/20 text-purple-300 text-[10px] font-bold shrink-0 mt-0.5">
+                                        {qIdx + 1}
+                                      </span>
+                                      <h5 className="text-sm font-semibold text-white leading-relaxed">{q.question}</h5>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 gap-2.5 pl-8">
+                                      {q.options.map((opt, oIdx) => {
+                                        const isSelected = selectedIdx === oIdx
+                                        const isThisOptionCorrect = oIdx === q.correctIndex
+
+                                        let buttonStyles = 'border-white/5 bg-white/2 text-gray-300 hover:bg-white/5 hover:border-white/10'
+                                        if (isAnswered) {
+                                          if (isSelected) {
+                                            buttonStyles = isCorrect
+                                              ? 'border-emerald-500/35 bg-emerald-500/10 text-emerald-300'
+                                              : 'border-rose-500/35 bg-rose-500/10 text-rose-300'
+                                          } else if (isThisOptionCorrect) {
+                                            buttonStyles = 'border-emerald-500/25 bg-emerald-500/5 text-emerald-400'
+                                          } else {
+                                            buttonStyles = 'border-transparent bg-transparent text-gray-600 opacity-60 cursor-not-allowed'
+                                          }
+                                        }
+
+                                        return (
+                                          <button
+                                            key={opt}
+                                            disabled={isAnswered}
+                                            onClick={() => {
+                                              setSelectedAnswers(prev => ({ ...prev, [q.id]: oIdx }))
+                                              setShowExplanation(prev => ({ ...prev, [q.id]: true }))
+                                            }}
+                                            className={`w-full text-left px-4 py-2.5 rounded-xl text-xs font-medium transition-all duration-300 border flex items-center justify-between gap-3 cursor-pointer ${buttonStyles}`}
+                                          >
+                                            <span>{opt}</span>
+                                            {isAnswered && (
+                                              <span>
+                                                {isThisOptionCorrect ? (
+                                                  <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                                                ) : isSelected ? (
+                                                  <span className="text-rose-400 font-bold">✕</span>
+                                                ) : null}
+                                              </span>
+                                            )}
+                                          </button>
+                                        )
+                                      })}
+                                    </div>
+
+                                    {explanationVisible && (
+                                      <div className="mt-3 pl-8">
+                                        <div className="p-3 rounded-lg bg-purple-primary/5 border border-purple-primary/10 text-[11px] leading-relaxed text-gray-400 relative overflow-hidden">
+                                          <div className="absolute top-0 left-0 w-[2px] h-full bg-purple-primary"></div>
+                                          <p className="font-semibold text-purple-300 mb-1 flex items-center gap-1.5">
+                                            <Sparkles className="w-3 h-3 text-purple-400 animate-pulse" />
+                                            AI Concept Explanation
+                                          </p>
+                                          <p>{q.explanation}</p>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
                                 )
-                              })}
-                            </div>
+                              })
+                            )}
                           </div>
                         </div>
                       )}
