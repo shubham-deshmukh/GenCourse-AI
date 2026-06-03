@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import axios from 'axios'
 import { useAuth0 } from '@auth0/auth0-react'
 import { useAuthStore } from '../store/useAuthStore'
 import {
@@ -93,8 +94,8 @@ export default function PremiumDashboard() {
     setTimeout(() => setCopiedKey(false), 2000)
   }
 
-  // Pre-configured list of mock user courses
-  const userCourses = [
+  // Fallback list of mock user courses presets
+  const userCoursesPresets = [
     {
       title: 'Intro to React Hooks',
       progress: 66,
@@ -136,6 +137,106 @@ export default function PremiumDashboard() {
       tagColor: 'bg-rose-500/10 text-rose-300 border-rose-500/20'
     }
   ]
+
+  const [courses, setCourses] = useState<any[]>([])
+  const [isCoursesLoading, setIsCoursesLoading] = useState(true)
+
+  const fetchCourses = async () => {
+    try {
+      setIsCoursesLoading(true)
+      const response = await axios.get('http://localhost:5000/api/courses')
+      setCourses(response.data)
+    } catch (error) {
+      console.error('Error fetching courses from database:', error)
+      // fallback
+      const mockMapped = userCoursesPresets.map((c, idx) => ({
+        _id: `mock-${idx}`,
+        title: c.title,
+        description: '',
+        modules: Array.from({ length: c.lessonsCount }).map((_, mIdx) => ({
+          title: `Module ${mIdx + 1}`,
+          lessons: Array.from({ length: 1 })
+        })),
+        resources: [],
+        quizzes: []
+      }))
+      setCourses(mockMapped)
+    } finally {
+      setIsCoursesLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchCourses()
+  }, [])
+
+  const getCourseDecorations = (title: string, index: number) => {
+    if (title.includes('React Hooks')) {
+      return {
+        category: 'Development',
+        level: 'Intermediate',
+        bannerGradient: 'from-blue-600/20 to-purple-600/20 border-blue-500/20',
+        tagColor: 'bg-blue-500/10 text-blue-300 border-blue-500/20',
+        completedCount: 2,
+        progress: 66
+      }
+    }
+    if (title.includes('Copyright')) {
+      return {
+        category: 'Legal Studies',
+        level: 'Beginner',
+        bannerGradient: 'from-amber-600/20 to-orange-600/20 border-amber-500/20',
+        tagColor: 'bg-amber-500/10 text-amber-300 border-amber-500/20',
+        completedCount: 0,
+        progress: 0
+      }
+    }
+    if (title.includes('Quantum')) {
+      return {
+        category: 'Physics',
+        level: 'Advanced',
+        bannerGradient: 'from-cyan-600/20 to-emerald-600/20 border-cyan-500/20',
+        tagColor: 'bg-cyan-500/10 text-cyan-300 border-cyan-500/20',
+        completedCount: 2,
+        progress: 100
+      }
+    }
+    if (title.includes('Guitar')) {
+      return {
+        category: 'Music',
+        level: 'Beginner',
+        bannerGradient: 'from-rose-600/20 to-pink-600/20 border-rose-500/20',
+        tagColor: 'bg-rose-500/10 text-rose-300 border-rose-500/20',
+        completedCount: 1,
+        progress: 50
+      }
+    }
+
+    const categories = ['AI & Data', 'Business', 'Design', 'General Study']
+    const levels = ['Beginner', 'Intermediate', 'Advanced']
+    const gradients = [
+      'from-violet-600/20 to-fuchsia-600/20 border-violet-500/20',
+      'from-emerald-600/20 to-teal-600/20 border-emerald-500/20',
+      'from-indigo-600/20 to-blue-600/20 border-indigo-500/20',
+      'from-pink-600/20 to-rose-600/20 border-pink-500/20'
+    ]
+    const tagColors = [
+      'bg-violet-500/10 text-violet-300 border-violet-500/20',
+      'bg-emerald-500/10 text-emerald-300 border-emerald-500/20',
+      'bg-indigo-500/10 text-indigo-300 border-indigo-500/20',
+      'bg-pink-500/10 text-pink-300 border-pink-500/20'
+    ]
+
+    const modIdx = index % 4
+    return {
+      category: categories[modIdx],
+      level: levels[index % 3],
+      bannerGradient: gradients[modIdx],
+      tagColor: tagColors[modIdx],
+      completedCount: 0,
+      progress: 0
+    }
+  }
 
   return (
     <div className="flex h-screen bg-[#030014] text-white overflow-hidden relative">
@@ -383,54 +484,70 @@ export default function PremiumDashboard() {
                   </div>
 
                   {/* Course Cards Grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    {userCourses.map((c) => (
-                      <div
-                        key={c.title}
-                        className={`p-5 rounded-2xl border bg-gradient-to-br ${c.bannerGradient} transition-all duration-300 flex flex-col justify-between gap-6 shadow-lg relative overflow-hidden`}
-                      >
-                        <div className="absolute top-0 right-0 w-24 h-24 bg-white/1 rounded-full blur-2xl pointer-events-none"></div>
-                        <div className="space-y-3">
-                          <div className="flex justify-between items-start gap-3">
-                            <span className={`px-2 py-0.5 rounded-md border text-[9px] font-bold uppercase tracking-wider ${c.tagColor}`}>
-                              {c.category}
-                            </span>
-                            <span className="text-[10px] text-gray-400 font-semibold">{c.level}</span>
-                          </div>
-                          <h3 className="font-display font-bold text-lg text-white leading-tight">{c.title}</h3>
-                        </div>
+                  {isCoursesLoading ? (
+                    <div className="col-span-2 flex flex-col items-center justify-center py-20 text-gray-500">
+                      <div className="w-8 h-8 border-2 border-purple-primary/20 border-t-purple-primary rounded-full animate-spin mb-4"></div>
+                      <p className="text-xs">Loading academy courses...</p>
+                    </div>
+                  ) : courses.length === 0 ? (
+                    <div className="col-span-2 text-center py-20 text-gray-500 border border-dashed border-white/10 rounded-2xl bg-white/1">
+                      <p className="text-xs">Your course library is empty. Click "Generate Course" to build one!</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5 w-full">
+                      {courses.map((course, idx) => {
+                        const dec = getCourseDecorations(course.title, idx)
+                        const totalLessons = (course.modules || []).reduce((acc: number, m: any) => acc + (m.lessons?.length || 0), 0)
 
-                        <div className="space-y-4">
-                          {/* Progress */}
-                          <div className="space-y-1.5">
-                            <div className="flex justify-between text-xs text-gray-400">
-                              <span className="flex items-center gap-1 text-[11px]">
-                                <Clock className="w-3.5 h-3.5 text-gray-500" />
-                                {c.completedCount}/{c.lessonsCount} lessons complete
-                              </span>
-                              <span className="font-bold text-white">{c.progress}%</span>
+                        return (
+                          <div
+                            key={course._id || course.title}
+                            className={`p-5 rounded-2xl border bg-gradient-to-br ${dec.bannerGradient} transition-all duration-300 flex flex-col justify-between gap-6 shadow-lg relative overflow-hidden`}
+                          >
+                            <div className="absolute top-0 right-0 w-24 h-24 bg-white/1 rounded-full blur-2xl pointer-events-none"></div>
+                            <div className="space-y-3">
+                              <div className="flex justify-between items-start gap-3">
+                                <span className={`px-2 py-0.5 rounded-md border text-[9px] font-bold uppercase tracking-wider ${dec.tagColor}`}>
+                                  {dec.category}
+                                </span>
+                                <span className="text-[10px] text-gray-400 font-semibold">{dec.level}</span>
+                              </div>
+                              <h3 className="font-display font-bold text-lg text-white leading-tight">{course.title}</h3>
                             </div>
-                            <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
-                              <div
-                                className="bg-gradient-to-r from-purple-primary to-cyan-primary h-full transition-all duration-300"
-                                style={{ width: `${c.progress}%` }}
-                              ></div>
-                            </div>
-                          </div>
 
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => setSelectedCourseForPlayer(c.title)}
-                              className="flex-1 py-2.5 rounded-xl bg-white/5 hover:bg-white/15 border border-white/8 text-white text-xs font-semibold transition cursor-pointer flex items-center justify-center gap-1 hover:scale-[1.01]"
-                            >
-                              <span>{c.progress === 100 ? 'Review Course' : c.progress === 0 ? 'Start Course' : 'Resume Course'}</span>
-                              <ChevronRight className="w-3.5 h-3.5" />
-                            </button>
+                            <div className="space-y-4">
+                              {/* Progress */}
+                              <div className="space-y-1.5">
+                                <div className="flex justify-between text-xs text-gray-400">
+                                  <span className="flex items-center gap-1 text-[11px]">
+                                    <Clock className="w-3.5 h-3.5 text-gray-500" />
+                                    {dec.completedCount}/{totalLessons} lessons complete
+                                  </span>
+                                  <span className="font-bold text-white">{dec.progress}%</span>
+                                </div>
+                                <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
+                                  <div
+                                    className="bg-gradient-to-r from-purple-primary to-cyan-primary h-full transition-all duration-300"
+                                    style={{ width: `${dec.progress}%` }}
+                                  ></div>
+                                </div>
+                              </div>
+
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => setSelectedCourseForPlayer(course.title)}
+                                  className="flex-1 py-2.5 rounded-xl bg-white/5 hover:bg-white/15 border border-white/8 text-white text-xs font-semibold transition cursor-pointer flex items-center justify-center gap-1 hover:scale-[1.01]"
+                                >
+                                  <span>{dec.progress === 100 ? 'Review Course' : dec.progress === 0 ? 'Start Course' : 'Resume Course'}</span>
+                                  <ChevronRight className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                        )
+                      })}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -452,6 +569,7 @@ export default function PremiumDashboard() {
                       isGenerating={simulatorIsGenerating}
                       setIsGenerating={setSimulatorIsGenerating}
                       minimal={true}
+                      onSimulationComplete={fetchCourses}
                     />
                   </div>
                 </div>

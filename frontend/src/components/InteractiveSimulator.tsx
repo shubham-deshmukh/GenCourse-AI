@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import axios from 'axios'
 import {
   BookOpen,
   Play,
@@ -26,6 +27,7 @@ interface InteractiveSimulatorProps {
   setIsGenerating: (val: boolean) => void
   minimal?: boolean
   hideInput?: boolean
+  onSimulationComplete?: () => void
 }
 
 // Sample Data Structure
@@ -361,7 +363,8 @@ export default function InteractiveSimulator({
   isGenerating,
   setIsGenerating,
   minimal = false,
-  hideInput = false
+  hideInput = false,
+  onSimulationComplete
 }: InteractiveSimulatorProps) {
   const [activeCourse, setActiveCourse] = useState<CourseData | null>(null)
   const [activeModuleIndex, setActiveModuleIndex] = useState(0)
@@ -472,21 +475,33 @@ export default function InteractiveSimulator({
       if (progressVal >= 100) {
         clearInterval(interval)
         setCurrentStepIndex(6) // all done
-        setIsGenerating(false)
 
-        // Find course data or default to React Hooks
-        const matchingCourse = COURSES_DATABASE[topic] || COURSES_DATABASE['Intro to React Hooks']
-        setActiveCourse({
-          ...matchingCourse,
-          title: topic // dynamic title
-        })
-        setActiveModuleIndex(0)
-        setActiveLessonIndex(0)
-        setVideoProgress(0)
-        setIsPlayingVideo(false)
-        setActiveTab('content')
-        setSelectedAnswers({})
-        setShowExplanation({})
+        // Save simulated course details to MongoDB
+        axios.post('http://localhost:5000/api/courses', { title: topic })
+          .then((res) => {
+            setActiveCourse(res.data)
+            if (onSimulationComplete) {
+              onSimulationComplete()
+            }
+          })
+          .catch((err) => {
+            console.error('Error saving simulated course to database:', err)
+            const matchingCourse = COURSES_DATABASE[topic] || COURSES_DATABASE['Intro to React Hooks']
+            setActiveCourse({
+              ...matchingCourse,
+              title: topic
+            })
+          })
+          .finally(() => {
+            setIsGenerating(false)
+            setActiveModuleIndex(0)
+            setActiveLessonIndex(0)
+            setVideoProgress(0)
+            setIsPlayingVideo(false)
+            setActiveTab('content')
+            setSelectedAnswers({})
+            setShowExplanation({})
+          })
       }
     }, 150)
   }
@@ -510,12 +525,31 @@ export default function InteractiveSimulator({
 
   // Load default/selected course matching prompt on page load or when prompt shifts
   useEffect(() => {
-    if (!isGenerating) {
-      const matchingCourse = COURSES_DATABASE[prompt] || COURSES_DATABASE['Intro to React Hooks']
-      setActiveCourse({
-        ...matchingCourse,
-        title: prompt || 'Intro to React Hooks'
-      })
+    let active = true
+    const loadCourseData = async () => {
+      if (!isGenerating && prompt) {
+        try {
+          const response = await axios.post('http://localhost:5000/api/courses', {
+            title: prompt
+          })
+          if (active) {
+            setActiveCourse(response.data)
+          }
+        } catch (error) {
+          console.error('Error loading course from database:', error)
+          const matchingCourse = COURSES_DATABASE[prompt] || COURSES_DATABASE['Intro to React Hooks']
+          if (active) {
+            setActiveCourse({
+              ...matchingCourse,
+              title: prompt || 'Intro to React Hooks'
+            })
+          }
+        }
+      }
+    }
+    loadCourseData()
+    return () => {
+      active = false
     }
   }, [prompt, isGenerating])
 
