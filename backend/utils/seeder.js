@@ -294,6 +294,225 @@ const COURSES_DATABASE = [
         ]
       }
     ]
+  },
+  {
+    title: 'Mastering Docker & Containers',
+    description: 'Learn containerization from scratch, building images, managing networks, volumes, and running multi-container applications with Docker Compose.',
+    resources: [
+      { name: 'Docker_Cheat_Sheet.pdf', size: '3.1 MB', type: 'PDF' },
+      { name: 'Docker_Compose_Playbook.zip', size: '8.4 MB', type: 'ZIP' }
+    ],
+    quizzes: [
+      {
+        id: 'dk-q1',
+        question: 'What is the main difference between a container and a virtual machine (VM)?',
+        options: [
+          'Containers virtualize the underlying hardware while VMs virtualize the guest OS',
+          'Containers share the host OS kernel and are lightweight, while VMs run full guest OS instances',
+          'VMs are faster to boot up than containers',
+          'Containers require hypervisors like Hyper-V to run'
+        ],
+        correctIndex: 1,
+        explanation: 'Containers share the host system’s operating system kernel and require much fewer resources than VMs, which package a full operating system.'
+      },
+      {
+        id: 'dk-q2',
+        question: 'Which Docker instruction is used to define the default command to run when starting a container?',
+        options: ['RUN', 'CMD', 'ENTRYPOINT', 'EXPOSE'],
+        correctIndex: 1,
+        explanation: 'The CMD instruction sets the default command that runs when a container is started from the image, but it can be overridden by command-line arguments.'
+      }
+    ],
+    modules: [
+      {
+        title: 'Module 1: Docker Basics',
+        lessons: [
+          {
+            title: '1.1 Containerization Concepts',
+            content: {
+              en: `Containerization is a lightweight form of virtualization. Instead of duplicating a full operating system for every virtual machine, containers share the host operating system's kernel. Docker manages isolated environments called containers using Linux namespaces and cgroups.\n\n### Key Takeaways:\n- Containers share the host kernel.\n- Isolation is achieved through namespaces.\n- Fast startup times and minimal resource footprint compared to VMs.`,
+              es: `La contenedorización es una forma ligera de virtualización. En lugar de duplicar un sistema operativo completo, los contenedores comparten el núcleo del sistema operativo del host.`,
+              fr: `La conteneurisation est une forme légère de virtualisation. Au lieu de dupliquer un système d'exploitation complet, les conteneurs partagent le noyau de l'hôte.`
+            },
+            script: 'Welcome to Mastering Docker. In this first lesson, we will dissect containerization, discuss the host OS kernel sharing model, and contrast containers with virtual machines.',
+            videoSlide: 'Introduction to Containers: Architecture, Kernel Sharing & Isolation'
+          },
+          {
+            title: '1.2 Creating a Custom Dockerfile',
+            content: {
+              en: `A Dockerfile is a text document containing all the commands a user could call on the command line to assemble an image. Key instructions include FROM, COPY, RUN, EXPOSE, and CMD.\n\n\`\`\`dockerfile\nFROM node:18-alpine\nWORKDIR /app\nCOPY package*.json ./\nRUN npm install\nCOPY . .\nCMD ["node", "server.js"]\n\`\`\`\nThis builds a clean Node environment layer by layer.`,
+              es: `Un Dockerfile es un documento de texto que contiene todos los comandos necesarios para ensamblar una imagen.`,
+              fr: `Un Dockerfile est un document texte contenant toutes les instructions nécessaires pour assembler une image.`
+            },
+            script: 'Let’s construct a Dockerfile. We will write instructions layer by layer to containerize a Node.js web server and optimize caching with package dependency copying.',
+            videoSlide: 'Writing Dockerfiles: FROM, RUN, COPY, and CMD Instructions'
+          }
+        ]
+      }
+    ]
+  },
+  {
+    title: 'Introduction to TypeScript',
+    description: 'Supercharge your JavaScript with static typing, interfaces, custom types, generics, and strict compiler configurations.',
+    resources: [
+      { name: 'TypeScript_Quick_Reference.pdf', size: '2.9 MB', type: 'PDF' },
+      { name: 'TypeScript_Exercises_TSConfig.zip', size: '4.2 MB', type: 'ZIP' }
+    ],
+    quizzes: [
+      {
+        id: 'ts-q1',
+        question: 'Which Mapped Type modifier is used to make all properties in a type optional?',
+        options: ['Partial<T>', 'Readonly<T>', 'Pick<T, K>', 'Omit<T, K>'],
+        correctIndex: 0,
+        explanation: 'Partial<T> construct a type with all properties of T set to optional, which is useful when updating subsets of data.'
+      },
+      {
+        id: 'ts-q2',
+        question: 'What does the "unknown" type represent in TypeScript?',
+        options: [
+          'A type that can assign to any other type without type assertion check',
+          'A type-safe counterpart to any, requiring a type check or assertion before operation',
+          'A deprecated variable declaration syntax',
+          'An internal compiler error statement'
+        ],
+        correctIndex: 1,
+        explanation: 'unknown is type-safe because it represents any value, but forces developers to narrow or assert the type before performing operations on it.'
+      }
+    ],
+    modules: [
+      {
+        title: 'Module 1: The Foundations of Typing',
+        lessons: [
+          {
+            title: '1.1 Why TypeScript?',
+            content: {
+              en: `TypeScript is a typed superset of JavaScript that compiles to plain JavaScript. It adds static types, which allow developers to catch errors at compile time rather than runtime. Type definitions act as inline documentation, making refactoring easier and reducing unit test overhead.\n\n### Key Benefits:\n- Static type checking catches typos and type mismatches instantly.\n- Rich IDE autocompletion and structural diagnostics.\n- Compiles down to standard ECMA compliance.`,
+              es: `TypeScript es un superconjunto tipado de JavaScript que se compila en JavaScript normal, proporcionando análisis estático para detectar errores temprano.`,
+              fr: `TypeScript est un sur-ensemble typé de JavaScript qui se compile en JavaScript standard, offrant une analyse statique pour détecter les erreurs tôt.`
+            },
+            script: 'Welcome to Introduction to TypeScript. Today, we look at the limitations of dynamic typing in JavaScript and how TypeScript adds type safety without runtime overhead.',
+            videoSlide: 'The TypeScript Ecosystem: Static Analysis & Compilation'
+          },
+          {
+            title: '1.2 Interfaces vs Type Aliases',
+            content: {
+              en: `Both interfaces and type aliases can be used to describe the shape of an object. However, interfaces can be merged multiple times (declaration merging) and are extendable via 'extends', whereas types use intersections (&) and can define primitives or unions.\n\n\`\`\`typescript\ninterface User {\n  id: string;\n  name: string;\n}\n\ntype Theme = "dark" | "light";\n\`\`\`\nChoosing between them depends on whether you require open-ended extension or custom unions.`,
+              es: `Las interfaces y los alias de tipo describen la forma de un objeto. Las interfaces permiten la combinación de declaraciones, mientras que los tipos admiten uniones.`,
+              fr: `Les interfaces et les alias de type décrivent la forme d'un objet. Les interfaces permettent la fusion, tandis que les types supportent les unions.`
+            },
+            script: 'Let’s compare Interfaces and Type Aliases. We will learn when to write interfaces for extension and when to use type unions to restrict acceptable values.',
+            videoSlide: 'Structural Shapes: Interface Extending vs Type Aliasing'
+          }
+        ]
+      }
+    ]
+  },
+  {
+    title: 'Advanced CSS Layouts',
+    description: 'Master modern CSS layouts: Grid systems, Flexbox alignment, responsive media queries, and custom component variables.',
+    resources: [
+      { name: 'CSS_Grid_Flexbox_Reference.pdf', size: '3.5 MB', type: 'PDF' },
+      { name: 'Responsive_Grid_Templates.zip', size: '9.1 MB', type: 'ZIP' }
+    ],
+    quizzes: [
+      {
+        id: 'css-q1',
+        question: 'Which property is used in CSS Grid to set shorthand rows, columns, and areas?',
+        options: ['grid', 'grid-template', 'grid-gap', 'grid-flow'],
+        correctIndex: 1,
+        explanation: 'grid-template is the shorthand property for setting grid-template-rows, grid-template-columns, and grid-template-areas.'
+      },
+      {
+        id: 'css-q2',
+        question: 'What is the default value of the "flex-shrink" property?',
+        options: ['0', '1', 'auto', 'none'],
+        correctIndex: 1,
+        explanation: 'The default value for flex-shrink is 1, which means elements inside a flex container will shrink to fit the container space if necessary.'
+      }
+    ],
+    modules: [
+      {
+        title: 'Module 1: Flexbox vs Grid',
+        lessons: [
+          {
+            title: '1.1 Flexbox: One-Dimensional Layouts',
+            content: {
+              en: `Flexbox is designed for laying out items in a single dimension—either a row or a column. It distributes space and aligns items along the main axis and cross axis using properties like justify-content and align-items.\n\n### Key Concepts:\n- Main Axis vs Cross Axis alignment.\n- Flex-grow and Flex-shrink factors.\n- Wrapping items with flex-wrap controls.`,
+              es: `Flexbox está diseñado para organizar elementos en una sola dimensión (fila o columna) y distribuir el espacio de manera flexible.`,
+              fr: `Flexbox est conçu pour organiser les éléments dans une seule dimension (ligne ou colonne) et distribuer l'espace de manière flexible.`
+            },
+            script: 'Welcome to Advanced CSS Layouts. In this lesson, we master Flexbox, aligning components along axes, and controlling shrink and grow factors.',
+            videoSlide: 'Flexbox Mechanics: Main Axis Alignment & Flex Growing'
+          },
+          {
+            title: '1.2 CSS Grid: Two-Dimensional Layouts',
+            content: {
+              en: `CSS Grid is a two-dimensional layout system that handles both columns and rows simultaneously. It enables layouts using grid templates, fractions (fr units), and grid template areas.\n\n\`\`\`css\n.grid-container {\n  display: grid;\n  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));\n  gap: 20px;\n}\n\`\`\`\nThis sets up a fully responsive card grid without media queries.`,
+              es: `CSS Grid es un sistema bidimensional que maneja columnas y filas al mismo tiempo, permitiendo estructuras de rejilla complejas.`,
+              fr: `CSS Grid es un sistema bidimensional que maneja columnas y filas al mismo tiempo, permitiendo estructuras de rejilla complejas.`
+            },
+            script: 'Let’s explore CSS Grid. We will write responsive auto-fit grids that rearrange columns based on viewport sizing using the minmax function.',
+            videoSlide: 'CSS Grid: 2D Templates, Fractions, and Auto-Fit Properties'
+          }
+        ]
+      }
+    ]
+  },
+  {
+    title: 'Building REST APIs with Node & Express',
+    description: 'Learn the fundamentals of backend APIs: routing, parsing request parameters, request validation, middleware flows, and controller logic.',
+    resources: [
+      { name: 'REST_API_Design_Guide.pdf', size: '2.2 MB', type: 'PDF' },
+      { name: 'Express_Middleware_Examples.zip', size: '6.7 MB', type: 'ZIP' }
+    ],
+    quizzes: [
+      {
+        id: 'api-q1',
+        question: 'Which HTTP method should be used to partially update an existing resource?',
+        options: ['PUT', 'POST', 'PATCH', 'DELETE'],
+        correctIndex: 2,
+        explanation: 'PATCH is used to apply partial modifications to a resource, whereas PUT typically replaces the entire resource.'
+      },
+      {
+        id: 'api-q2',
+        question: 'What is the signature of standard Express middleware functions?',
+        options: [
+          '(req, res) => {}',
+          '(req, res, next) => {}',
+          '(err, req, res, next) => {}',
+          '(res, req) => {}'
+        ],
+        correctIndex: 1,
+        explanation: 'Standard Express middleware accepts three arguments: request (req), response (res), and the callback function to yield to the next middleware (next).'
+      }
+    ],
+    modules: [
+      {
+        title: 'Module 1: Express Routing & Requests',
+        lessons: [
+          {
+            title: '1.1 Understanding REST Constraints',
+            content: {
+              en: `Representational State Transfer (REST) is an architectural style for designing networked applications. It relies on a stateless, client-server cacheable communication protocol, typically HTTP.\n\n### Key REST Constraints:\n- Client-server separation.\n- Stateless requests: Each request contains all information needed.\n- Uniform Interface: Standard HTTP methods (GET, POST, PUT, DELETE).`,
+              es: `REST es un estilo arquitectónico para diseñar aplicaciones de red. Se basa en peticiones sin estado y métodos HTTP estándar.`,
+              fr: `REST est un style architectural pour concevoir des applications réseau. Il repose sur des requêtes sans état et des méthodes HTTP standard.`
+            },
+            script: 'Welcome to REST APIs with Express. Today, we study REST architectural constraints and map HTTP methods directly to CRUD database actions.',
+            videoSlide: 'REST Principles: Statelessness, HTTP Methods, and CRUD mappings'
+          },
+          {
+            title: '1.2 Writing Express Routes & Middlewares',
+            content: {
+              en: `Routing determines how an application responds to a client request to a particular endpoint. Middlewares are functions that have access to the request object, response object, and the next function.\n\n\`\`\`javascript\nconst checkAuth = (req, res, next) => {\n  if (!req.headers.authorization) {\n    return res.status(401).json({ error: "Unauthorized" });\n  }\n  next();\n};\n\nrouter.get("/data", checkAuth, getData);\n\`\`\`\nMiddlewares intercept requests to run validations or logger updates.`,
+              es: `Las rutas determinan cómo responde la aplicación a los puntos finales. El middleware procesa y valida las solicitudes antes del controlador.`,
+              fr: `Les routes déterminent comment l'application répond aux requêtes. Le middleware intercepte et valide les requêtes avant le contrôleur.`
+            },
+            script: 'Let’s build Express routes. We will write custom authorization middleware functions that inspect request headers before passing execution.',
+            videoSlide: 'Express Architecture: Routing Pipeline & Middleware Handlers'
+          }
+        ]
+      }
+    ]
   }
 ];
 

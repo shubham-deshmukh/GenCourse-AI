@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import morgan from 'morgan';
 import connectDB from './config/db.js';
+import courseRoutes from './routes/courseRoutes.js';
 
 // Load environment variables
 dotenv.config();
@@ -42,6 +43,9 @@ app.get('/api/health', (req, res) => {
     environment: NODE_ENV
   });
 });
+
+// API Routes
+app.use('/api/courses', courseRoutes);
 
 // 404 Route handler
 app.use((req, res, next) => {
