@@ -44,7 +44,7 @@ export default function App() {
       <div className="fixed top-0 left-0 right-0 h-[500px] bg-gradient-to-b from-purple-primary/10 via-transparent to-transparent -z-10 blur-3xl pointer-events-none"></div>
 
       {/* Navigation */}
-      <Navbar />
+      {!isAuthenticated && <Navbar />}
 
       {isAuthenticated ? (
         <PremiumDashboard />
