@@ -1,7 +1,9 @@
 import Course from '../models/Course.js';
 import Module from '../models/Module.js';
 import Lesson from '../models/Lesson.js';
+import User from '../models/User.js';
 import { generateCourseOutline, generateLessonDetails } from '../services/llmService.js';
+import mongoose from 'mongoose';
 import fs from 'fs';
 
 // Pre-seeded template lookup list for fallback matching
@@ -294,3 +296,67 @@ export const createCourse = async (req, res, next) => {
     next(error);
   }
 };
+
+/**
+ * @desc    Delete a course and all associated modules, lessons, and user references
+ * @route   DELETE /api/courses/:id
+ * @access  Public
+ */
+export const deleteCourse = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'Invalid Course ID format' });
+    }
+
+    const course = await Course.findById(id);
+    if (!course) {
+      return res.status(404).json({ message: 'Course not found' });
+    }
+
+    const courseId = course._id;
+    console.log(`🧹 Deleting course: "${course.title}" (${courseId})`);
+
+    // 1. Find all associated modules
+    const modules = await Module.find({ courseId });
+    const moduleIds = modules.map((m) => m._id);
+
+    // 2. Find all lessons associated with these modules
+    const lessons = await Lesson.find({ moduleId: { $in: moduleIds } });
+    const lessonIds = lessons.map((l) => l._id);
+
+    // 3. Delete lessons from DB
+    if (lessonIds.length > 0) {
+      await Lesson.deleteMany({ _id: { $in: lessonIds } });
+      console.log(`  🗑️ Deleted ${lessonIds.length} lessons.`);
+    }
+
+    // 4. Delete modules from DB
+    if (moduleIds.length > 0) {
+      await Module.deleteMany({ _id: { $in: moduleIds } });
+      console.log(`  🗑️ Deleted ${moduleIds.length} modules.`);
+    }
+
+    // 5. Clean up User profiles (pull course and lesson references)
+    await User.updateMany(
+      {},
+      {
+        $pull: {
+          enrolledCourses: courseId,
+          completedLessons: { $in: lessonIds }
+        }
+      }
+    );
+    console.log(`  👤 Cleaned up enrolled courses and completed lessons from user profiles.`);
+
+    // 6. Delete the Course itself
+    await Course.findByIdAndDelete(courseId);
+    console.log(`✅ Successfully deleted course "${course.title}".`);
+
+    res.json({ message: 'Course and all related data successfully deleted' });
+  } catch (error) {
+    next(error);
+  }
+};
+
