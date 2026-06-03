@@ -392,6 +392,7 @@ export default function InteractiveSimulator({
 
   // Telemetry Console Ref
   const logsContainerRef = useRef<HTMLDivElement>(null)
+  const isRunningRef = useRef(false)
 
   const steps = [
     { title: 'Topic Analyzer', desc: 'Analyzing keywords, target audience & goals', icon: Search },
@@ -431,6 +432,7 @@ export default function InteractiveSimulator({
   }, [isPlayingVideo])
 
   const runSimulation = (topic: string) => {
+    isRunningRef.current = true
     setActiveCourse(null)
     setCurrentStepIndex(0)
     setProgress(0)
@@ -493,6 +495,7 @@ export default function InteractiveSimulator({
             })
           })
           .finally(() => {
+            isRunningRef.current = false
             setIsGenerating(false)
             setActiveModuleIndex(0)
             setActiveLessonIndex(0)
@@ -505,8 +508,6 @@ export default function InteractiveSimulator({
       }
     }, 150)
   }
-
-  const isRunningRef = useRef(false)
 
   // Hook simulator trigger from Hero or elsewhere
   useEffect(() => {
@@ -527,7 +528,8 @@ export default function InteractiveSimulator({
   useEffect(() => {
     let active = true
     const loadCourseData = async () => {
-      if (!isGenerating && prompt) {
+      // Only auto-load if in player mode (hideInput is true)
+      if (!isGenerating && prompt && hideInput) {
         try {
           const response = await axios.post('http://localhost:5000/api/courses', {
             title: prompt
@@ -551,7 +553,7 @@ export default function InteractiveSimulator({
     return () => {
       active = false
     }
-  }, [prompt, isGenerating])
+  }, [prompt, isGenerating, hideInput])
 
   const currentLesson = activeCourse?.modules?.[activeModuleIndex]?.lessons?.[activeLessonIndex]
   const lessonKey = activeCourse ? `${activeCourse.title}-${activeModuleIndex}-${activeLessonIndex}` : ''

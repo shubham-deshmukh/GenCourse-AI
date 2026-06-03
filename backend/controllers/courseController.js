@@ -175,12 +175,12 @@ export const createCourse = async (req, res, next) => {
         console.log(`🤖 Compiling curriculum outline for "${trimmedTitle}" via LLM...`);
         const outline = await generateCourseOutline(trimmedTitle);
         console.log(`✅ Outline returned: "${outline.title}" with ${outline.modules?.length} modules.`);
-        
+
         const modulesData = [];
         for (let mIdx = 0; mIdx < outline.modules.length; mIdx++) {
           const mod = outline.modules[mIdx];
           console.log(`  📦 Module: "${mod.title}" has ${mod.lessonTitles?.length} lessons.`);
-          
+
           const lessonsList = [];
           for (let lIdx = 0; lIdx < mod.lessonTitles.length; lIdx++) {
             const lessonTitle = mod.lessonTitles[lIdx];
@@ -200,13 +200,13 @@ export const createCourse = async (req, res, next) => {
               videoSlide: `Visual slide showing core concepts of ${lessonTitle}`
             });
           }
-          
+
           modulesData.push({
             title: mod.title,
             lessons: lessonsList
           });
         }
-        
+
         cData = {
           title: outline.title || trimmedTitle,
           description: outline.description || `A dynamic course on ${trimmedTitle}.`,
@@ -216,7 +216,7 @@ export const createCourse = async (req, res, next) => {
           quizzes: outline.quizzes || [],
           modules: modulesData
         };
-        
+
         console.log(`💾 Saving generated course structure to DB...`);
         isRealAI = true;
       } catch (err) {

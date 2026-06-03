@@ -21,6 +21,7 @@ import {
   Copy,
   Check,
   Sparkles,
+  Trash2,
 } from 'lucide-react'
 import InteractiveSimulator from './InteractiveSimulator'
 
@@ -163,6 +164,28 @@ export default function PremiumDashboard() {
       setCourses(mockMapped)
     } finally {
       setIsCoursesLoading(false)
+    }
+  }
+
+  const handleDeleteCourse = async (courseId: string, e: React.MouseEvent) => {
+    e.stopPropagation() // Prevent click from triggering open
+    
+    // Check if it's a mock course
+    if (courseId.startsWith('mock-')) {
+      alert("Mock courses cannot be deleted as they are local presets.")
+      return
+    }
+
+    const confirmDelete = window.confirm("Are you sure you want to delete this course and all its progress?")
+    if (!confirmDelete) return
+
+    try {
+      await axios.delete(`http://localhost:5000/api/courses/${courseId}`)
+      await fetchCourses()
+    } catch (error: any) {
+      console.error('Error deleting course:', error)
+      const errMsg = error.response?.data?.message || 'Please make sure the backend is running.'
+      alert(`Failed to delete course: ${errMsg}`)
     }
   }
 
@@ -540,6 +563,13 @@ export default function PremiumDashboard() {
                                 >
                                   <span>{dec.progress === 100 ? 'Review Course' : dec.progress === 0 ? 'Start Course' : 'Resume Course'}</span>
                                   <ChevronRight className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  onClick={(e) => handleDeleteCourse(course._id, e)}
+                                  className="p-2.5 rounded-xl bg-red-500/10 hover:bg-red-500/25 border border-red-500/20 hover:border-red-500/40 text-red-400 hover:text-red-300 transition cursor-pointer flex items-center justify-center"
+                                  title="Delete Course"
+                                >
+                                  <Trash2 className="w-4 h-4" />
                                 </button>
                               </div>
                             </div>
