@@ -24,6 +24,8 @@ interface InteractiveSimulatorProps {
   setPrompt: (val: string) => void
   isGenerating: boolean
   setIsGenerating: (val: boolean) => void
+  minimal?: boolean
+  hideInput?: boolean
 }
 
 // Sample Data Structure
@@ -357,7 +359,9 @@ export default function InteractiveSimulator({
   prompt,
   setPrompt,
   isGenerating,
-  setIsGenerating
+  setIsGenerating,
+  minimal = false,
+  hideInput = false
 }: InteractiveSimulatorProps) {
   const [activeCourse, setActiveCourse] = useState<CourseData | null>(null)
   const [activeModuleIndex, setActiveModuleIndex] = useState(0)
@@ -504,10 +508,16 @@ export default function InteractiveSimulator({
     runSimulation(prompt || 'Intro to React Hooks')
   }
 
-  // Pre-load default state for user to see on page load
+  // Load default/selected course matching prompt on page load or when prompt shifts
   useEffect(() => {
-    setActiveCourse(COURSES_DATABASE['Intro to React Hooks'])
-  }, [])
+    if (!isGenerating) {
+      const matchingCourse = COURSES_DATABASE[prompt] || COURSES_DATABASE['Intro to React Hooks']
+      setActiveCourse({
+        ...matchingCourse,
+        title: prompt || 'Intro to React Hooks'
+      })
+    }
+  }, [prompt, isGenerating])
 
   const currentLesson = activeCourse?.modules?.[activeModuleIndex]?.lessons?.[activeLessonIndex]
   const lessonKey = activeCourse ? `${activeCourse.title}-${activeModuleIndex}-${activeLessonIndex}` : ''
@@ -693,14 +703,12 @@ export default function InteractiveSimulator({
             return next
           })
         }, 3000)
-      } else {
-        setDownloadProgress(prev => ({ ...prev, [name]: currentProgress }))
       }
     }, 150)
   }
 
   return (
-    <section id="demo" className="py-24 bg-[#030014] relative">
+    <section id="demo" className={minimal ? 'relative z-10 w-full' : 'py-24 bg-[#030014] relative'}>
       <style dangerouslySetInnerHTML={{ __html: `
         @keyframes soundwave {
           0%, 100% { height: 4px; }
@@ -710,206 +718,215 @@ export default function InteractiveSimulator({
           animation: soundwave 1.2s ease-in-out infinite;
         }
       `}} />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,rgba(124,58,237,0.08),transparent_50%)] pointer-events-none"></div>
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(6,182,212,0.08),transparent_50%)] pointer-events-none"></div>
+      {!minimal && (
+        <>
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,rgba(124,58,237,0.08),transparent_50%)] pointer-events-none"></div>
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(6,182,212,0.08),transparent_50%)] pointer-events-none"></div>
+        </>
+      )}
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        <div className="text-center mb-16">
-          <h2 className="font-display font-bold text-3xl md:text-5xl text-gradient-purple-cyan mb-4">
-            Interactive Generator Workspace
-          </h2>
-          <p className="font-sans text-gray-400 text-lg max-w-2xl mx-auto">
-            Test our course engine. Enter a custom topic or watch our AI pipeline assemble lessons, scripts, and multi-language worksheets.
-          </p>
-        </div>
+      <div className={minimal ? 'w-full' : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10'}>
+        {!minimal && (
+          <div className="text-center mb-16">
+            <h2 className="font-display font-bold text-3xl md:text-5xl text-gradient-purple-cyan mb-4">
+              Interactive Generator Workspace
+            </h2>
+            <p className="font-sans text-gray-400 text-lg max-w-2xl mx-auto">
+              Test our course engine. Enter a custom topic or watch our AI pipeline assemble lessons, scripts, and multi-language worksheets.
+            </p>
+          </div>
+        )}
 
         {/* Input Bar inside workspace */}
-        <div className="max-w-xl mx-auto mb-12">
-          <form onSubmit={handleManualTrigger} className="flex gap-2 p-1.5 rounded-full bg-white/2 border border-white/8 backdrop-blur-md focus-within:border-purple-primary/50 focus-within:shadow-[0_0_20px_rgba(124,58,237,0.15)] transition-all duration-300">
-            <div className="flex-1 flex items-center pl-3">
-              <Search className="w-4 h-4 text-gray-500 mr-2 shrink-0" />
-              <input
-                type="text"
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                placeholder="e.g. Intro to React Hooks"
-                className="w-full bg-transparent border-none text-white text-sm focus:outline-none placeholder-gray-500"
-                disabled={isGenerating}
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={isGenerating}
-              className="px-6 py-2.5 rounded-full bg-gradient-to-r from-purple-primary to-cyan-primary hover:from-purple-600 hover:to-cyan-500 disabled:opacity-50 text-white text-xs font-bold transition-all duration-300 flex items-center gap-1.5 cursor-pointer shadow-[0_4px_12px_rgba(124,58,237,0.25)] hover:shadow-[0_4px_20px_rgba(124,58,237,0.4)] btn-glow"
-            >
-              {isGenerating ? (
-                <>
-                  <span>Simulating...</span>
-                  <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                </>
-              ) : (
-                <>
-                  <span>Simulate</span>
-                  <Cpu className="w-3.5 h-3.5" />
-                </>
-              )}
-            </button>
-          </form>
-
-          {/* Quick suggest chips */}
-          <div className="flex flex-wrap justify-center gap-2 mt-4">
-            <span className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider self-center mr-1">
-              Suggested Topics:
-            </span>
-            {QUICK_SUGGESTIONS.map((sug) => {
-              const isSelected = prompt === sug.topic
-              return (
-                <button
-                  key={sug.topic}
-                  type="button"
+        {!hideInput && (
+          <div className="max-w-xl mx-auto mb-12">
+            <form onSubmit={handleManualTrigger} className="flex gap-2 p-1.5 rounded-full bg-white/2 border border-white/8 backdrop-blur-md focus-within:border-purple-primary/50 focus-within:shadow-[0_0_20px_rgba(124,58,237,0.15)] transition-all duration-300">
+              <div className="flex-1 flex items-center pl-3">
+                <Search className="w-4 h-4 text-gray-500 mr-2 shrink-0" />
+                <input
+                  type="text"
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  placeholder="e.g. Intro to React Hooks"
+                  className="w-full bg-transparent border-none text-white text-sm focus:outline-none placeholder-gray-500"
                   disabled={isGenerating}
-                  onClick={() => {
-                    setPrompt(sug.topic)
-                    runSimulation(sug.topic)
-                  }}
-                  className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all duration-300 flex items-center gap-1.5 border cursor-pointer ${isSelected
-                      ? 'bg-purple-primary/20 border-purple-primary/40 text-purple-300 shadow-[0_0_10px_rgba(124,58,237,0.15)]'
-                      : 'bg-white/2 hover:bg-white/5 border-white/5 hover:border-white/10 text-gray-400 hover:text-white'
-                    }`}
-                >
-                  <span>{sug.icon}</span>
-                  <span>{sug.label}</span>
-                </button>
-              )
-            })}
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={isGenerating}
+                className="px-6 py-2.5 rounded-full bg-gradient-to-r from-purple-primary to-cyan-primary hover:from-purple-600 hover:to-cyan-500 disabled:opacity-50 text-white text-xs font-bold transition-all duration-300 flex items-center gap-1.5 cursor-pointer shadow-[0_4px_12px_rgba(124,58,237,0.25)] hover:shadow-[0_4px_20px_rgba(124,58,237,0.4)] btn-glow"
+              >
+                {isGenerating ? (
+                  <>
+                    <span>Simulating...</span>
+                    <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  </>
+                ) : (
+                  <>
+                    <span>Simulate</span>
+                    <Cpu className="w-3.5 h-3.5" />
+                  </>
+                )}
+              </button>
+            </form>
+
+            {/* Quick suggest chips */}
+            <div className="flex flex-wrap justify-center gap-2 mt-4">
+              <span className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider self-center mr-1">
+                Suggested Topics:
+              </span>
+              {QUICK_SUGGESTIONS.map((sug) => {
+                const isSelected = prompt === sug.topic
+                return (
+                  <button
+                    key={sug.topic}
+                    type="button"
+                    disabled={isGenerating}
+                    onClick={() => {
+                      setPrompt(sug.topic)
+                      runSimulation(sug.topic)
+                    }}
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all duration-300 flex items-center gap-1.5 border cursor-pointer ${isSelected
+                        ? 'bg-purple-primary/20 border-purple-primary/40 text-purple-300 shadow-[0_0_10px_rgba(124,58,237,0.15)]'
+                        : 'bg-white/2 hover:bg-white/5 border-white/5 hover:border-white/10 text-gray-400 hover:text-white'
+                      }`}
+                  >
+                    <span>{sug.icon}</span>
+                    <span>{sug.label}</span>
+                  </button>
+                )
+              })}
           </div>
         </div>
+      )}
 
         {/* Main Work Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
 
           {/* Left Column: Progress Pipeline & Logs */}
-          <div className="lg:col-span-5 flex flex-col gap-6">
+          {!hideInput && (
+            <div className="lg:col-span-5 flex flex-col gap-6">
+              {/* Step-by-Step Generator */}
+              <div className="glass-panel rounded-2xl p-6 border-white/10">
+                <h3 className="font-display text-base font-bold text-white mb-6 flex items-center gap-2">
+                  <Sliders className="w-5 h-5 text-purple-primary" />
+                  Pipeline Workflow
+                </h3>
 
-            {/* Step-by-Step Generator */}
-            <div className="glass-panel rounded-2xl p-6 border-white/10">
-              <h3 className="font-display text-base font-bold text-white mb-6 flex items-center gap-2">
-                <Sliders className="w-5 h-5 text-purple-primary" />
-                Pipeline Workflow
-              </h3>
+                <div className="space-y-4">
+                  {steps.map((step, idx) => {
+                    const isDone = currentStepIndex > idx
+                    const isActive = currentStepIndex === idx
+                    const StepIcon = step.icon
 
-              <div className="space-y-4">
-                {steps.map((step, idx) => {
-                  const isDone = currentStepIndex > idx
-                  const isActive = currentStepIndex === idx
-                  const StepIcon = step.icon
-
-                  return (
-                    <div
-                      key={step.title}
-                      className={`flex gap-4 p-3 rounded-xl transition-all duration-300 ${isActive
-                          ? 'bg-purple-primary/10 border border-purple-primary/30 shadow-[0_0_15px_rgba(124,58,237,0.1)]'
-                          : 'border border-transparent'
-                        }`}
-                    >
-                      <div className="flex flex-col items-center">
-                        <div
-                          className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-300 border ${isDone
-                              ? 'bg-cyan-primary/20 border-cyan-primary text-cyan-300 shadow-[0_0_10px_rgba(6,182,212,0.2)]'
-                              : isActive
-                                ? 'bg-purple-primary/20 border-purple-primary text-purple-300 shadow-[0_0_10px_rgba(124,58,237,0.3)] animate-pulse'
-                                : 'bg-white/2 border-white/5 text-gray-500'
-                            }`}
-                        >
-                          {isDone ? (
-                            <Check className="w-4 h-4 text-cyan-400" />
-                          ) : (
-                            <StepIcon className={`w-4 h-4 ${isActive ? 'animate-pulse text-purple-400' : 'text-gray-500'}`} />
+                    return (
+                      <div
+                        key={step.title}
+                        className={`flex gap-4 p-3 rounded-xl transition-all duration-300 ${isActive
+                            ? 'bg-purple-primary/10 border border-purple-primary/30 shadow-[0_0_15px_rgba(124,58,237,0.1)]'
+                            : 'border border-transparent'
+                          }`}
+                      >
+                        <div className="flex flex-col items-center">
+                          <div
+                            className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-300 border ${isDone
+                                ? 'bg-cyan-primary/20 border-cyan-primary text-cyan-300 shadow-[0_0_10px_rgba(6,182,212,0.2)]'
+                                : isActive
+                                  ? 'bg-purple-primary/20 border-purple-primary text-purple-300 shadow-[0_0_10px_rgba(124,58,237,0.3)] animate-pulse'
+                                  : 'bg-white/2 border-white/5 text-gray-500'
+                              }`}
+                          >
+                            {isDone ? (
+                              <Check className="w-4 h-4 text-cyan-400" />
+                            ) : (
+                              <StepIcon className={`w-4 h-4 ${isActive ? 'animate-pulse text-purple-400' : 'text-gray-500'}`} />
+                            )}
+                          </div>
+                          {idx !== steps.length - 1 && (
+                            <div className="w-[2px] h-10 my-1 relative">
+                              <div className="absolute inset-0 bg-white/5 rounded-full"></div>
+                              <div
+                                className={`absolute inset-0 bg-gradient-to-b from-cyan-primary to-purple-primary rounded-full transition-all duration-500 origin-top ${isDone ? 'scale-y-100 shadow-[0_0_8px_#06b6d4]' : 'scale-y-0'
+                                  }`}
+                              ></div>
+                            </div>
                           )}
                         </div>
-                        {idx !== steps.length - 1 && (
-                          <div className="w-[2px] h-10 my-1 relative">
-                            <div className="absolute inset-0 bg-white/5 rounded-full"></div>
-                            <div
-                              className={`absolute inset-0 bg-gradient-to-b from-cyan-primary to-purple-primary rounded-full transition-all duration-500 origin-top ${isDone ? 'scale-y-100 shadow-[0_0_8px_#06b6d4]' : 'scale-y-0'
-                                }`}
-                            ></div>
-                          </div>
-                        )}
+                        <div className="pt-0.5">
+                          <h4
+                            className={`text-sm font-semibold transition ${isActive ? 'text-white font-bold' : isDone ? 'text-gray-300' : 'text-gray-500'
+                              }`}
+                          >
+                            {step.title}
+                          </h4>
+                          <p className="text-xs text-gray-500 mt-1">{step.desc}</p>
+                        </div>
                       </div>
-                      <div className="pt-0.5">
-                        <h4
-                          className={`text-sm font-semibold transition ${isActive ? 'text-white font-bold' : isDone ? 'text-gray-300' : 'text-gray-500'
-                            }`}
-                        >
-                          {step.title}
-                        </h4>
-                        <p className="text-xs text-gray-500 mt-1">{step.desc}</p>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-
-              {/* Progress bar */}
-              {isGenerating && (
-                <div className="mt-6 pt-4 border-t border-white/10">
-                  <div className="flex justify-between text-xs text-gray-400 mb-2">
-                    <span>Compiling curriculum nodes...</span>
-                    <span>{progress}%</span>
-                  </div>
-                  <div className="w-full bg-white/5 h-2 rounded-full overflow-hidden">
-                    <div
-                      className="bg-gradient-to-r from-purple-primary to-cyan-primary h-full transition-all duration-300"
-                      style={{ width: `${progress}%` }}
-                    ></div>
-                  </div>
+                    )
+                  })}
                 </div>
-              )}
-            </div>
 
-            {/* Agent terminal logs */}
-            <div className="glass-panel rounded-2xl border-white/10 bg-black/60 flex-1 overflow-hidden shadow-2xl flex flex-col min-h-[280px]">
-              {/* macOS Window Title Bar */}
-              <div className="flex items-center justify-between px-4 py-3 bg-white/5 border-b border-white/5 select-none">
-                <div className="flex items-center gap-1.5">
-                  <span className="w-3 h-3 rounded-full bg-[#ff5f56] shadow-[0_0_5px_rgba(255,95,86,0.5)]"></span>
-                  <span className="w-3 h-3 rounded-full bg-[#ffbd2e] shadow-[0_0_5px_rgba(255,189,46,0.5)]"></span>
-                  <span className="w-3 h-3 rounded-full bg-[#27c93f] shadow-[0_0_5px_rgba(39,201,63,0.5)]"></span>
-                </div>
-                <span className="font-mono text-[10px] text-gray-500 font-semibold tracking-wider flex items-center gap-1.5">
-                  <Terminal className="w-3 h-3 text-cyan-400" />
-                  SYSTEM TELEMETRY CONSOLE
-                </span>
-                <span className="flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span>
-                  <span className="font-mono text-[9px] text-emerald-400 uppercase tracking-widest font-bold">Online</span>
-                </span>
-              </div>
-
-              <div
-                ref={logsContainerRef}
-                className="flex-1 p-4 overflow-y-auto font-mono text-xs leading-relaxed space-y-2.5 scrollbar-thin scrollbar-thumb-white/10 pr-2 bg-black/30 max-h-[220px]"
-              >
-                {logs.length === 0 ? (
-                  <div className="h-full flex flex-col justify-center items-center text-center text-gray-600 italic py-12">
-                    <Sliders className="w-6 h-6 mb-2 opacity-20 text-gray-400" />
-                    <p>No operations queued. Ready to simulate.</p>
-                  </div>
-                ) : (
-                  logs.map((log, idx) => (
-                    <div key={idx} className="flex items-start gap-1">
-                      <span className="text-gray-600 shrink-0 select-none mr-2">{(idx + 1).toString().padStart(2, '0')}</span>
-                      <div className="break-all">{formatLogLine(log)}</div>
+                {/* Progress bar */}
+                {isGenerating && (
+                  <div className="mt-6 pt-4 border-t border-white/10">
+                    <div className="flex justify-between text-xs text-gray-400 mb-2">
+                      <span>Compiling curriculum nodes...</span>
+                      <span>{progress}%</span>
                     </div>
-                  ))
+                    <div className="w-full bg-white/5 h-2 rounded-full overflow-hidden">
+                      <div
+                        className="bg-gradient-to-r from-purple-primary to-cyan-primary h-full transition-all duration-300"
+                        style={{ width: `${progress}%` }}
+                      ></div>
+                    </div>
+                  </div>
                 )}
               </div>
+
+              {/* Agent terminal logs */}
+              <div className="glass-panel rounded-2xl border-white/10 bg-black/60 flex-1 overflow-hidden shadow-2xl flex flex-col min-h-[280px]">
+                {/* macOS Window Title Bar */}
+                <div className="flex items-center justify-between px-4 py-3 bg-white/5 border-b border-white/5 select-none">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-3 h-3 rounded-full bg-[#ff5f56] shadow-[0_0_5px_rgba(255,95,86,0.5)]"></span>
+                    <span className="w-3 h-3 rounded-full bg-[#ffbd2e] shadow-[0_0_5px_rgba(255,189,46,0.5)]"></span>
+                    <span className="w-3 h-3 rounded-full bg-[#27c93f] shadow-[0_0_5px_rgba(39,201,63,0.5)]"></span>
+                  </div>
+                  <span className="font-mono text-[10px] text-gray-500 font-semibold tracking-wider flex items-center gap-1.5">
+                    <Terminal className="w-3 h-3 text-cyan-400" />
+                    SYSTEM TELEMETRY CONSOLE
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span>
+                    <span className="font-mono text-[9px] text-emerald-400 uppercase tracking-widest font-bold">Online</span>
+                  </span>
+                </div>
+
+                <div
+                  ref={logsContainerRef}
+                  className="flex-1 p-4 overflow-y-auto font-mono text-xs leading-relaxed space-y-2.5 scrollbar-thin scrollbar-thumb-white/10 pr-2 bg-black/30 max-h-[220px]"
+                >
+                  {logs.length === 0 ? (
+                    <div className="h-full flex flex-col justify-center items-center text-center text-gray-600 italic py-12">
+                      <Sliders className="w-6 h-6 mb-2 opacity-20 text-gray-400" />
+                      <p>No operations queued. Ready to simulate.</p>
+                    </div>
+                  ) : (
+                    logs.map((log, idx) => (
+                      <div key={idx} className="flex items-start gap-1">
+                        <span className="text-gray-600 shrink-0 select-none mr-2">{(idx + 1).toString().padStart(2, '0')}</span>
+                        <div className="break-all">{formatLogLine(log)}</div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Right Column: Portal Course Viewer */}
-          <div className="lg:col-span-7">
+          <div className={hideInput ? "lg:col-span-12" : "lg:col-span-7"}>
             {isGenerating ? (
               <div className="glass-panel rounded-3xl p-12 border-white/10 text-center h-full min-h-[620px] flex flex-col justify-center items-center bg-black/40 relative overflow-hidden shadow-2xl">
                 <div className="absolute inset-0 bg-grid-pattern opacity-5 pointer-events-none"></div>

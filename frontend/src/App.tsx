@@ -8,6 +8,7 @@ import Workflow from './components/Workflow'
 import Features from './components/Features'
 import CTA from './components/CTA'
 import Footer from './components/Footer'
+import PremiumDashboard from './components/PremiumDashboard'
 
 export default function App() {
   const [prompt, setPrompt] = useState('Intro to React Hooks')
@@ -45,35 +46,39 @@ export default function App() {
       {/* Navigation */}
       <Navbar />
 
-      {/* Landing Page Content Blocks */}
-      <main>
-        {/* Hero Section */}
-        <Hero
-          prompt={prompt}
-          setPrompt={setPrompt}
-          onGenerate={handleGenerate}
-        />
+      {isAuthenticated ? (
+        <PremiumDashboard />
+      ) : (
+        /* Landing Page Content Blocks */
+        <main>
+          {/* Hero Section */}
+          <Hero
+            prompt={prompt}
+            setPrompt={setPrompt}
+            onGenerate={handleGenerate}
+          />
 
-        {/* Live Interactive Simulator Workspace */}
-        <InteractiveSimulator
-          prompt={prompt}
-          setPrompt={setPrompt}
-          isGenerating={isGenerating}
-          setIsGenerating={setIsGenerating}
-        />
+          {/* Live Interactive Simulator Workspace */}
+          <InteractiveSimulator
+            prompt={prompt}
+            setPrompt={setPrompt}
+            isGenerating={isGenerating}
+            setIsGenerating={setIsGenerating}
+          />
 
-        {/* AI agent workflow pipeline visualizer */}
-        <Workflow />
+          {/* AI agent workflow pipeline visualizer */}
+          <Workflow />
 
-        {/* Features Grids */}
-        <Features />
+          {/* Features Grids */}
+          <Features />
 
-        {/* CTA Banners */}
-        <CTA />
-      </main>
+          {/* CTA Banners */}
+          <CTA />
+        </main>
+      )}
 
       {/* Footer */}
-      <Footer />
+      {!isAuthenticated && <Footer />}
     </div>
   )
 }
