@@ -18,6 +18,16 @@ const lessonSchema = new mongoose.Schema(
       of: String,
       required: [true, 'Lesson content map is required']
     },
+    objectives: [
+      {
+        type: String,
+        trim: true
+      }
+    ],
+    videoSearchQuery: {
+      type: String,
+      trim: true
+    },
     script: {
       type: String,
       trim: true

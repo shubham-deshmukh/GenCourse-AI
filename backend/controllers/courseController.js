@@ -1,6 +1,8 @@
 import Course from '../models/Course.js';
 import Module from '../models/Module.js';
 import Lesson from '../models/Lesson.js';
+import { generateCourseOutline, generateLessonDetails } from '../services/geminiService.js';
+import fs from 'fs';
 
 // Pre-seeded template lookup list for fallback matching
 const COURSE_PRESETS = {
@@ -50,6 +52,12 @@ const generateMockCourseData = (title) => {
         lessons: [
           {
             title: `1.1 Introduction to ${title}`,
+            objectives: [
+              `Understand the core rationale behind ${title}`,
+              `Identify the primary prerequisites and system requirements`,
+              `Configure your local environment for development`
+            ],
+            videoSearchQuery: `introduction to ${title} tutorial beginner guide`,
             content: {
               en: `${title} represents a major paradigm shift. In this lesson, we cover the core concepts, historical background, and initial installation setups.\n\n### Key Takeaways:\n- Understand the core constraints of ${title}.\n- Configure local settings and compilers.\n- Test basic setup examples.`,
               es: `${title} representa un cambio de paradigma importante. En esta lección, cubrimos los conceptos básicos, los antecedentes históricos y las configuraciones de instalación iniciales.`,
@@ -60,6 +68,12 @@ const generateMockCourseData = (title) => {
           },
           {
             title: `1.2 Building Your First Project`,
+            objectives: [
+              `Create a basic project directory and configuration file`,
+              `Write and run a simple test program`,
+              `Debug common configuration and compiling errors`
+            ],
+            videoSearchQuery: `how to build a project with ${title} code example`,
             content: {
               en: `Let's construct a simple project using ${title}.\n\n\`\`\`javascript\n// Sample configuration\nconst config = {\n  name: "${title}",\n  version: "1.0.0",\n  active: true\n};\nconsole.log("Welcome to " + config.name);\n\`\`\`\nRun this script in your local environment and observe the printed output logs.`,
               es: `Construyamos un proyecto simple usando ${title}.`,
@@ -75,6 +89,12 @@ const generateMockCourseData = (title) => {
         lessons: [
           {
             title: `2.1 Optimizing Performance`,
+            objectives: [
+              `Analyze rendering profiles and resource leaks`,
+              `Implement memoization or cache patterns`,
+              `Review checklist guidelines for production deployment`
+            ],
+            videoSearchQuery: `${title} performance optimization best practices`,
             content: {
               en: `Performance optimization in ${title} requires proper memoization, connection pooling, and asset compilation. Avoid common loops and unnecessary re-renders to ensure high speed.`,
               es: `La optimización del rendimiento en ${title} requiere una memorización adecuada.`,
@@ -145,9 +165,69 @@ export const createCourse = async (req, res, next) => {
       return res.json(existingCourse);
     }
 
-    // Generate dynamic mock outline
-    console.log(`🤖 Compiling curriculum outline for "${trimmedTitle}"...`);
-    const cData = generateMockCourseData(trimmedTitle);
+    let cData;
+    let isRealAI = false;
+
+    if (process.env.GEMINI_API_KEY) {
+      try {
+        fs.appendFileSync('debug.txt', `🤖 Requesting outline for: ${trimmedTitle}\n`);
+        console.log(`🤖 Compiling REAL Gemini AI curriculum outline for "${trimmedTitle}"...`);
+        const outline = await generateCourseOutline(trimmedTitle);
+        fs.appendFileSync('debug.txt', `✅ Outline returned: "${outline.title}" with ${outline.modules?.length} modules.\n`);
+        
+        const modulesData = [];
+        for (let mIdx = 0; mIdx < outline.modules.length; mIdx++) {
+          const mod = outline.modules[mIdx];
+          fs.appendFileSync('debug.txt', `  📦 Module: "${mod.title}" has ${mod.lessonTitles?.length} lessons.\n`);
+          
+          const lessonsList = [];
+          for (let lIdx = 0; lIdx < mod.lessonTitles.length; lIdx++) {
+            const lessonTitle = mod.lessonTitles[lIdx];
+            lessonsList.push({
+              title: lessonTitle,
+              objectives: [
+                `Understand the core concepts of ${lessonTitle}`,
+                `Learn best practices and practical applications`
+              ],
+              videoSearchQuery: `${lessonTitle} tutorial lecture`,
+              content: {
+                en: `### Introduction to ${lessonTitle}\n\nThis lesson covers the fundamentals, concepts, and key principles of **${lessonTitle}** as part of the course **${outline.title}**.\n\n### Key Takeaways:\n- Understand the architectural role of ${lessonTitle}.\n- Discover best practices for working with this component.\n- Build and configure basic projects successfully.`,
+                es: `### Introducción a ${lessonTitle}\n\nEsta lección cubre los fundamentos y conceptos clave de **${lessonTitle}**.`,
+                fr: `### Introduction à ${lessonTitle}\n\nCette leçon couvre les principes fondamentaux de **${lessonTitle}**.`
+              },
+              script: `Welcome to this video lecture. In this lesson, we will explore the core concepts of ${lessonTitle} and how it fits into the overall architecture.`,
+              videoSlide: `Visual slide showing core concepts of ${lessonTitle}`
+            });
+          }
+          
+          modulesData.push({
+            title: mod.title,
+            lessons: lessonsList
+          });
+        }
+        
+        cData = {
+          title: outline.title || trimmedTitle,
+          description: outline.description || `A dynamic course on ${trimmedTitle}.`,
+          resources: outline.resources || [
+            { name: `${trimmedTitle.replace(/\s+/g, '_')}_Guide.pdf`, size: '2.5 MB', type: 'PDF' }
+          ],
+          quizzes: outline.quizzes || [],
+          modules: modulesData
+        };
+        
+        fs.appendFileSync('debug.txt', `💾 Saving generated course structure to DB...\n`);
+        isRealAI = true;
+      } catch (err) {
+        fs.appendFileSync('debug.txt', `❌ Course outline generation error: ${err.message}\nStack: ${err.stack}\n`);
+        console.error('❌ Failed to generate course via Gemini, falling back to mock data:', err.message);
+      }
+    }
+
+    if (!isRealAI) {
+      console.log(`🤖 Compiling curriculum outline for "${trimmedTitle}" (MOCK FALLBACK)...`);
+      cData = generateMockCourseData(trimmedTitle);
+    }
 
     // Save Course structure
     const course = new Course({
@@ -181,6 +261,8 @@ export const createCourse = async (req, res, next) => {
           moduleId: moduleDoc._id,
           title: lData.title,
           content: lData.content,
+          objectives: lData.objectives || [],
+          videoSearchQuery: lData.videoSearchQuery || '',
           script: lData.script,
           videoSlide: lData.videoSlide,
           order: lIdx

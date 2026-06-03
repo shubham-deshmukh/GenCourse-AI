@@ -578,10 +578,19 @@ const seedDB = async () => {
           const lData = mData.lessons[lIdx];
           console.log(`    📄 Creating Lesson: "${lData.title}"`);
 
+          const objectives = lData.objectives || [
+            `Understand the core concepts of ${lData.title}`,
+            `Learn the best practices of ${lData.title}`,
+            `Apply ${lData.title} in real-world scenarios`
+          ];
+          const videoSearchQuery = lData.videoSearchQuery || `${lData.title} tutorial lecture`;
+
           const lessonDoc = new Lesson({
             moduleId: moduleDoc._id,
             title: lData.title,
             content: lData.content,
+            objectives: objectives,
+            videoSearchQuery: videoSearchQuery,
             script: lData.script,
             videoSlide: lData.videoSlide,
             order: lIdx
