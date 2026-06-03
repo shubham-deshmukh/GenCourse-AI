@@ -1,7 +1,7 @@
 import Course from '../models/Course.js';
 import Module from '../models/Module.js';
 import Lesson from '../models/Lesson.js';
-import { generateCourseOutline, generateLessonDetails } from '../services/geminiService.js';
+import { generateCourseOutline, generateLessonDetails } from '../services/llmService.js';
 import fs from 'fs';
 
 // Pre-seeded template lookup list for fallback matching
@@ -168,17 +168,16 @@ export const createCourse = async (req, res, next) => {
     let cData;
     let isRealAI = false;
 
-    if (process.env.GEMINI_API_KEY) {
+    if (process.env.OLLAMA_BASE_URL || process.env.GEMINI_API_KEY) {
       try {
-        fs.appendFileSync('debug.txt', `🤖 Requesting outline for: ${trimmedTitle}\n`);
-        console.log(`🤖 Compiling REAL Gemini AI curriculum outline for "${trimmedTitle}"...`);
+        console.log(`🤖 Compiling curriculum outline for "${trimmedTitle}" via LLM...`);
         const outline = await generateCourseOutline(trimmedTitle);
-        fs.appendFileSync('debug.txt', `✅ Outline returned: "${outline.title}" with ${outline.modules?.length} modules.\n`);
+        console.log(`✅ Outline returned: "${outline.title}" with ${outline.modules?.length} modules.`);
         
         const modulesData = [];
         for (let mIdx = 0; mIdx < outline.modules.length; mIdx++) {
           const mod = outline.modules[mIdx];
-          fs.appendFileSync('debug.txt', `  📦 Module: "${mod.title}" has ${mod.lessonTitles?.length} lessons.\n`);
+          console.log(`  📦 Module: "${mod.title}" has ${mod.lessonTitles?.length} lessons.`);
           
           const lessonsList = [];
           for (let lIdx = 0; lIdx < mod.lessonTitles.length; lIdx++) {
@@ -216,11 +215,10 @@ export const createCourse = async (req, res, next) => {
           modules: modulesData
         };
         
-        fs.appendFileSync('debug.txt', `💾 Saving generated course structure to DB...\n`);
+        console.log(`💾 Saving generated course structure to DB...`);
         isRealAI = true;
       } catch (err) {
-        fs.appendFileSync('debug.txt', `❌ Course outline generation error: ${err.message}\nStack: ${err.stack}\n`);
-        console.error('❌ Failed to generate course via Gemini, falling back to mock data:', err.message);
+        console.error('❌ Failed to generate course via LLM, falling back to mock data:', err.message);
       }
     }
 
