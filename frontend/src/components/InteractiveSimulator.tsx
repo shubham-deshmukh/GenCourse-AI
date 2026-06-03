@@ -9,7 +9,14 @@ import {
   Globe,
   Sliders,
   FileText,
-  Volume2
+  Volume2,
+  Search,
+  Map,
+  HelpCircle,
+  Award,
+  Layers,
+  Sparkles,
+  Check,
 } from 'lucide-react'
 
 interface InteractiveSimulatorProps {
@@ -56,7 +63,7 @@ const COURSES_DATABASE: Record<string, CourseData> = {
             content: {
               en: `React Hooks were introduced in version 16.8 to allow functional components to manage state and side effects. Previously, stateful logic required complex Class Components with 'this' bindings and fragmented lifecycle methods like 'componentDidMount'. Functional components with Hooks are cleaner, shorter, and easier to reuse.\n\n### Key Takeaways:\n- No more 'class' syntax or 'this' context bindings.\n- Logic can be grouped by function rather than lifecycle phase.\n- High-performance execution with simpler component trees.`,
               es: `Los Hooks de React se introdujeron en la versión 16.8 para permitir que los componentes funcionales manejen el estado y los efectos secundarios. Anteriormente, la lógica con estado requería componentes de clase complejos con enlaces 'this' y métodos de ciclo de vida fragmentados. Los componentes funcionales con Hooks son más limpios, cortos y fáciles de reutilizar.`,
-              fr: `Les React Hooks ont été introduits dans la version 16.8 pour permettre aux composants fonctionnels de gérer l'état et les effets secondaires. Auparavant, la logique nécessitait des composants de classe complexes avec des liaisons 'this' et des méthodes de cycle de vie fragmentées.`
+              fr: `Les React Hooks ont été introduits dans la version 16.8 pour permettre aux composants fonctionnels de gérer l'état et les effets secondaires. Auparavant, la logique nécessitait des composants de classe complexes avec des liaisons 'this' et des méthodes de vie fragmentées.`
             },
             script: 'Welcome to Lesson 1.1. In this video, we will explore why React shifted from class components to functional components and how Hooks revolutionized the way we write React code.',
             videoSlide: 'Why Hooks? Class Components vs Functional Hooks'
@@ -202,7 +209,7 @@ const COURSES_DATABASE: Record<string, CourseData> = {
             content: {
               en: `Acoustic guitars are standardly tuned to E-A-D-G-B-E from the thickest string (6th) to the thinnest string (1st). Common mnemonics include "Eddie Ate Dynamite, Good Bye Eddie". Constant tuning training builds pitching skills.`,
               es: `Las guitarras acústicas se afinan de forma estándar a Mi-La-Re-Sol-Si-Mi (EADGBE).`,
-              fr: `Les guitares acoustiques sont généralement accordées en Mi-La-Ré-Sol-Si-Mi (EADGBE).`
+              fr: `Les guitarras acoustiques sont généralement accordées en Mi-La-Ré-Sol-Si-Mi (EADGBE).`
             },
             script: 'Let’s tune up. Grab your tuner, and we will tune each of the six strings to E-A-D-G-B-E using our machine heads step by step.',
             videoSlide: 'Standard Tuning Mnemonic: Eddie Ate Dynamite, Good Bye Eddie'
@@ -217,6 +224,13 @@ const COURSES_DATABASE: Record<string, CourseData> = {
   }
 }
 
+const QUICK_SUGGESTIONS = [
+  { topic: 'Intro to React Hooks', label: 'React Hooks', icon: '⚛️' },
+  { topic: 'Basics of Copyright Law', label: 'Copyright Law', icon: '⚖️' },
+  { topic: 'Quantum Mechanics for Beginners', label: 'Quantum Mechanics', icon: '⚛️' },
+  { topic: 'Acoustic Guitar 101', label: 'Acoustic Guitar', icon: '🎸' }
+]
+
 export default function InteractiveSimulator({
   prompt,
   setPrompt,
@@ -228,25 +242,39 @@ export default function InteractiveSimulator({
   const [activeLessonIndex, setActiveLessonIndex] = useState(0)
   const [activeTab, setActiveTab] = useState<'content' | 'video' | 'downloads'>('content')
   const [language, setLanguage] = useState<'en' | 'es' | 'fr'>('en')
-  
+
   // Pipeline Simulation states
   const [currentStepIndex, setCurrentStepIndex] = useState(-1)
   const [progress, setProgress] = useState(0)
   const [logs, setLogs] = useState<string[]>([])
-  
+
   // Video player simulation
   const [isPlayingVideo, setIsPlayingVideo] = useState(false)
   const [videoProgress, setVideoProgress] = useState(0)
   const videoTimerRef = useRef<any>(null)
 
+  // Interactive tracking states
+  const [completedLessons, setCompletedLessons] = useState<Record<string, boolean>>({})
+  const [downloadProgress, setDownloadProgress] = useState<Record<string, number>>({})
+
+  // Telemetry Console Ref
+  const logsContainerRef = useRef<HTMLDivElement>(null)
+
   const steps = [
-    { title: 'Topic Analyzer', desc: 'Analyzing keywords, target audience & goals' },
-    { title: 'Curriculum Planner', desc: 'Generating structured modules and outline' },
-    { title: 'Lesson Generator', desc: 'Synthesizing textbook chapters & scripts' },
-    { title: 'Quiz Builder', desc: 'Building concept reviews & quizzes' },
-    { title: 'Assessment Engine', desc: 'Assembling final exams & evaluations' },
-    { title: 'Publishing Layer', desc: 'Compiling localized pages & PDFs' }
+    { title: 'Topic Analyzer', desc: 'Analyzing keywords, target audience & goals', icon: Search },
+    { title: 'Curriculum Planner', desc: 'Generating structured modules and outline', icon: Map },
+    { title: 'Lesson Generator', desc: 'Synthesizing textbook chapters & scripts', icon: BookOpen },
+    { title: 'Quiz Builder', desc: 'Building concept reviews & quizzes', icon: HelpCircle },
+    { title: 'Assessment Engine', desc: 'Assembling final exams & evaluations', icon: Award },
+    { title: 'Publishing Layer', desc: 'Compiling localized pages & PDFs', icon: Layers }
   ]
+
+  // Auto scroll telemetry logs
+  useEffect(() => {
+    if (logsContainerRef.current) {
+      logsContainerRef.current.scrollTop = logsContainerRef.current.scrollHeight
+    }
+  }, [logs])
 
   // Handle video playback
   useEffect(() => {
@@ -315,7 +343,7 @@ export default function InteractiveSimulator({
         clearInterval(interval)
         setCurrentStepIndex(6) // all done
         setIsGenerating(false)
-        
+
         // Find course data or default to React Hooks
         const matchingCourse = COURSES_DATABASE[topic] || COURSES_DATABASE['Intro to React Hooks']
         setActiveCourse({
@@ -331,11 +359,15 @@ export default function InteractiveSimulator({
     }, 150)
   }
 
+  const isRunningRef = useRef(false)
+
   // Hook simulator trigger from Hero or elsewhere
   useEffect(() => {
-    // When isGenerating starts, we scroll to demo
-    if (isGenerating && currentStepIndex === -1) {
+    if (isGenerating && !isRunningRef.current) {
+      isRunningRef.current = true
       runSimulation(prompt || 'Intro to React Hooks')
+    } else if (!isGenerating) {
+      isRunningRef.current = false
     }
   }, [isGenerating])
 
@@ -350,9 +382,206 @@ export default function InteractiveSimulator({
   }, [])
 
   const currentLesson = activeCourse?.modules[activeModuleIndex]?.lessons[activeLessonIndex]
+  const lessonKey = activeCourse ? `${activeCourse.title}-${activeModuleIndex}-${activeLessonIndex}` : ''
+  const isLessonDone = completedLessons[lessonKey]
+
+  const formatLogLine = (line: string) => {
+    if (!line || typeof line !== 'string') return <span className="text-gray-400">Processing...</span>
+    if (line.startsWith('[ANALYZE]')) {
+      return (
+        <span className="text-gray-400">
+          <span className="text-cyan-400 font-semibold mr-1.5">[ANALYZE]</span>
+          {line.replace('[ANALYZE]', '')}
+        </span>
+      )
+    }
+    if (line.startsWith('[PLANNER]')) {
+      return (
+        <span className="text-gray-400">
+          <span className="text-purple-400 font-semibold mr-1.5">[PLANNER]</span>
+          {line.replace('[PLANNER]', '')}
+        </span>
+      )
+    }
+    if (line.startsWith('[LESSON-GEN]')) {
+      return (
+        <span className="text-gray-400">
+          <span className="text-pink-400 font-semibold mr-1.5">[LESSON-GEN]</span>
+          {line.replace('[LESSON-GEN]', '')}
+        </span>
+      )
+    }
+    if (line.startsWith('[QUIZ-BUILDER]')) {
+      return (
+        <span className="text-gray-400">
+          <span className="text-yellow-400 font-semibold mr-1.5">[QUIZ-BUILDER]</span>
+          {line.replace('[QUIZ-BUILDER]', '')}
+        </span>
+      )
+    }
+    if (line.startsWith('[ASSESS-ENG]')) {
+      return (
+        <span className="text-gray-400">
+          <span className="text-blue-400 font-semibold mr-1.5">[ASSESS-ENG]</span>
+          {line.replace('[ASSESS-ENG]', '')}
+        </span>
+      )
+    }
+    if (line.startsWith('[PUBLISH-LAYER]')) {
+      return (
+        <span className="text-gray-400">
+          <span className="text-orange-400 font-semibold mr-1.5">[PUBLISH-LAYER]</span>
+          {line.replace('[PUBLISH-LAYER]', '')}
+        </span>
+      )
+    }
+    if (line.startsWith('[SYSTEM]')) {
+      return (
+        <span className="text-emerald-400 font-semibold shadow-emerald-500/10 drop-shadow-sm">
+          {line}
+        </span>
+      )
+    }
+    return <span className="text-gray-400">{line}</span>
+  }
+
+  const renderFormattedContent = (contentString: string) => {
+    const parts = contentString.split('\n')
+    let isInsideCodeBlock = false
+    let codeContent: string[] = []
+
+    return parts.map((part, index) => {
+      // Check if it's code block start/end
+      if (part.trim().startsWith('```')) {
+        if (isInsideCodeBlock) {
+          isInsideCodeBlock = false
+          const codeText = codeContent.join('\n')
+          codeContent = []
+          return (
+            <div key={index} className="my-5 rounded-xl border border-white/10 bg-black/60 overflow-hidden font-mono text-xs shadow-2xl">
+              <div className="flex items-center justify-between px-4 py-2 bg-white/5 border-b border-white/5">
+                <div className="flex gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-[#ff5f56]"></span>
+                  <span className="w-2 h-2 rounded-full bg-[#ffbd2e]"></span>
+                  <span className="w-2 h-2 rounded-full bg-[#27c93f]"></span>
+                </div>
+                <span className="text-[10px] text-gray-500 font-medium font-sans">JavaScript</span>
+              </div>
+              <div className="p-4 overflow-x-auto text-gray-300 leading-relaxed font-mono whitespace-pre text-xs">
+                {codeText.split('\n').map((line, lIdx) => {
+                  const styledLine = line
+                    .replace(/(const|let|var|import|from|return)/g, '<span class="text-purple-400 font-semibold">$1</span>')
+                    .replace(/(useState|useEffect|useRef|setCount|useState|useCallback|useMemo)/g, '<span class="text-yellow-400 font-medium">$1</span>')
+                    .replace(/('[^']*'|`[^`]*`|"[^"]*")/g, '<span class="text-cyan-400">$1</span>')
+                    .replace(/(\d+)/g, '<span class="text-pink-400">$1</span>')
+                  return (
+                    <div key={lIdx} dangerouslySetInnerHTML={{ __html: styledLine || '&nbsp;' }} />
+                  )
+                })}
+              </div>
+            </div>
+          )
+        } else {
+          isInsideCodeBlock = true
+          return null
+        }
+      }
+
+      if (isInsideCodeBlock) {
+        codeContent.push(part)
+        return null
+      }
+
+      // Headers
+      if (part.trim().startsWith('###')) {
+        return (
+          <h5 key={index} className="text-white text-sm font-bold font-display mt-5 mb-2.5 flex items-center gap-2">
+            <span className="w-1 h-3.5 rounded-full bg-purple-primary"></span>
+            {part.replace('###', '').trim()}
+          </h5>
+        )
+      }
+
+      // Bullet items
+      if (part.trim().startsWith('-')) {
+        return (
+          <div key={index} className="flex items-start gap-2 my-2 pl-1 text-gray-300 text-xs">
+            <Check className="w-3.5 h-3.5 text-cyan-primary shrink-0 mt-0.5" />
+            <span>{part.replace('-', '').trim()}</span>
+          </div>
+        )
+      }
+
+      // Numbered list items
+      if (/^\d+\.\s/.test(part.trim())) {
+        const number = part.match(/^\d+/)?.[0]
+        const text = part.replace(/^\d+\.\s/, '').trim()
+        return (
+          <div key={index} className="flex items-start gap-2 my-2 pl-1 text-gray-300 text-xs">
+            <span className="flex items-center justify-center w-4 h-4 rounded-full bg-purple-primary/20 text-purple-300 text-[9px] font-bold shrink-0 mt-0.5">
+              {number}
+            </span>
+            <span>{text}</span>
+          </div>
+        )
+      }
+
+      // Normal text paragraphs
+      if (part.trim() === '') return null
+      return (
+        <p key={index} className="my-2.5 text-gray-300 leading-relaxed font-sans text-xs">
+          {part}
+        </p>
+      )
+    })
+  }
+
+  const getScriptSegments = (scriptText: string) => {
+    return scriptText.split('. ').filter(Boolean).map(s => s.trim() + '.');
+  }
+
+  const formatTime = (secs: number) => {
+    const m = Math.floor(secs / 60)
+    const s = secs % 60
+    return `${m}:${s < 10 ? '0' : ''}${s}`
+  }
+
+  const startDownload = (name: string) => {
+    if (downloadProgress[name] !== undefined) return
+
+    setDownloadProgress(prev => ({ ...prev, [name]: 0 }))
+
+    let currentProgress = 0
+    const timer = setInterval(() => {
+      currentProgress += Math.floor(Math.random() * 15) + 5
+      if (currentProgress >= 100) {
+        clearInterval(timer)
+        setDownloadProgress(prev => ({ ...prev, [name]: 100 }))
+
+        setTimeout(() => {
+          setDownloadProgress(prev => {
+            const next = { ...prev }
+            delete next[name]
+            return next
+          })
+        }, 3000)
+      } else {
+        setDownloadProgress(prev => ({ ...prev, [name]: currentProgress }))
+      }
+    }, 150)
+  }
 
   return (
     <section id="demo" className="py-24 bg-[#030014] relative">
+      <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes soundwave {
+          0%, 100% { height: 4px; }
+          50% { height: 20px; }
+        }
+        .soundwave-bar {
+          animation: soundwave 1.2s ease-in-out infinite;
+        }
+      `}} />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,rgba(124,58,237,0.08),transparent_50%)] pointer-events-none"></div>
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(6,182,212,0.08),transparent_50%)] pointer-events-none"></div>
 
@@ -368,77 +597,122 @@ export default function InteractiveSimulator({
 
         {/* Input Bar inside workspace */}
         <div className="max-w-xl mx-auto mb-12">
-          <form onSubmit={handleManualTrigger} className="flex gap-2">
-            <input
-              type="text"
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              placeholder="e.g. Intro to React Hooks"
-              className="w-full px-5 py-3 glass-input text-sm border-white/10"
-              disabled={isGenerating}
-            />
+          <form onSubmit={handleManualTrigger} className="flex gap-2 p-1.5 rounded-full bg-white/2 border border-white/8 backdrop-blur-md focus-within:border-purple-primary/50 focus-within:shadow-[0_0_20px_rgba(124,58,237,0.15)] transition-all duration-300">
+            <div className="flex-1 flex items-center pl-3">
+              <Search className="w-4 h-4 text-gray-500 mr-2 shrink-0" />
+              <input
+                type="text"
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                placeholder="e.g. Intro to React Hooks"
+                className="w-full bg-transparent border-none text-white text-sm focus:outline-none placeholder-gray-500"
+                disabled={isGenerating}
+              />
+            </div>
             <button
               type="submit"
               disabled={isGenerating}
-              className="px-6 py-3 rounded-full bg-purple-primary hover:bg-purple-600 disabled:opacity-50 text-white text-sm font-semibold transition flex items-center gap-2 cursor-pointer"
+              className="px-6 py-2.5 rounded-full bg-gradient-to-r from-purple-primary to-cyan-primary hover:from-purple-600 hover:to-cyan-500 disabled:opacity-50 text-white text-xs font-bold transition-all duration-300 flex items-center gap-1.5 cursor-pointer shadow-[0_4px_12px_rgba(124,58,237,0.25)] hover:shadow-[0_4px_20px_rgba(124,58,237,0.4)] btn-glow"
             >
-              {isGenerating ? 'Generating...' : 'Simulate'}
-              <Cpu className="w-4 h-4" />
+              {isGenerating ? (
+                <>
+                  <span>Simulating...</span>
+                  <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                </>
+              ) : (
+                <>
+                  <span>Simulate</span>
+                  <Cpu className="w-3.5 h-3.5" />
+                </>
+              )}
             </button>
           </form>
+
+          {/* Quick suggest chips */}
+          <div className="flex flex-wrap justify-center gap-2 mt-4">
+            <span className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider self-center mr-1">
+              Suggested Topics:
+            </span>
+            {QUICK_SUGGESTIONS.map((sug) => {
+              const isSelected = prompt === sug.topic
+              return (
+                <button
+                  key={sug.topic}
+                  type="button"
+                  disabled={isGenerating}
+                  onClick={() => {
+                    setPrompt(sug.topic)
+                    runSimulation(sug.topic)
+                  }}
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all duration-300 flex items-center gap-1.5 border cursor-pointer ${isSelected
+                      ? 'bg-purple-primary/20 border-purple-primary/40 text-purple-300 shadow-[0_0_10px_rgba(124,58,237,0.15)]'
+                      : 'bg-white/2 hover:bg-white/5 border-white/5 hover:border-white/10 text-gray-400 hover:text-white'
+                    }`}
+                >
+                  <span>{sug.icon}</span>
+                  <span>{sug.label}</span>
+                </button>
+              )
+            })}
+          </div>
         </div>
 
         {/* Main Work Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+
           {/* Left Column: Progress Pipeline & Logs */}
           <div className="lg:col-span-5 flex flex-col gap-6">
-            
+
             {/* Step-by-Step Generator */}
             <div className="glass-panel rounded-2xl p-6 border-white/10">
-              <h3 className="font-display text-lg font-bold text-white mb-6 flex items-center gap-2">
-                <Sliders className="w-5 h-5 text-purple-primary animate-pulse" />
+              <h3 className="font-display text-base font-bold text-white mb-6 flex items-center gap-2">
+                <Sliders className="w-5 h-5 text-purple-primary" />
                 Pipeline Workflow
               </h3>
 
-              <div className="space-y-5">
+              <div className="space-y-4">
                 {steps.map((step, idx) => {
                   const isDone = currentStepIndex > idx
                   const isActive = currentStepIndex === idx
+                  const StepIcon = step.icon
+
                   return (
                     <div
                       key={step.title}
-                      className={`flex gap-4 p-3 rounded-xl transition duration-300 ${
-                        isActive
+                      className={`flex gap-4 p-3 rounded-xl transition-all duration-300 ${isActive
                           ? 'bg-purple-primary/10 border border-purple-primary/30 shadow-[0_0_15px_rgba(124,58,237,0.1)]'
                           : 'border border-transparent'
-                      }`}
+                        }`}
                     >
                       <div className="flex flex-col items-center">
                         <div
-                          className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold border ${
-                            isDone
-                              ? 'bg-cyan-primary border-cyan-primary text-black'
+                          className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-300 border ${isDone
+                              ? 'bg-cyan-primary/20 border-cyan-primary text-cyan-300 shadow-[0_0_10px_rgba(6,182,212,0.2)]'
                               : isActive
-                              ? 'bg-purple-primary border-purple-primary text-white animate-pulse'
-                              : 'bg-white/5 border-white/10 text-gray-500'
-                          }`}
+                                ? 'bg-purple-primary/20 border-purple-primary text-purple-300 shadow-[0_0_10px_rgba(124,58,237,0.3)] animate-pulse'
+                                : 'bg-white/2 border-white/5 text-gray-500'
+                            }`}
                         >
-                          {isDone ? <CheckCircle className="w-4 h-4 text-black" /> : idx + 1}
+                          {isDone ? (
+                            <Check className="w-4 h-4 text-cyan-400" />
+                          ) : (
+                            <StepIcon className={`w-4 h-4 ${isActive ? 'animate-pulse text-purple-400' : 'text-gray-500'}`} />
+                          )}
                         </div>
                         {idx !== steps.length - 1 && (
-                          <div
-                            className={`w-[2px] h-8 mt-2 ${
-                              isDone ? 'bg-cyan-primary' : 'bg-white/5'
-                            }`}
-                          ></div>
+                          <div className="w-[2px] h-10 my-1 relative">
+                            <div className="absolute inset-0 bg-white/5 rounded-full"></div>
+                            <div
+                              className={`absolute inset-0 bg-gradient-to-b from-cyan-primary to-purple-primary rounded-full transition-all duration-500 origin-top ${isDone ? 'scale-y-100 shadow-[0_0_8px_#06b6d4]' : 'scale-y-0'
+                                }`}
+                            ></div>
+                          </div>
                         )}
                       </div>
-                      <div>
+                      <div className="pt-0.5">
                         <h4
-                          className={`text-sm font-semibold transition ${
-                            isActive ? 'text-white' : isDone ? 'text-gray-300' : 'text-gray-500'
-                          }`}
+                          className={`text-sm font-semibold transition ${isActive ? 'text-white font-bold' : isDone ? 'text-gray-300' : 'text-gray-500'
+                            }`}
                         >
                           {step.title}
                         </h4>
@@ -467,16 +741,40 @@ export default function InteractiveSimulator({
             </div>
 
             {/* Agent terminal logs */}
-            <div className="glass-panel rounded-2xl p-6 border-white/10 bg-black/40 flex-1">
-              <h3 className="font-display text-sm font-bold text-gray-400 mb-4 flex items-center gap-2">
-                <Terminal className="w-4 h-4 text-gray-400" />
-                SYSTEM TELEMETRY
-              </h3>
-              <div className="h-44 overflow-y-auto font-mono text-xs text-green-400/90 space-y-2 scrollbar-thin scrollbar-thumb-white/10 pr-2">
+            <div className="glass-panel rounded-2xl border-white/10 bg-black/60 flex-1 overflow-hidden shadow-2xl flex flex-col min-h-[280px]">
+              {/* macOS Window Title Bar */}
+              <div className="flex items-center justify-between px-4 py-3 bg-white/5 border-b border-white/5 select-none">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-3 h-3 rounded-full bg-[#ff5f56] shadow-[0_0_5px_rgba(255,95,86,0.5)]"></span>
+                  <span className="w-3 h-3 rounded-full bg-[#ffbd2e] shadow-[0_0_5px_rgba(255,189,46,0.5)]"></span>
+                  <span className="w-3 h-3 rounded-full bg-[#27c93f] shadow-[0_0_5px_rgba(39,201,63,0.5)]"></span>
+                </div>
+                <span className="font-mono text-[10px] text-gray-500 font-semibold tracking-wider flex items-center gap-1.5">
+                  <Terminal className="w-3 h-3 text-cyan-400" />
+                  SYSTEM TELEMETRY CONSOLE
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span>
+                  <span className="font-mono text-[9px] text-emerald-400 uppercase tracking-widest font-bold">Online</span>
+                </span>
+              </div>
+
+              <div
+                ref={logsContainerRef}
+                className="flex-1 p-4 overflow-y-auto font-mono text-xs leading-relaxed space-y-2.5 scrollbar-thin scrollbar-thumb-white/10 pr-2 bg-black/30 max-h-[220px]"
+              >
                 {logs.length === 0 ? (
-                  <p className="text-gray-600 italic">No operations queued. Ready to simulate.</p>
+                  <div className="h-full flex flex-col justify-center items-center text-center text-gray-600 italic py-12">
+                    <Sliders className="w-6 h-6 mb-2 opacity-20 text-gray-400" />
+                    <p>No operations queued. Ready to simulate.</p>
+                  </div>
                 ) : (
-                  logs.map((log, idx) => <p key={idx}>{log}</p>)
+                  logs.map((log, idx) => (
+                    <div key={idx} className="flex items-start gap-1">
+                      <span className="text-gray-600 shrink-0 select-none mr-2">{(idx + 1).toString().padStart(2, '0')}</span>
+                      <div className="break-all">{formatLogLine(log)}</div>
+                    </div>
+                  ))
                 )}
               </div>
             </div>
@@ -485,97 +783,118 @@ export default function InteractiveSimulator({
           {/* Right Column: Portal Course Viewer */}
           <div className="lg:col-span-7">
             {isGenerating ? (
-              <div className="glass-panel rounded-3xl p-12 border-white/10 text-center h-[580px] flex flex-col justify-center items-center">
-                <div className="relative mb-6">
-                  <div className="w-16 h-16 rounded-full border-4 border-purple-primary/20 border-t-purple-primary animate-spin"></div>
-                  <Cpu className="absolute inset-0 m-auto w-6 h-6 text-purple-primary animate-pulse" />
+              <div className="glass-panel rounded-3xl p-12 border-white/10 text-center h-full min-h-[620px] flex flex-col justify-center items-center bg-black/40 relative overflow-hidden shadow-2xl">
+                <div className="absolute inset-0 bg-grid-pattern opacity-5 pointer-events-none"></div>
+                <div className="absolute w-48 h-48 bg-purple-primary/10 rounded-full blur-3xl -z-10 animate-pulse-slow"></div>
+
+                <div className="relative mb-8">
+                  <div className="w-20 h-20 rounded-full border-4 border-purple-primary/10 border-t-purple-primary animate-spin"></div>
+                  <div className="absolute inset-0 m-auto w-12 h-12 rounded-full bg-purple-primary/10 border border-purple-primary/30 flex items-center justify-center">
+                    <Cpu className="w-6 h-6 text-purple-300 animate-pulse" />
+                  </div>
                 </div>
-                <h3 className="font-display text-2xl font-bold text-white mb-2">Generating Academic Framework</h3>
-                <p className="text-gray-400 text-sm max-w-sm">
-                  Our LLM agent cluster is researching references and constructing modules. Expected output in 10-15 seconds.
+
+                <h3 className="font-display text-2xl font-extrabold text-white mb-3">Assembling Custom Curriculum</h3>
+                <p className="text-gray-400 text-sm max-w-sm leading-relaxed">
+                  Our LLM agent cluster is researching concepts, writing transcripts, and compiling download resources. Expected build in 10-15 seconds.
                 </p>
+
+                <div className="w-48 bg-white/5 h-1.5 rounded-full overflow-hidden mt-8">
+                  <div className="bg-gradient-to-r from-purple-primary to-cyan-primary h-full rounded-full animate-[shine_2s_linear_infinite]" style={{ width: '100%', backgroundSize: '200% auto' }}></div>
+                </div>
               </div>
             ) : activeCourse ? (
-              <div className="glass-panel rounded-3xl border border-white/10 overflow-hidden shadow-2xl h-[620px] flex flex-col">
-                
+              <div className="glass-panel rounded-3xl border border-white/10 overflow-hidden shadow-2xl h-[660px] flex flex-col bg-black/40">
+
                 {/* Course Viewer Header */}
-                <div className="p-6 bg-white/2 border-b border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div>
-                    <span className="px-2.5 py-1 rounded-md bg-cyan-primary/10 border border-cyan-primary/25 text-xs text-cyan-300 font-semibold uppercase tracking-wider">
-                      Live Academy Portal
-                    </span>
-                    <h3 className="font-display font-bold text-xl text-white mt-2 leading-tight">
-                      {activeCourse.title}
-                    </h3>
+                <div className="p-5 bg-white/2 border-b border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 rounded-xl bg-cyan-primary/10 border border-cyan-primary/20 text-cyan-300">
+                      <BookOpen className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <span className="px-2 py-0.5 rounded-md bg-cyan-primary/10 border border-cyan-primary/20 text-[9px] text-cyan-300 font-bold uppercase tracking-wider">
+                        Generated Student Portal
+                      </span>
+                      <h3 className="font-display font-bold text-lg text-white mt-1 leading-tight">
+                        {activeCourse.title}
+                      </h3>
+                    </div>
                   </div>
 
-                  {/* Language switch and resources */}
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10">
-                      <Globe className="w-4 h-4 text-cyan-primary" />
-                      <select
-                        value={language}
-                        onChange={(e) => setLanguage(e.target.value as any)}
-                        className="bg-transparent border-none text-xs text-white focus:outline-none cursor-pointer"
-                      >
-                        <option value="en" className="bg-black text-white">English</option>
-                        <option value="es" className="bg-black text-white">Español</option>
-                        <option value="fr" className="bg-black text-white">Français</option>
-                      </select>
-                    </div>
+                  {/* Language switch */}
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 border border-white/8 self-start sm:self-auto">
+                    <Globe className="w-4 h-4 text-cyan-primary shrink-0" />
+                    <select
+                      value={language}
+                      onChange={(e) => setLanguage(e.target.value as any)}
+                      className="bg-transparent border-none text-xs text-white focus:outline-none cursor-pointer pr-4 font-semibold font-sans"
+                    >
+                      <option value="en" className="bg-[#030014] text-white">EN (English)</option>
+                      <option value="es" className="bg-[#030014] text-white">ES (Español)</option>
+                      <option value="fr" className="bg-[#030014] text-white">FR (Français)</option>
+                    </select>
                   </div>
                 </div>
 
-                {/* Tabs selection */}
-                <div className="flex border-b border-white/5 bg-white/1">
-                  <button
-                    onClick={() => setActiveTab('content')}
-                    className={`flex-1 py-3 text-sm font-medium flex items-center justify-center gap-2 border-b-2 transition ${
-                      activeTab === 'content'
-                        ? 'border-purple-primary text-white bg-purple-primary/5'
-                        : 'border-transparent text-gray-400 hover:text-white hover:bg-white/2'
-                    }`}
-                  >
-                    <BookOpen className="w-4 h-4" />
-                    Read Lesson
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('video')}
-                    className={`flex-1 py-3 text-sm font-medium flex items-center justify-center gap-2 border-b-2 transition ${
-                      activeTab === 'video'
-                        ? 'border-purple-primary text-white bg-purple-primary/5'
-                        : 'border-transparent text-gray-400 hover:text-white hover:bg-white/2'
-                    }`}
-                  >
-                    <Play className="w-4 h-4" />
-                    Video Script
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('downloads')}
-                    className={`flex-1 py-3 text-sm font-medium flex items-center justify-center gap-2 border-b-2 transition ${
-                      activeTab === 'downloads'
-                        ? 'border-purple-primary text-white bg-purple-primary/5'
-                        : 'border-transparent text-gray-400 hover:text-white hover:bg-white/2'
-                    }`}
-                  >
-                    <Download className="w-4 h-4" />
-                    Downloads ({activeCourse.resources.length})
-                  </button>
+                {/* Segmented Sliding Tab Control */}
+                <div className="p-3 bg-white/1 border-b border-white/5">
+                  <div className="flex p-1 bg-black/50 border border-white/5 rounded-xl gap-1">
+                    {(['content', 'video', 'downloads'] as const).map((tab) => {
+                      const isActive = activeTab === tab
+                      const getTabConfig = () => {
+                        switch (tab) {
+                          case 'content': return { label: 'Read Lesson', icon: BookOpen }
+                          case 'video': return { label: 'Video Script', icon: Play }
+                          case 'downloads': return { label: 'Downloads', icon: Download }
+                        }
+                      }
+                      const config = getTabConfig()
+                      const Icon = config.icon
+
+                      return (
+                        <button
+                          key={tab}
+                          onClick={() => setActiveTab(tab)}
+                          className={`flex-1 py-2 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 transition-all duration-300 cursor-pointer ${isActive
+                              ? 'bg-gradient-to-r from-purple-primary/20 to-cyan-primary/20 text-white border border-purple-primary/30 shadow-[0_0_12px_rgba(124,58,237,0.15)]'
+                              : 'text-gray-400 hover:text-white hover:bg-white/5 border border-transparent'
+                            }`}
+                        >
+                          <Icon className={`w-3.5 h-3.5 transition-transform duration-300 ${isActive ? 'scale-110 text-cyan-400' : 'text-gray-400'}`} />
+                          <span>{config.label}</span>
+                          {tab === 'downloads' && (
+                            <span className={`px-1.5 py-0.5 rounded-full text-[9px] ${isActive ? 'bg-cyan-500/20 text-cyan-300' : 'bg-white/5 text-gray-500'
+                              }`}>
+                              {activeCourse?.resources?.length || 0}
+                            </span>
+                          )}
+                        </button>
+                      )
+                    })}
+                  </div>
                 </div>
 
                 {/* Main Content Split View */}
                 <div className="flex flex-1 min-h-0">
                   {/* Left Column: Outline index */}
-                  <div className="w-56 border-r border-white/5 bg-[#030014]/40 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 hidden md:block">
-                    <div className="p-4 border-b border-white/5">
+                  <div className="w-60 border-r border-white/5 bg-[#030014]/40 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 hidden md:block">
+                    <div className="p-4 border-b border-white/5 flex items-center justify-between">
                       <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Outline Modules</span>
+                      <span className="px-1.5 py-0.5 rounded-full bg-white/5 text-[9px] text-gray-400">
+                        {(activeCourse?.modules || []).reduce((acc, m) => acc + (m.lessons?.length || 0), 0)} Lessons
+                      </span>
                     </div>
-                    {activeCourse.modules.map((mod, modIdx) => (
-                      <div key={mod.title} className="p-2">
-                        <div className="px-2 py-1 text-xs font-semibold text-gray-400">{mod.title}</div>
-                        <div className="space-y-1 mt-1">
+
+                    {activeCourse?.modules?.map((mod, modIdx) => (
+                      <div key={mod.title} className="p-2 border-b border-white/5 last:border-b-0">
+                        <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-purple-400">{mod.title}</div>
+                        <div className="space-y-1 mt-1.5">
                           {mod.lessons.map((les, lesIdx) => {
                             const isSelected = activeModuleIndex === modIdx && activeLessonIndex === lesIdx
+                            const currentLessonKey = `${activeCourse.title}-${modIdx}-${lesIdx}`
+                            const isCompleted = completedLessons[currentLessonKey]
+
                             return (
                               <button
                                 key={les.title}
@@ -585,13 +904,19 @@ export default function InteractiveSimulator({
                                   setVideoProgress(0)
                                   setIsPlayingVideo(false)
                                 }}
-                                className={`w-full text-left px-2 py-1.5 rounded-lg text-xs transition truncate cursor-pointer ${
-                                  isSelected
-                                    ? 'bg-purple-primary/20 text-white font-medium border-l-2 border-purple-primary'
-                                    : 'text-gray-400 hover:text-white hover:bg-white/5'
-                                }`}
+                                className={`w-full text-left px-2.5 py-2 rounded-xl text-xs transition duration-200 flex items-center justify-between gap-2 border cursor-pointer ${isSelected
+                                    ? 'bg-purple-primary/15 border-purple-primary/30 text-white font-medium shadow-[inset_0_0_8px_rgba(124,58,237,0.05)]'
+                                    : 'bg-transparent border-transparent text-gray-400 hover:text-white hover:bg-white/5'
+                                  }`}
                               >
-                                {les.title}
+                                <div className="flex items-center gap-2 truncate">
+                                  {isCompleted ? (
+                                    <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                                  ) : (
+                                    <FileText className={`w-3.5 h-3.5 shrink-0 ${isSelected ? 'text-cyan-400' : 'text-gray-500'}`} />
+                                  )}
+                                  <span className="truncate">{les.title}</span>
+                                </div>
                               </button>
                             )
                           })}
@@ -601,159 +926,287 @@ export default function InteractiveSimulator({
                   </div>
 
                   {/* Right Column: Tab details */}
-                  <div className="flex-1 p-6 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 bg-[#030014]/20">
-                    
-                    {/* Outline Select for mobile devices */}
-                    <div className="mb-4 md:hidden">
-                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1.5">Select Lesson</label>
-                      <select
-                        value={`${activeModuleIndex}-${activeLessonIndex}`}
-                        onChange={(e) => {
-                          const [m, l] = e.target.value.split('-').map(Number)
-                          setActiveModuleIndex(m)
-                          setActiveLessonIndex(l)
-                          setVideoProgress(0)
-                          setIsPlayingVideo(false)
-                        }}
-                        className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-white"
-                      >
-                        {activeCourse.modules.map((m, mIdx) => 
-                          m.lessons.map((l, lIdx) => (
-                            <option key={`${mIdx}-${lIdx}`} value={`${mIdx}-${lIdx}`} className="bg-black">
-                              {l.title}
-                            </option>
-                          ))
-                        )}
-                      </select>
-                    </div>
+                  <div className="flex-1 p-6 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 bg-[#030014]/20 flex flex-col justify-between">
 
-                    {/* Reader Tab */}
-                    {activeTab === 'content' && currentLesson && (
-                      <div className="prose prose-invert max-w-none text-sm text-gray-300 leading-relaxed whitespace-pre-line font-sans">
-                        <h4 className="text-white text-lg font-bold font-display mb-4 pb-2 border-b border-white/5 flex items-center gap-2">
-                          <BookOpen className="w-5 h-5 text-purple-primary" />
-                          {currentLesson.title}
-                        </h4>
-                        <div className="space-y-4">
-                          {currentLesson.content[language]}
-                        </div>
+                    <div>
+                      {/* Outline Select for mobile devices */}
+                      <div className="mb-4 md:hidden">
+                        <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Select Lesson</label>
+                        <select
+                          value={`${activeModuleIndex}-${activeLessonIndex}`}
+                          onChange={(e) => {
+                            const [m, l] = e.target.value.split('-').map(Number)
+                            setActiveModuleIndex(m)
+                            setActiveLessonIndex(l)
+                            setVideoProgress(0)
+                            setIsPlayingVideo(false)
+                          }}
+                          className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-white"
+                        >
+                          {activeCourse?.modules?.map((m, mIdx) =>
+                            m.lessons?.map((l, lIdx) => (
+                              <option key={`${mIdx}-${lIdx}`} value={`${mIdx}-${lIdx}`} className="bg-[#030014]">
+                                {l.title}
+                              </option>
+                            ))
+                          )}
+                        </select>
                       </div>
-                    )}
 
-                    {/* Video Tab */}
-                    {activeTab === 'video' && currentLesson && (
-                      <div className="h-full flex flex-col justify-between">
-                        {/* Custom video sandbox renderer */}
-                        <div className="relative rounded-2xl aspect-video bg-black/90 border border-white/10 overflow-hidden flex flex-col justify-between p-4 shadow-inner">
-                          
-                          {/* Visual Slides representation */}
-                          <div className="flex-1 flex flex-col justify-center items-center text-center p-4">
-                            <div className="px-3 py-1 rounded bg-cyan-primary/20 border border-cyan-primary/40 text-[10px] text-cyan-200 font-bold uppercase tracking-wider mb-3">
-                              Generated Slide Asset
+                      {/* Reader Tab */}
+                      {activeTab === 'content' && currentLesson && (
+                        <div>
+                          <div className="prose prose-invert max-w-none text-sm text-gray-300 leading-relaxed font-sans">
+                            <h4 className="text-white text-lg font-bold font-display mb-4 pb-2 border-b border-white/5 flex items-center gap-2">
+                              <BookOpen className="w-5 h-5 text-purple-primary" />
+                              {currentLesson.title}
+                            </h4>
+                            <div className="space-y-4">
+                              {renderFormattedContent(currentLesson.content?.[language] || '')}
                             </div>
-                            <p className="font-display font-bold text-sm md:text-base text-white max-w-md">
-                              {currentLesson.videoSlide}
-                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Video Tab */}
+                      {activeTab === 'video' && currentLesson && (
+                        <div className="h-full flex flex-col justify-between">
+                          {/* Custom video sandbox renderer */}
+                          <div className="relative rounded-2xl aspect-video bg-black/90 border border-white/10 overflow-hidden flex flex-col justify-between p-4 shadow-2xl">
+
+                            {/* Visual Slides representation */}
+                            <div className="flex-1 flex flex-col justify-center items-center text-center p-4 bg-[radial-gradient(circle_at_center,rgba(124,58,237,0.1),transparent_70%)] relative">
+                              <div className="absolute inset-0 bg-grid-pattern opacity-10 pointer-events-none"></div>
+                              <div className="px-3 py-1 rounded-full bg-cyan-primary/10 border border-cyan-primary/20 text-[9px] text-cyan-300 font-bold uppercase tracking-widest mb-3">
+                                Generated Lecture Slide
+                              </div>
+                              <h3 className="font-display font-extrabold text-sm md:text-base text-white max-w-sm drop-shadow-md leading-snug">
+                                {currentLesson.videoSlide}
+                              </h3>
+                              <div className="mt-4 flex gap-1.5 items-center">
+                                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping"></span>
+                                <span className="text-[10px] text-gray-500 uppercase tracking-widest font-semibold">AI Rendering Engine</span>
+                              </div>
+                            </div>
+
+                            {/* Progress scrubbing line */}
+                            <div
+                              className="relative h-1.5 w-full bg-white/10 rounded-full cursor-pointer overflow-hidden group mb-4"
+                              onClick={(e) => {
+                                const rect = e.currentTarget.getBoundingClientRect()
+                                const clickX = e.clientX - rect.left
+                                const percentage = Math.max(0, Math.min(100, Math.round((clickX / rect.width) * 100)))
+                                setVideoProgress(percentage)
+                              }}
+                            >
+                              <div
+                                className="absolute top-0 left-0 h-full bg-gradient-to-r from-purple-primary to-cyan-primary group-hover:from-purple-500 group-hover:to-cyan-400 transition-all duration-100"
+                                style={{ width: `${videoProgress}%` }}
+                              ></div>
+                            </div>
+
+                            {/* Controls bar */}
+                            <div className="pt-2 flex items-center justify-between gap-4">
+                              <div className="flex items-center gap-3">
+                                <button
+                                  onClick={() => setIsPlayingVideo(!isPlayingVideo)}
+                                  className="p-2 rounded-full bg-gradient-to-r from-purple-primary to-cyan-primary text-white hover:scale-105 transition shadow-lg cursor-pointer flex items-center justify-center"
+                                >
+                                  {isPlayingVideo ? (
+                                    <div className="flex gap-0.5 justify-center items-center w-3 h-3">
+                                      <div className="w-1 h-2.5 bg-black rounded-sm"></div>
+                                      <div className="w-1 h-2.5 bg-black rounded-sm"></div>
+                                    </div>
+                                  ) : (
+                                    <Play className="w-3 h-3 fill-white text-white ml-0.5" />
+                                  )}
+                                </button>
+
+                                <span className="text-[10px] text-gray-400 font-mono">
+                                  {formatTime(Math.floor((videoProgress / 100) * 120))} / 2:00
+                                </span>
+                              </div>
+
+                              {/* Waveform visualizer */}
+                              <div className="flex-1 flex justify-center">
+                                <div className="flex items-end gap-[3px] h-6 justify-center w-full max-w-[120px]">
+                                  {Array.from({ length: 16 }).map((_, idx) => {
+                                    return (
+                                      <div
+                                        key={idx}
+                                        className={`w-[3px] rounded-full transition-all duration-300 soundwave-bar ${isPlayingVideo ? 'bg-cyan-primary shadow-[0_0_4px_#06b6d4]' : 'bg-gray-700'}`}
+                                        style={{
+                                          animationDelay: `${idx * 0.08}s`,
+                                          animationPlayState: isPlayingVideo ? 'running' : 'paused',
+                                          ...(isPlayingVideo ? {} : { height: '4px' })
+                                        }}
+                                      ></div>
+                                    )
+                                  })}
+                                </div>
+                              </div>
+
+                              {/* Audio badge */}
+                              <div className="flex items-center gap-1 text-[9px] text-gray-400">
+                                <Volume2 className="w-3.5 h-3.5 text-cyan-primary animate-pulse" />
+                                <span>AI voice synth</span>
+                              </div>
+                            </div>
+
                           </div>
 
-                          {/* Controls bar */}
-                          <div className="pt-3 border-t border-white/10 flex items-center justify-between gap-4">
-                            <button
-                              onClick={() => setIsPlayingVideo(!isPlayingVideo)}
-                              className="p-2.5 rounded-full bg-cyan-primary text-black hover:scale-105 transition cursor-pointer"
-                            >
-                              {isPlayingVideo ? (
-                                <div className="flex gap-0.5 justify-center items-center">
-                                  <div className="w-1.5 h-3 bg-black rounded-sm animate-pulse"></div>
-                                  <div className="w-1.5 h-3 bg-black rounded-sm animate-pulse"></div>
-                                </div>
-                              ) : (
-                                <Play className="w-4 h-4 fill-black" />
-                              )}
-                            </button>
+                          {/* Video voiceover script with synced subtitles */}
+                          <div className="mt-4 p-4 rounded-xl bg-black/40 border border-white/5 relative overflow-hidden">
+                            <div className="absolute top-0 left-0 w-1 h-full bg-purple-primary"></div>
+                            <h5 className="text-[10px] font-bold text-purple-400 mb-2 uppercase tracking-wider flex items-center gap-1">
+                              <FileText className="w-3.5 h-3.5" />
+                              Real-Time Transcription (Closed Captions)
+                            </h5>
+                            <div className="text-xs text-gray-400 leading-relaxed space-y-1">
+                              {getScriptSegments(currentLesson.script).map((segment, idx, arr) => {
+                                const segProgressStart = (idx / arr.length) * 100
+                                const segProgressEnd = ((idx + 1) / arr.length) * 100
+                                const isCurrent = videoProgress >= segProgressStart && videoProgress < segProgressEnd
+                                const isPast = videoProgress >= segProgressEnd
 
-                            {/* Voiceover waveform visual */}
-                            <div className="flex-1 flex items-center gap-1">
-                              {Array.from({ length: 24 }).map((_, idx) => {
-                                const activeHeight = isPlayingVideo 
-                                  ? Math.floor(Math.random() * 20) + 4 
-                                  : 6
                                 return (
-                                  <div
+                                  <span
                                     key={idx}
-                                    className={`flex-1 rounded-full transition-all duration-300 ${
-                                      isPlayingVideo ? 'bg-cyan-primary' : 'bg-gray-700'
-                                    }`}
-                                    style={{ height: `${activeHeight}px` }}
-                                  ></div>
+                                    className={`transition-all duration-300 mr-1.5 ${isCurrent
+                                        ? 'text-white font-medium bg-purple-primary/10 px-1 py-0.5 rounded border border-purple-primary/20 shadow-[0_0_8px_rgba(124,58,237,0.1)]'
+                                        : isPast
+                                          ? 'text-gray-500'
+                                          : 'text-gray-600'
+                                      }`}
+                                  >
+                                    {segment}{' '}
+                                  </span>
                                 )
                               })}
                             </div>
-
-                            {/* Audio Badge */}
-                            <div className="flex items-center gap-1 text-[10px] text-gray-400">
-                              <Volume2 className="w-3.5 h-3.5" />
-                              <span>AI voice synth</span>
-                            </div>
-                          </div>
-
-                          {/* Progress Line */}
-                          <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/5">
-                            <div
-                              className="bg-gradient-to-r from-purple-primary to-cyan-primary h-full transition-all"
-                              style={{ width: `${videoProgress}%` }}
-                            ></div>
                           </div>
                         </div>
+                      )}
 
-                        {/* Video voiceover script */}
-                        <div className="mt-4 p-4 rounded-xl bg-white/5 border border-white/5">
-                          <h5 className="text-xs font-semibold text-purple-primary mb-1 uppercase tracking-wider flex items-center gap-1">
-                            <FileText className="w-3 h-3" />
-                            Voiceover Transcription
-                          </h5>
-                          <p className="text-xs text-gray-400 italic leading-relaxed">
-                            "{currentLesson.script}"
-                          </p>
-                        </div>
-                      </div>
-                    )}
+                      {/* Downloads Tab */}
+                      {activeTab === 'downloads' && (
+                        <div className="space-y-4">
+                          <div>
+                            <h4 className="text-white text-base font-bold font-display flex items-center gap-2">
+                              <Download className="w-5 h-5 text-purple-primary" />
+                              Generated Resource Packets
+                            </h4>
+                            <p className="text-xs text-gray-400 mt-1">
+                              Download AI-compiled course materials, worksheets, and references.
+                            </p>
+                          </div>
 
-                    {/* Downloads Tab */}
-                    {activeTab === 'downloads' && (
-                      <div className="space-y-4">
-                        <h4 className="text-white text-base font-bold font-display mb-4 pb-2 border-b border-white/5">
-                          Printable Course Packets
-                        </h4>
-                        <p className="text-xs text-gray-400 mb-4">
-                          Download worksheets, generated notes, and presentation materials.
-                        </p>
-                        <div className="grid grid-cols-1 gap-3">
-                          {activeCourse.resources.map((res) => (
-                            <div
-                              key={res.name}
-                              className="flex items-center justify-between p-4 rounded-xl bg-white/2 border border-white/5 hover:border-white/15 hover:bg-white/5 transition"
-                            >
-                              <div className="flex items-center gap-3">
-                                <div className="p-2.5 rounded-lg bg-purple-primary/15 border border-purple-primary/20 text-purple-300">
-                                  <FileText className="w-5 h-5" />
+                          <div className="grid grid-cols-1 gap-3 mt-4">
+                            {(activeCourse?.resources || []).map((res) => {
+                              const progressVal = downloadProgress[res.name]
+                              const isDownloading = progressVal !== undefined && progressVal < 100
+                              const isDownloaded = progressVal === 100
+
+                              return (
+                                <div
+                                  key={res.name}
+                                  className={`p-4 rounded-xl transition-all duration-300 border ${isDownloaded
+                                      ? 'bg-emerald-500/5 border-emerald-500/20'
+                                      : isDownloading
+                                        ? 'bg-purple-primary/5 border-purple-primary/20'
+                                        : 'bg-white/2 border-white/5 hover:border-white/10 hover:bg-white/4'
+                                    }`}
+                                >
+                                  <div className="flex items-center justify-between gap-4">
+                                    <div className="flex items-center gap-3 truncate">
+                                      <div className={`p-2.5 rounded-lg border ${isDownloaded
+                                          ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                                          : isDownloading
+                                            ? 'bg-purple-primary/15 border-purple-primary/20 text-purple-300 animate-pulse'
+                                            : 'bg-white/5 border-white/5 text-gray-400'
+                                        }`}>
+                                        <FileText className="w-5 h-5" />
+                                      </div>
+                                      <div className="truncate">
+                                        <h5 className="text-sm font-semibold text-white truncate">{res.name}</h5>
+                                        <span className="text-[10px] text-gray-500 font-medium">
+                                          {res.type} • {res.size}
+                                        </span>
+                                      </div>
+                                    </div>
+
+                                    <button
+                                      onClick={() => startDownload(res.name)}
+                                      disabled={isDownloading}
+                                      className={`p-2 rounded-lg border transition-all duration-300 cursor-pointer flex items-center justify-center ${isDownloaded
+                                          ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-300'
+                                          : isDownloading
+                                            ? 'bg-purple-primary/10 border-purple-primary/20 text-purple-300 cursor-not-allowed'
+                                            : 'bg-white/5 hover:bg-cyan-primary border-white/10 hover:border-cyan-primary hover:text-black text-gray-300'
+                                        }`}
+                                    >
+                                      {isDownloaded ? (
+                                        <Check className="w-4 h-4" />
+                                      ) : isDownloading ? (
+                                        <div className="w-4 h-4 border-2 border-purple-primary/20 border-t-purple-primary rounded-full animate-spin"></div>
+                                      ) : (
+                                        <Download className="w-4 h-4" />
+                                      )}
+                                    </button>
+                                  </div>
+
+                                  {/* Progress Bar inside download card */}
+                                  {isDownloading && (
+                                    <div className="mt-3">
+                                      <div className="flex justify-between text-[9px] text-gray-400 mb-1 font-semibold">
+                                        <span>Downloading package...</span>
+                                        <span>{progressVal}%</span>
+                                      </div>
+                                      <div className="w-full bg-white/5 h-1 rounded-full overflow-hidden">
+                                        <div
+                                          className="bg-gradient-to-r from-purple-primary to-cyan-primary h-full transition-all duration-150"
+                                          style={{ width: `${progressVal}%` }}
+                                        ></div>
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {isDownloaded && (
+                                    <div className="mt-2 text-[9px] text-emerald-400 font-semibold flex items-center gap-1 animate-pulse">
+                                      <CheckCircle className="w-3 h-3" />
+                                      <span>Download completed! File saved to simulated local cache.</span>
+                                    </div>
+                                  )}
                                 </div>
-                                <div>
-                                  <h5 className="text-sm font-semibold text-white">{res.name}</h5>
-                                  <span className="text-[10px] text-gray-500">{res.type} • {res.size}</span>
-                                </div>
-                              </div>
-                              <button
-                                onClick={() => {
-                                  alert(`Downloading simulated ${res.name}...`)
-                                }}
-                                className="p-2 rounded-lg bg-white/5 hover:bg-cyan-primary hover:text-black border border-white/10 hover:border-cyan-primary text-gray-300 transition cursor-pointer"
-                              >
-                                <Download className="w-4 h-4" />
-                              </button>
-                            </div>
-                          ))}
+                              )
+                            })}
+                          </div>
                         </div>
+                      )}
+                    </div>
+
+                    {/* Reader Tab mark as complete button */}
+                    {activeTab === 'content' && currentLesson && (
+                      <div className="mt-8 pt-6 border-t border-white/5 flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-xs text-gray-500">
+                          <CheckCircle className={`w-4 h-4 ${isLessonDone ? 'text-emerald-500' : 'text-gray-600'}`} />
+                          <span>Status: {isLessonDone ? 'Completed' : 'Incomplete'}</span>
+                        </div>
+                        <button
+                          onClick={() => {
+                            setCompletedLessons(prev => ({
+                              ...prev,
+                              [lessonKey]: !isLessonDone
+                            }))
+                          }}
+                          className={`px-4 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-2 cursor-pointer ${isLessonDone
+                              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/30'
+                              : 'bg-purple-primary text-white hover:bg-purple-600 shadow-[0_4px_12px_rgba(124,58,237,0.3)] hover:scale-[1.02] active:scale-[0.98]'
+                            }`}
+                        >
+                          {isLessonDone ? 'Mark as Incomplete' : 'Mark as Complete'}
+                          {isLessonDone ? <Check className="w-3.5 h-3.5" /> : <Sparkles className="w-3.5 h-3.5" />}
+                        </button>
                       </div>
                     )}
 
@@ -761,13 +1214,24 @@ export default function InteractiveSimulator({
                 </div>
 
                 {/* Course Viewer footer */}
-                <div className="p-4 bg-white/1 border-t border-white/5 text-center text-[10px] text-gray-500 font-sans">
-                  Ready to deploy structure. Generate custom topics above.
+                <div className="px-6 py-3 bg-white/1 border-t border-white/5 flex items-center justify-between text-[10px] text-gray-500 font-sans select-none">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
+                    <span>Academy deployment status: Active</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="hover:text-white cursor-pointer transition">SCORM Export</span>
+                    <span>•</span>
+                    <span className="hover:text-white cursor-pointer transition">LTI v1.3</span>
+                    <span>•</span>
+                    <span className="hover:text-white cursor-pointer transition">PDF Package</span>
+                  </div>
                 </div>
               </div>
             ) : (
-              <div className="glass-panel rounded-3xl p-12 border-white/10 text-center h-[580px] flex flex-col justify-center items-center">
-                <BookOpen className="w-12 h-12 text-gray-600 mb-4 animate-bounce" />
+              <div className="glass-panel rounded-3xl p-12 border-white/10 text-center h-full min-h-[620px] flex flex-col justify-center items-center bg-black/40 relative overflow-hidden shadow-2xl">
+                <div className="absolute inset-0 bg-grid-pattern opacity-5 pointer-events-none"></div>
+                <BookOpen className="w-16 h-16 text-gray-600 mb-4 animate-bounce" />
                 <h3 className="font-display text-2xl font-bold text-white mb-2">Simulator Workspace Ready</h3>
                 <p className="text-gray-400 text-sm max-w-sm">
                   Enter a custom prompt in the input block above to compile the course content dashboard dynamically.
