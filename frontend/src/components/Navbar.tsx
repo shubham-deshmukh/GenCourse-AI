@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react'
+import { useAuth0 } from '@auth0/auth0-react'
+import { useAuthStore } from '../store/useAuthStore'
 import { Sparkles, Menu, X, ArrowRight } from 'lucide-react'
 
 const GithubIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -9,8 +11,12 @@ const GithubIcon = (props: React.SVGProps<SVGSVGElement>) => (
 )
 
 export default function Navbar() {
+  const { loginWithRedirect, logout } = useAuth0()
+  const { user, isAuthenticated, isLoading } = useAuthStore()
+  
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false)
 
   useEffect(() => {
     const handleScroll = () => {
@@ -59,9 +65,48 @@ export default function Navbar() {
 
           {/* Desktop CTA Buttons */}
           <div className="hidden md:flex items-center gap-4">
-            <button className="text-sm font-semibold text-gray-300 hover:text-white transition cursor-pointer">
-              Sign In
-            </button>
+            {isLoading ? (
+              <div className="w-8 h-8 rounded-full bg-white/10 animate-pulse"></div>
+            ) : isAuthenticated && user ? (
+              <div className="relative">
+                <button
+                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                  className="flex items-center gap-2.5 focus:outline-none cursor-pointer group/avatar"
+                >
+                  <img
+                    src={user.picture || 'https://via.placeholder.com/150'}
+                    alt={user.name || 'User Profile'}
+                    className="w-8 h-8 rounded-full border border-purple-primary/40 object-cover group-hover/avatar:border-cyan-primary transition"
+                  />
+                  <span className="hidden lg:inline text-sm font-medium text-gray-300 group-hover/avatar:text-white transition">
+                    {user.name}
+                  </span>
+                </button>
+
+                {isDropdownOpen && (
+                  <div className="absolute right-0 mt-3 w-48 rounded-xl glass-panel bg-black border border-white/10 shadow-xl py-2 z-50 animate-fade-in">
+                    <div className="px-4 py-2 border-b border-white/5">
+                      <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Account</p>
+                      <p className="text-xs text-gray-300 truncate mt-0.5">{user.email}</p>
+                    </div>
+                    <button
+                      onClick={() => logout({ logoutParams: { returnTo: window.location.origin } })}
+                      className="w-full text-left px-4 py-2.5 text-sm text-red-400 hover:bg-white/5 hover:text-red-300 transition cursor-pointer"
+                    >
+                      Sign Out
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <button
+                onClick={() => loginWithRedirect()}
+                className="text-sm font-semibold text-gray-300 hover:text-white transition cursor-pointer"
+              >
+                Sign In
+              </button>
+            )}
+
             <a
               href="#demo"
               className="btn-glow relative flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-purple-primary via-indigo-600 to-cyan-primary text-sm font-semibold text-white shadow-[0_0_15px_rgba(124,58,237,0.4)] hover:shadow-[0_0_25px_rgba(124,58,237,0.6)] hover:scale-105 transition-all duration-300 cursor-pointer"
@@ -108,9 +153,37 @@ export default function Navbar() {
             Interactive Demo
           </a>
           <div className="w-full px-6 flex flex-col gap-4 mt-2">
-            <button className="w-full py-3 text-center text-gray-300 hover:text-white font-semibold border border-white/10 rounded-xl hover:bg-white/5 transition">
-              Sign In
-            </button>
+            {isLoading ? (
+              <div className="w-full py-3 bg-white/5 animate-pulse rounded-xl"></div>
+            ) : isAuthenticated && user ? (
+              <div className="flex flex-col items-center gap-3">
+                <div className="flex items-center gap-3">
+                  <img
+                    src={user.picture || 'https://via.placeholder.com/150'}
+                    alt={user.name || 'User Profile'}
+                    className="w-10 h-10 rounded-full border border-purple-primary object-cover"
+                  />
+                  <div className="text-center">
+                    <p className="text-sm font-bold text-white">{user.name}</p>
+                    <p className="text-xs text-gray-500">{user.email}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => logout({ logoutParams: { returnTo: window.location.origin } })}
+                  className="w-full py-3 text-center text-red-400 font-semibold border border-red-500/20 rounded-xl hover:bg-red-500/10 transition cursor-pointer"
+                >
+                  Sign Out
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => loginWithRedirect()}
+                className="w-full py-3 text-center text-gray-300 hover:text-white font-semibold border border-white/10 rounded-xl hover:bg-white/5 transition cursor-pointer"
+              >
+                Sign In
+              </button>
+            )}
+
             <a
               href="#demo"
               onClick={() => setIsMobileMenuOpen(false)}

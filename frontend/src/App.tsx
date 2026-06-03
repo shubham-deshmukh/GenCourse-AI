@@ -1,4 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useAuth0 } from '@auth0/auth0-react'
+import { useAuthStore } from './store/useAuthStore'
 import Navbar from './components/Navbar'
 import Hero from './components/Hero'
 import InteractiveSimulator from './components/InteractiveSimulator'
@@ -11,13 +13,20 @@ export default function App() {
   const [prompt, setPrompt] = useState('Intro to React Hooks')
   const [isGenerating, setIsGenerating] = useState(false)
 
+  const { user: auth0User, isAuthenticated, isLoading } = useAuth0()
+  const setAuthState = useAuthStore((state) => state.setAuthState)
+
+  useEffect(() => {
+    setAuthState(auth0User || null, isAuthenticated, isLoading)
+  }, [auth0User, isAuthenticated, isLoading, setAuthState])
+
   const handleGenerate = (topic?: string) => {
     if (topic) {
       setPrompt(topic)
     }
-    
+
     setIsGenerating(true)
-    
+
     // Smooth scroll to the interactive generator simulator
     setTimeout(() => {
       const demoSection = document.getElementById('demo')
