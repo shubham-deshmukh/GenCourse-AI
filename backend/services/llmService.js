@@ -13,6 +13,24 @@ const getAI = () => {
   return aiInstance;
 };
 
+// Safe JSON parser that strips markdown wrappers and extracts the JSON object/array block
+const parseJSONSafely = (text) => {
+  if (!text) return null;
+  let cleanText = text.trim();
+  
+  // Remove markdown code block wrappers if they exist
+  cleanText = cleanText.replace(/^```(?:json)?\s*([\s\S]*?)\s*```$/i, '$1').trim();
+  
+  // Find first { and last } to extract pure JSON block
+  const startIdx = cleanText.indexOf('{');
+  const endIdx = cleanText.lastIndexOf('}');
+  if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
+    cleanText = cleanText.substring(startIdx, endIdx + 1);
+  }
+  
+  return JSON.parse(cleanText);
+};
+
 // Course outline prompt template
 const getCourseOutlinePrompt = (topic) => `You are an expert curriculum designer and educator.
 Your task is to design a comprehensive introductory course syllabus on the topic: "${topic}".
@@ -109,7 +127,7 @@ export const generateCourseOutline = async (topic) => {
   const prompt = getCourseOutlinePrompt(topic);
 
   const ollamaBaseUrl = process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
-  const ollamaModel = process.env.OLLAMA_MODEL || 'qwen3:4b';
+  const ollamaModel = process.env.OLLAMA_MODEL || 'qwen2.5:1.5b-instruct';
 
   try {
     console.log(`🦙 Attempting local Ollama generation using model: "${ollamaModel}" at "${ollamaBaseUrl}"...`);
@@ -143,7 +161,7 @@ export const generateCourseOutline = async (topic) => {
     }
 
     console.log('✅ Local Ollama generation succeeded.');
-    return JSON.parse(contentText.trim());
+    return parseJSONSafely(contentText);
   } catch (ollamaError) {
     console.warn(`⚠️ Local Ollama generation failed/unavailable: ${ollamaError.message}`);
 
@@ -162,7 +180,7 @@ export const generateCourseOutline = async (topic) => {
 
         const text = response.text;
         console.log('✅ Gemini fallback generation succeeded.');
-        return JSON.parse(text.trim());
+        return parseJSONSafely(text);
       } catch (geminiError) {
         console.error('❌ Gemini fallback also failed:', geminiError.message);
         throw geminiError;
@@ -182,7 +200,7 @@ export const generateLessonDetails = async (course, module, targetLessonTitle) =
   const prompt = getLessonDetailsPrompt(course, module, targetLessonTitle);
 
   const ollamaBaseUrl = process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
-  const ollamaModel = process.env.OLLAMA_MODEL || 'qwen3:4b';
+  const ollamaModel = process.env.OLLAMA_MODEL || 'qwen2.5:1.5b-instruct';
 
   try {
     console.log(`🦙 Attempting local Ollama lesson generation using model: "${ollamaModel}" at "${ollamaBaseUrl}"...`);
@@ -216,7 +234,7 @@ export const generateLessonDetails = async (course, module, targetLessonTitle) =
     }
 
     console.log(`✅ Local Ollama lesson generation succeeded for: "${targetLessonTitle}".`);
-    return JSON.parse(contentText.trim());
+    return parseJSONSafely(contentText);
   } catch (ollamaError) {
     console.warn(`⚠️ Local Ollama lesson generation failed/unavailable: ${ollamaError.message}`);
 
@@ -235,7 +253,7 @@ export const generateLessonDetails = async (course, module, targetLessonTitle) =
 
         const text = response.text;
         console.log(`✅ Gemini fallback generation succeeded for: "${targetLessonTitle}".`);
-        return JSON.parse(text.trim());
+        return parseJSONSafely(text);
       } catch (geminiError) {
         console.error(`❌ Gemini fallback also failed for: "${targetLessonTitle}":`, geminiError.message);
         throw geminiError;

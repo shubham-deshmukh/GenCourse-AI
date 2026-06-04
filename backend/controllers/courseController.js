@@ -224,28 +224,93 @@ export const streamCourse = async (req, res, next) => {
     console.log(`💾 Saving generated course outline to DB...`);
     course.title = cOutline.title || course.title;
     course.description = cOutline.description || `A comprehensive course on ${course.title}.`;
-    course.resources = cOutline.resources || [
-      { name: `${course.title.replace(/\s+/g, '_')}_Guide.pdf`, size: '2.5 MB', type: 'PDF' }
-    ];
-    course.quizzes = cOutline.quizzes || [];
+    
+    // Sanitize resources to avoid validation errors due to missing fields from weaker LLMs
+    let resources = cOutline.resources;
+    if (Array.isArray(resources)) {
+      resources = resources.map((r, idx) => {
+        const name = r.name || `Study_Helper_${idx + 1}.pdf`;
+        const type = r.type || (name.toLowerCase().endsWith('.zip') ? 'ZIP' : 'PDF');
+        const size = r.size || '1.5 MB';
+        return { name, size, type, url: r.url || '' };
+      });
+    } else {
+      resources = [
+        { name: `${course.title.replace(/\s+/g, '_')}_Guide.pdf`, size: '2.5 MB', type: 'PDF' }
+      ];
+    }
+    course.resources = resources;
+
+    // Sanitize quizzes to avoid validation errors
+    let quizzes = cOutline.quizzes;
+    if (Array.isArray(quizzes)) {
+      quizzes = quizzes.map((q, idx) => {
+        const id = q.id || `quiz-${Date.now()}-${idx + 1}`;
+        const question = q.question || `What is a key concept of ${course.title}?`;
+        let options = q.options;
+        if (!Array.isArray(options) || options.length < 2) {
+          options = ['Option A', 'Option B', 'Option C', 'Option D'];
+        } else {
+          options = options.map(opt => typeof opt === 'string' ? opt : String(opt));
+        }
+        let correctIndex = typeof q.correctIndex === 'number' ? q.correctIndex : 0;
+        if (correctIndex < 0 || correctIndex >= options.length) {
+          correctIndex = 0;
+        }
+        return {
+          id,
+          question,
+          options,
+          correctIndex,
+          explanation: q.explanation || 'Detailed explanation is not provided.'
+        };
+      });
+    } else {
+      quizzes = [];
+    }
+    course.quizzes = quizzes;
 
     const moduleIds = [];
     const savedModules = [];
 
+    // Ensure modules list is valid
+    if (!cOutline.modules || !Array.isArray(cOutline.modules) || cOutline.modules.length === 0) {
+      cOutline.modules = [
+        {
+          title: 'Module 1: Introduction to ' + course.title,
+          lessonTitles: ['1.1 Getting Started', '1.2 Core Concepts']
+        }
+      ];
+    }
+
     for (let mIdx = 0; mIdx < cOutline.modules.length; mIdx++) {
       const mData = cOutline.modules[mIdx];
+      const mTitle = mData.title || `Module ${mIdx + 1}: Overview of ${course.title}`;
       const moduleDoc = new Module({
         courseId: course._id,
-        title: mData.title,
+        title: mTitle,
         order: mIdx,
         lessons: []
       });
 
       await moduleDoc.save();
       moduleIds.push(moduleDoc._id);
+
+      let lessonTitles = mData.lessonTitles || mData.lessons?.map(l => l.title) || [];
+      if (!Array.isArray(lessonTitles)) {
+        lessonTitles = [];
+      }
+      lessonTitles = lessonTitles
+        .map(t => typeof t === 'string' ? t.trim() : '')
+        .filter(t => t.length > 0);
+
+      if (lessonTitles.length === 0) {
+        lessonTitles = [`${mIdx + 1}.1 Core Foundations`];
+      }
+
       savedModules.push({
         doc: moduleDoc,
-        lessonTitles: mData.lessonTitles || mData.lessons?.map(l => l.title) || []
+        lessonTitles: lessonTitles
       });
     }
 
@@ -331,14 +396,34 @@ export const streamCourse = async (req, res, next) => {
         }
 
         // Save Lesson to DB
+        let content = lessonDetails?.content;
+        if (!content || typeof content !== 'object') {
+          content = {
+            en: `Detailed content for ${lessonTitle} is currently being updated.`,
+            es: `El contenido para ${lessonTitle} se está actualizando.`,
+            fr: `Le contenu pour ${lessonTitle} est en cours de mise à jour.`
+          };
+        } else {
+          // Make sure required language keys are present
+          if (!content.en) {
+            content.en = `Detailed content for ${lessonTitle} is currently being updated.`;
+          }
+          if (!content.es) {
+            content.es = `El contenido para ${lessonTitle} se está actualizando.`;
+          }
+          if (!content.fr) {
+            content.fr = `Le contenu pour ${lessonTitle} est en cours de mise à jour.`;
+          }
+        }
+
         const lessonDoc = new Lesson({
           moduleId: moduleDoc._id,
-          title: lessonDetails.title || lessonTitle,
-          content: lessonDetails.content,
-          objectives: lessonDetails.objectives || [],
-          videoSearchQuery: lessonDetails.videoSearchQuery || '',
-          script: lessonDetails.script || '',
-          videoSlide: lessonDetails.videoSlide || '',
+          title: lessonDetails?.title || lessonTitle,
+          content: content,
+          objectives: lessonDetails?.objectives || [],
+          videoSearchQuery: lessonDetails?.videoSearchQuery || '',
+          script: lessonDetails?.script || '',
+          videoSlide: lessonDetails?.videoSlide || '',
           order: lIdx
         });
 
