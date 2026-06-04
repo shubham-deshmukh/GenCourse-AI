@@ -5,6 +5,7 @@ import morgan from 'morgan';
 import { auth } from 'express-openid-connect';
 import connectDB from './config/db.js';
 import courseRoutes from './routes/courseRoutes.js';
+import tutorRoutes from './routes/tutorRoutes.js';
 import { protect } from './middlewares/authMiddleware.js';
 
 // Load environment variables
@@ -74,6 +75,7 @@ app.get('/api/auth/me', protect, (req, res) => {
 
 // API Routes
 app.use('/api/courses', courseRoutes);
+app.use('/api/tutor', tutorRoutes);
 
 // 404 Route handler
 app.use((req, res, next) => {

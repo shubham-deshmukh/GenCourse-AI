@@ -24,6 +24,7 @@ interface PremiumInteractiveSimulatorProps {
   minimal?: boolean
   hideInput?: boolean
   onSimulationComplete?: () => void
+  onActiveLessonChange?: (courseId: string | null, lessonId: string | null) => void
 }
 
 // Sample Data Structure
@@ -362,7 +363,8 @@ export default function PremiumInteractiveSimulator({
   setPrompt,
   minimal = false,
   hideInput = false,
-  onSimulationComplete
+  onSimulationComplete,
+  onActiveLessonChange
 }: PremiumInteractiveSimulatorProps) {
   const {
     isGenerating: globalIsGenerating,
@@ -488,6 +490,14 @@ export default function PremiumInteractiveSimulator({
   }, [prompt, hideInput])
 
   const currentLesson = activeCourse?.modules?.[activeModuleIndex]?.lessons?.[activeLessonIndex]
+  const courseId = activeCourse?._id || null
+  const lessonId = currentLesson?._id || null
+
+  useEffect(() => {
+    if (onActiveLessonChange) {
+      onActiveLessonChange(courseId, lessonId)
+    }
+  }, [courseId, lessonId, onActiveLessonChange])
   const lessonKey = activeCourse ? `${activeCourse.title}-${activeModuleIndex}-${activeLessonIndex}` : ''
   const isLessonDone = completedLessons[lessonKey]
 

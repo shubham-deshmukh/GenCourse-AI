@@ -339,3 +339,70 @@ export const generateLessonDetails = async (course, module, targetLessonTitle) =
     }
   }
 };
+
+/**
+ * Generate AI Tutor response based on active context and student query
+ * Try Ollama first, fall back to Gemini
+ */
+export const generateTutorChatResponse = async (systemPrompt, userMessage) => {
+  const ollamaBaseUrl = process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
+  const ollamaModel = process.env.OLLAMA_MODEL || 'qwen2.5:1.5b-instruct';
+
+  try {
+    console.log(`🦙 Attempting local Ollama tutor chat using model: "${ollamaModel}" at "${ollamaBaseUrl}"...`);
+    const response = await axios.post(`${ollamaBaseUrl}/api/chat`, {
+      model: ollamaModel,
+      think: false,
+      messages: [
+        {
+          role: 'system',
+          content: systemPrompt
+        },
+        {
+          role: 'user',
+          content: userMessage
+        }
+      ],
+      options: {
+        temperature: 0.7, // Conversational tutor
+        num_predict: 512
+      },
+      keep_alive: '30m',
+      stream: false
+    }, {
+      timeout: 30000 // 30s timeout
+    });
+
+    const contentText = response.data?.message?.content || response.data?.response;
+    if (!contentText) {
+      throw new Error('No content returned from local Ollama model');
+    }
+
+    console.log('✅ Local Ollama tutor response succeeded.');
+    return contentText.trim();
+  } catch (ollamaError) {
+    console.warn(`⚠️ Local Ollama tutor chat failed/unavailable: ${ollamaError.message}`);
+
+    // Check if Gemini fallback is configured
+    if (process.env.GEMINI_API_KEY) {
+      console.log('🤖 Falling back to secondary provider (Google Gemini) for tutor chat...');
+      try {
+        const ai = getAI();
+        const response = await ai.models.generateContent({
+          model: 'gemini-2.5-flash',
+          contents: `${systemPrompt}\n\nUser Question: ${userMessage}`
+        });
+
+        const text = response.text;
+        console.log('✅ Gemini fallback tutor response succeeded.');
+        return text.trim();
+      } catch (geminiError) {
+        console.error('❌ Gemini fallback tutor chat also failed:', geminiError.message);
+        throw geminiError;
+      }
+    } else {
+      console.error('❌ Gemini API key is not configured. No fallback available.');
+      throw ollamaError;
+    }
+  }
+};

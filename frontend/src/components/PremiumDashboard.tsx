@@ -30,6 +30,11 @@ export default function PremiumDashboard() {
   const [simulatorPrompt, setSimulatorPrompt] = useState('')
   const [selectedCourseForPlayer, setSelectedCourseForPlayer] = useState<string | null>(null)
 
+  // Active course/lesson context for the AI Tutor
+  const [tutorCourseId, setTutorCourseId] = useState<string | null>(null)
+  const [tutorLessonId, setTutorLessonId] = useState<string | null>(null)
+  const [isTutorLoading, setIsTutorLoading] = useState(false)
+
   // AI tutor chat states
   const [chatMessages, setChatMessages] = useState<Array<{ sender: 'user' | 'ai'; text: string; time: string }>>([
     { sender: 'ai', text: 'Hello! I am your AI Course Tutor. Select any course in your library or ask me any question about lessons.', time: '09:00 AM' }
@@ -44,37 +49,104 @@ export default function PremiumDashboard() {
     }
   }, [chatMessages, isAiOpen])
 
-  const handleSendMessage = (e: React.FormEvent) => {
+  // Helper to parse inline bolding (**text**) and inline code (`code`)
+  const parseInlineMarkdown = (text: string) => {
+    const tokens = text.split(/(\*\*.*?\*\*|`.*?`)/g);
+    return tokens.map((token, index) => {
+      if (token.startsWith('**') && token.endsWith('**')) {
+        return <strong key={index} className="font-bold text-white">{token.slice(2, -2)}</strong>;
+      }
+      if (token.startsWith('`') && token.endsWith('`')) {
+        return <code key={index} className="bg-black/35 px-1 py-0.5 rounded font-mono text-[10px] text-pink-300 border border-white/5">{token.slice(1, -1)}</code>;
+      }
+      return token;
+    });
+  };
+
+  // Helper to parse block-level markdown (headers, lists, code blocks)
+  const renderMessageText = (text: string) => {
+    if (!text) return null;
+    const parts = text.split(/(```[a-z]*[\s\S]*?```)/g);
+    return parts.map((part, index) => {
+      if (part.startsWith('```')) {
+        const match = part.match(/```([a-z]*)\n([\s\S]*?)```/i);
+        const language = match ? match[1] : '';
+        const code = match ? match[2].trim() : part.replace(/```/g, '').trim();
+        return (
+          <div key={index} className="my-2 bg-black/45 rounded-xl border border-white/8 overflow-hidden font-mono text-[10px]">
+            {language && (
+              <div className="bg-white/3 px-3 py-1 text-[9px] font-bold text-gray-400 border-b border-white/5 uppercase">
+                {language}
+              </div>
+            )}
+            <pre className="p-3 overflow-x-auto text-cyan-300 leading-normal whitespace-pre">
+              {code}
+            </pre>
+          </div>
+        );
+      }
+      const lines = part.split('\n');
+      return (
+        <div key={index} className="space-y-1.5">
+          {lines.map((line, lIdx) => {
+            let cleanLine = line.trim();
+            if (!cleanLine) return <div key={lIdx} className="h-2" />;
+            if (cleanLine.startsWith('###')) {
+              return <h4 key={lIdx} className="text-sm font-bold text-white mt-2 mb-1">{cleanLine.replace(/^###\s*/, '')}</h4>;
+            }
+            if (cleanLine.startsWith('##') || cleanLine.startsWith('#')) {
+              return <h4 key={lIdx} className="text-sm font-bold text-purple-300 mt-2 mb-1">{cleanLine.replace(/^#+\s*/, '')}</h4>;
+            }
+            if (cleanLine.startsWith('- ') || cleanLine.startsWith('* ')) {
+              return (
+                <ul key={lIdx} className="list-disc list-inside pl-2 text-gray-300">
+                  <li>{parseInlineMarkdown(cleanLine.replace(/^[-*]\s+/, ''))}</li>
+                </ul>
+              );
+            }
+            return <p key={lIdx} className="text-gray-300">{parseInlineMarkdown(cleanLine)}</p>;
+          })}
+        </div>
+      );
+    });
+  };
+
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!chatInput.trim()) return
+    if (!chatInput.trim() || isTutorLoading) return
 
     const timeString = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     const userMsg = { sender: 'user' as const, text: chatInput, time: timeString }
+    const currentInput = chatInput.trim()
 
     setChatMessages(prev => [...prev, userMsg])
     setChatInput('')
+    setIsTutorLoading(true)
 
-    // Simulated responses
-    setTimeout(() => {
-      let aiResponseText = "That's a great question! I am analyzing the generated course outline database to formulate a comprehensive answer for you."
+    try {
+      const response = await axios.post('/api/tutor/chat', {
+        message: currentInput,
+        courseId: tutorCourseId,
+        lessonId: tutorLessonId
+      })
 
-      const lowerInput = chatInput.toLowerCase()
-      if (lowerInput.includes('react') || lowerInput.includes('hook')) {
-        aiResponseText = "React Hooks let you use state and other React features without writing a class. Remember the Rules of Hooks: call them only at the top level and only from React function components."
-      } else if (lowerInput.includes('copyright') || lowerInput.includes('law')) {
-        aiResponseText = "Under copyright law, protection begins automatically when a work is fixed in a tangible medium. You don't have to register or use the © symbol to get protection, although doing so helps in legal enforcement."
-      } else if (lowerInput.includes('quantum')) {
-        aiResponseText = "Wave-particle duality is a central concept in quantum mechanics. It states that every particle or quantum entity may be described as either a particle or a wave, depending on the observation method."
-      } else if (lowerInput.includes('guitar')) {
-        aiResponseText = "Standard tuning for a guitar is E-A-D-G-B-E. When practicing rhythm strumming, focus on keeping your wrist loose and maintaining a steady down-up stroke pattern."
-      }
-
+      const aiResponseText = response.data?.response || 'I am sorry, I was unable to compile a response.'
       setChatMessages(prev => [...prev, {
         sender: 'ai',
         text: aiResponseText,
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       }])
-    }, 1000)
+    } catch (err: any) {
+      console.error('Error fetching AI Tutor response:', err)
+      const errorMsg = err.response?.data?.message || 'Connection lost. Please make sure the server is online.'
+      setChatMessages(prev => [...prev, {
+        sender: 'ai',
+        text: `⚠️ **Error:** ${errorMsg}`,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      }])
+    } finally {
+      setIsTutorLoading(false)
+    }
   }
 
 
@@ -266,6 +338,8 @@ export default function PremiumDashboard() {
               onClick={() => {
                 setActiveTab('library')
                 setSelectedCourseForPlayer(null)
+                setTutorCourseId(null)
+                setTutorLessonId(null)
               }}
               className={`w-full flex items-center rounded-xl text-xs font-semibold transition-all duration-300 border cursor-pointer ${isSidebarCollapsed ? 'justify-center p-3' : 'gap-3 px-4 py-3'
                 } ${activeTab === 'library' && !selectedCourseForPlayer
@@ -283,6 +357,8 @@ export default function PremiumDashboard() {
                 setActiveTab('generate')
                 setSimulatorPrompt('')
                 setSelectedCourseForPlayer(null)
+                setTutorCourseId(null)
+                setTutorLessonId(null)
               }}
               className={`w-full flex items-center rounded-xl text-xs font-semibold transition-all duration-300 border cursor-pointer ${isSidebarCollapsed ? 'justify-center p-3' : 'gap-3 px-4 py-3'
                 } ${activeTab === 'generate'
@@ -315,6 +391,8 @@ export default function PremiumDashboard() {
               onClick={() => {
                 setActiveTab('settings')
                 setSelectedCourseForPlayer(null)
+                setTutorCourseId(null)
+                setTutorLessonId(null)
               }}
               className={`w-full flex items-center rounded-xl text-xs font-semibold transition-all duration-300 border cursor-pointer ${isSidebarCollapsed ? 'justify-center p-3' : 'gap-3 px-4 py-3'
                 } ${activeTab === 'settings'
@@ -402,6 +480,10 @@ export default function PremiumDashboard() {
                 setPrompt={() => { }}
                 minimal={true}
                 hideInput={true}
+                onActiveLessonChange={(cId, lId) => {
+                  setTutorCourseId(cId)
+                  setTutorLessonId(lId)
+                }}
               />
             </div>
           ) : (
@@ -522,6 +604,10 @@ export default function PremiumDashboard() {
                       setPrompt={setSimulatorPrompt}
                       minimal={true}
                       onSimulationComplete={fetchCourses}
+                      onActiveLessonChange={(cId, lId) => {
+                        setTutorCourseId(cId)
+                        setTutorLessonId(lId)
+                      }}
                     />
                   </div>
                 </div>
@@ -619,12 +705,28 @@ export default function PremiumDashboard() {
                     : 'bg-gradient-to-r from-purple-primary to-cyan-primary border-transparent text-white rounded-tr-sm shadow-md'
                     }`}
                 >
-                  <p>{m.text}</p>
+                  {isAi ? (
+                    <div className="space-y-1">{renderMessageText(m.text)}</div>
+                  ) : (
+                    <p>{m.text}</p>
+                  )}
                 </div>
                 <span className="text-[9px] text-gray-500 font-semibold px-1 font-mono">{m.time}</span>
               </div>
             )
           })}
+          {isTutorLoading && (
+            <div className="flex flex-col items-start space-y-1.5 animate-fade-in">
+              <div className="p-3 rounded-2xl text-xs bg-purple-primary/5 border border-purple-primary/10 text-gray-400 rounded-tl-sm flex items-center gap-1">
+                <span>AI Tutor is thinking</span>
+                <span className="flex gap-0.5 ml-1">
+                  <span className="w-1 h-1 rounded-full bg-purple-400 animate-bounce [animation-delay:-0.3s]"></span>
+                  <span className="w-1 h-1 rounded-full bg-purple-400 animate-bounce [animation-delay:-0.15s]"></span>
+                  <span className="w-1 h-1 rounded-full bg-purple-400 animate-bounce"></span>
+                </span>
+              </div>
+            </div>
+          )}
           <div ref={chatEndRef}></div>
         </div>
 
