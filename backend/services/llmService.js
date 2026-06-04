@@ -17,17 +17,17 @@ const getAI = () => {
 const parseJSONSafely = (text) => {
   if (!text) return null;
   let cleanText = text.trim();
-  
+
   // Remove markdown code block wrappers if they exist
   cleanText = cleanText.replace(/^```(?:json)?\s*([\s\S]*?)\s*```$/i, '$1').trim();
-  
+
   // Find first { and last } to extract pure JSON block
   const startIdx = cleanText.indexOf('{');
   const endIdx = cleanText.lastIndexOf('}');
   if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
     cleanText = cleanText.substring(startIdx, endIdx + 1);
   }
-  
+
   return JSON.parse(cleanText);
 };
 
@@ -42,13 +42,6 @@ Target JSON Schema:
 {
   "title": "Exact course title (e.g. Intro to React Hooks)",
   "description": "A compelling 1-2 sentence description of the course and its goals.",
-  "resources": [
-    {
-      "name": "Short file name for study helper (e.g. React_Hooks_Cheat_Sheet.pdf)",
-      "size": "Estimated size (e.g. 2.4 MB)",
-      "type": "PDF"
-    }
-  ],
   "quizzes": [
     {
       "id": "A unique lowercase quiz ID string (e.g. rh-q1)",
@@ -70,11 +63,10 @@ Target JSON Schema:
 }
 
 Constraints:
-1. Design exactly 2-3 logical modules.
-2. Each module must contain exactly 2-3 lessons.
-3. Provide 2-3 downloadable resources (combinations of PDFs and ZIPs) related to the topic.
-4. Provide exactly 3 multiple-choice quiz questions covering the entire syllabus.
-5. All JSON keys and strings must be enclosed in double quotes. Ensure valid JSON format.`;
+1. Design exactly 4-5 logical modules.
+2. Each module must contain exactly 3-4 lessons.
+3. Provide exactly 5-6 multiple-choice quiz questions covering the entire syllabus.
+4. All JSON keys and strings must be enclosed in double quotes. Ensure valid JSON format.`;
 
 // Lesson details prompt template
 const getLessonDetailsPrompt = (course, module, targetLessonTitle) => `You are an expert technical writer and online instructor.
@@ -101,23 +93,19 @@ Target JSON Schema:
     "Identify the main goals of this lesson...",
     "Understand how to apply..."
   ],
-  "videoSearchQuery": "A highly descriptive search query for finding a relevant YouTube video for this lesson (e.g. 'react hooks useEffect dependency array rules tutorial')",
   "content": {
     "en": "Detailed technical textbook content in English (around 150-200 words). Use markdown formatting (headers ###, lists, and bold text) for styling. Incorporate a code block (using \`\`\`language) ONLY if the lesson topic is directly code/programming-related.",
     "es": "A brief translated summary in Spanish (50-80 words).",
     "fr": "A brief translated summary in French (50-80 words)."
-  },
-  "script": "A brief word-for-word voiceover script (around 80-120 words) for the video lecture of this lesson. It should explain the concepts in an engaging, narrative conversational tone.",
-  "videoSlide": "A short description of what should be displayed visually on the slide during the video lecture (e.g. Slide showing comparisons between X and Y)."
+  }
 }
 
 Constraints & Formatting Rules:
 1. **Objectives**: Include exactly 2-3 specific learning objectives for this lesson inside the "objectives" array.
-2. **Video Search Query**: The "videoSearchQuery" must be a clean search phrase (3-7 words) optimized for finding high-quality educational videos on YouTube related to this lesson. Do not include URLs.
-3. **Optional Code Blocks**: Include code blocks in the "content" fields *only* if it is relevant to the topic (e.g., React Hooks or TypeScript). If the lesson is about a non-programming topic (e.g., Copyright Law or Guitar Tuning), do not include code blocks.
-4. **Volume**: The English content field should be around 150-200 words. Spanish and French translations should be brief summaries (50-80 words) to optimize generation speed.
-5. **Flow**: Ensure the content flows naturally from the previous lessons in the module list and does not repeat basic introductory material if this is a later lesson (e.g., Lesson 1.2 or 2.1).
-6. All translations must maintain exact content parity and structure.`;
+2. **Optional Code Blocks**: Include code blocks in the "content" fields *only* if it is relevant to the topic (e.g., React Hooks or TypeScript). If the lesson is about a non-programming topic (e.g., Copyright Law or Guitar Tuning), do not include code blocks.
+3. **Volume**: The English content field should be around 150-200 words. Spanish and French translations should be brief summaries (50-80 words) to optimize generation speed.
+4. **Flow**: Ensure the content flows naturally from the previous lessons in the module list and does not repeat basic introductory material if this is a later lesson (e.g., Lesson 1.2 or 2.1).
+5. All translations must maintain exact content parity and structure.`;
 
 /**
  * Generate a course outline syllabus

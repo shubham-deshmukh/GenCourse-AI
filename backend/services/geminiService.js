@@ -115,23 +115,19 @@ Target JSON Schema:
     "Identify the main goals of this lesson...",
     "Understand how to apply..."
   ],
-  "videoSearchQuery": "A highly descriptive search query for finding a relevant YouTube video for this lesson (e.g. 'react hooks useEffect dependency array rules tutorial')",
   "content": {
     "en": "Detailed, rich textbook content in English. Use markdown formatting (headers ###, lists, and bold text) for styling. Incorporate a code block (using \`\`\`language) ONLY if the lesson topic is directly code/programming-related.",
     "es": "Detailed textbook content translated/adapted into Spanish.",
     "fr": "Detailed textbook content translated/adapted into French."
-  },
-  "script": "A detailed word-for-word voiceover script for the video lecture of this lesson. It should explain the concepts in an engaging, narrative conversational tone.",
-  "videoSlide": "A short description of what should be displayed visually on the slide during the video lecture (e.g. Slide showing comparisons between X and Y)."
+  }
 }
 
 Constraints & Formatting Rules:
 1. **Objectives**: Include exactly 2-3 specific learning objectives for this lesson inside the "objectives" array.
-2. **Video Search Query**: The "videoSearchQuery" must be a clean search phrase (3-7 words) optimized for finding high-quality educational videos on YouTube related to this lesson. Do not include URLs.
-3. **Optional Code Blocks**: Include code blocks in the "content" fields *only* if it is relevant to the topic (e.g., React Hooks or TypeScript). If the lesson is about a non-programming topic (e.g., Copyright Law or Guitar Tuning), do not include code blocks.
-4. **Volume**: The "content" fields must be comprehensive (at least 300-500 words per language) and use markdown formatting to separate sections.
-5. **Flow**: Ensure the content flows naturally from the previous lessons in the module list and does not repeat basic introductory material if this is a later lesson (e.g., Lesson 1.2 or 2.1).
-6. All translations must maintain exact content parity and structure.`;
+2. **Optional Code Blocks**: Include code blocks in the "content" fields *only* if it is relevant to the topic (e.g., React Hooks or TypeScript). If the lesson is about a non-programming topic (e.g., Copyright Law or Guitar Tuning), do not include code blocks.
+3. **Volume**: The "content" fields must be comprehensive (at least 300-500 words per language) and use markdown formatting to separate sections.
+4. **Flow**: Ensure the content flows naturally from the previous lessons in the module list and does not repeat basic introductory material if this is a later lesson (e.g., Lesson 1.2 or 2.1).
+5. All translations must maintain exact content parity and structure.`;
 
   try {
     const response = await ai.models.generateContent({
