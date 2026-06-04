@@ -1289,7 +1289,6 @@ export default function PremiumInteractiveSimulator({
                         </select>
                       </div>
 
-                      {/* Reader Tab */}
                       {activeTab === 'content' && currentLesson && (
                         currentLesson.isPlaceholder ? (
                           <div className="space-y-8 animate-pulse select-none">
@@ -1311,14 +1310,6 @@ export default function PremiumInteractiveSimulator({
                                 </div>
                               </div>
                             </div>
-                            
-                            <div className="pt-8 border-t border-white/5 space-y-4">
-                              <div className="h-4 bg-white/10 rounded w-1/3"></div>
-                              <div className="rounded-2xl aspect-video bg-black/40 border border-white/5 overflow-hidden flex flex-col justify-center items-center p-4">
-                                <Cpu className="w-8 h-8 text-purple-400/30 animate-spin mb-2" />
-                                <span className="text-[10px] text-gray-500 font-mono">Synthesizing Lecture Slides & Voiceover...</span>
-                              </div>
-                            </div>
                           </div>
                         ) : (
                           <div className="space-y-8">
@@ -1330,134 +1321,6 @@ export default function PremiumInteractiveSimulator({
                               <div className="space-y-4">
                                 {renderFormattedContent(currentLesson.content?.[language] || '')}
                               </div>
-                            </div>
-
-                          {/* AI Video Lecture Section */}
-                          <div className="pt-8 border-t border-white/5 space-y-6">
-                            <div>
-                              <h4 className="text-white text-base font-bold font-display flex items-center gap-2">
-                                <Play className="w-4 h-4 text-cyan-primary animate-pulse" />
-                                AI Lecture Video Mockup
-                              </h4>
-                              <p className="text-xs text-gray-400 mt-1">
-                                Simulated lecture visualizer presenting slides synced with voice synthesis voiceovers.
-                              </p>
-                            </div>
-
-                            {/* Custom video sandbox renderer */}
-                            <div className="relative rounded-2xl aspect-video bg-black/90 border border-white/10 overflow-hidden flex flex-col justify-between p-4 shadow-2xl">
-
-                              {/* Visual Slides representation */}
-                              <div className="flex-1 flex flex-col justify-center items-center text-center p-4 bg-[radial-gradient(circle_at_center,rgba(124,58,237,0.1),transparent_70%)] relative">
-                                <div className="absolute inset-0 bg-grid-pattern opacity-10 pointer-events-none"></div>
-                                <div className="px-3 py-1 rounded-full bg-cyan-primary/10 border border-cyan-primary/20 text-[9px] text-cyan-300 font-bold uppercase tracking-widest mb-3">
-                                  Generated Lecture Slide
-                                </div>
-                                <h3 className="font-display font-extrabold text-sm md:text-base text-white max-w-sm drop-shadow-md leading-snug">
-                                  {currentLesson.videoSlide}
-                                </h3>
-                                <div className="mt-4 flex gap-1.5 items-center">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping"></span>
-                                  <span className="text-[10px] text-gray-500 uppercase tracking-widest font-semibold">AI Rendering Engine</span>
-                                </div>
-                              </div>
-
-                              {/* Progress scrubbing line */}
-                              <div
-                                className="relative h-1.5 w-full bg-white/10 rounded-full cursor-pointer overflow-hidden group mb-4"
-                                onClick={(e) => {
-                                  const rect = e.currentTarget.getBoundingClientRect()
-                                  const clickX = e.clientX - rect.left
-                                  const percentage = Math.max(0, Math.min(100, Math.round((clickX / rect.width) * 100)))
-                                  setVideoProgress(percentage)
-                                }}
-                              >
-                                <div
-                                  className="absolute top-0 left-0 h-full bg-gradient-to-r from-purple-primary to-cyan-primary group-hover:from-purple-500 group-hover:to-cyan-400 transition-all duration-100"
-                                  style={{ width: `${videoProgress}%` }}
-                                ></div>
-                              </div>
-
-                              {/* Controls bar */}
-                              <div className="pt-2 flex items-center justify-between gap-4">
-                                <div className="flex items-center gap-3">
-                                  <button
-                                    onClick={() => setIsPlayingVideo(!isPlayingVideo)}
-                                    className="p-2 rounded-full bg-gradient-to-r from-purple-primary to-cyan-primary text-white hover:scale-105 transition shadow-lg cursor-pointer flex items-center justify-center"
-                                  >
-                                    {isPlayingVideo ? (
-                                      <div className="flex gap-0.5 justify-center items-center w-3 h-3">
-                                        <div className="w-1 h-2.5 bg-black rounded-sm"></div>
-                                        <div className="w-1 h-2.5 bg-black rounded-sm"></div>
-                                      </div>
-                                    ) : (
-                                      <Play className="w-3 h-3 fill-white text-white ml-0.5" />
-                                    )}
-                                  </button>
-
-                                  <span className="text-[10px] text-gray-400 font-mono">
-                                    {formatTime(Math.floor((videoProgress / 100) * 120))} / 2:00
-                                  </span>
-                                </div>
-
-                                {/* Waveform visualizer */}
-                                <div className="flex-1 flex justify-center">
-                                  <div className="flex items-end gap-[3px] h-6 justify-center w-full max-w-[120px]">
-                                    {Array.from({ length: 16 }).map((_, idx) => {
-                                      return (
-                                        <div
-                                          key={idx}
-                                          className={`w-[3px] rounded-full transition-all duration-300 soundwave-bar ${isPlayingVideo ? 'bg-cyan-primary shadow-[0_0_4px_#06b6d4]' : 'bg-gray-700'}`}
-                                          style={{
-                                            animationDelay: `${idx * 0.08}s`,
-                                            animationPlayState: isPlayingVideo ? 'running' : 'paused',
-                                            ...(isPlayingVideo ? {} : { height: '4px' })
-                                          }}
-                                        ></div>
-                                      )
-                                    })}
-                                  </div>
-                                </div>
-
-                                {/* Audio badge */}
-                                <div className="flex items-center gap-1 text-[9px] text-gray-400">
-                                  <Volume2 className="w-3.5 h-3.5 text-cyan-primary animate-pulse" />
-                                  <span>AI voice synth</span>
-                                </div>
-                              </div>
-
-                            </div>
-
-                            {/* Video voiceover script with synced subtitles */}
-                            <div className="p-4 rounded-xl bg-black/40 border border-white/5 relative overflow-hidden">
-                              <div className="absolute top-0 left-0 w-1 h-full bg-purple-primary"></div>
-                              <h5 className="text-[10px] font-bold text-purple-400 mb-2 uppercase tracking-wider flex items-center gap-1">
-                                <FileText className="w-3.5 h-3.5" />
-                                Real-Time Transcription (Closed Captions)
-                              </h5>
-                              <div className="text-xs text-gray-400 leading-relaxed space-y-1">
-                                {getScriptSegments(currentLesson.script).map((segment, idx, arr) => {
-                                  const segProgressStart = (idx / arr.length) * 100
-                                  const segProgressEnd = ((idx + 1) / arr.length) * 100
-                                  const isCurrent = videoProgress >= segProgressStart && videoProgress < segProgressEnd
-                                  const isPast = videoProgress >= segProgressEnd
-
-                                  return (
-                                    <span
-                                      key={idx}
-                                      className={`transition-all duration-300 mr-1.5 ${isCurrent
-                                          ? 'text-white font-medium bg-purple-primary/10 px-1 py-0.5 rounded border border-purple-primary/20 shadow-[0_0_8px_rgba(124,58,237,0.1)]'
-                                          : isPast
-                                            ? 'text-gray-500'
-                                            : 'text-gray-600'
-                                        }`}
-                                    >
-                                      {segment}{' '}
-                                    </span>
-                                  )
-                                })}
-                              </div>
-                            </div>
                             </div>
                           </div>
                         )
