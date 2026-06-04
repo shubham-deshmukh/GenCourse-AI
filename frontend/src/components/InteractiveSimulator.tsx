@@ -609,11 +609,16 @@ export default function InteractiveSimulator({
               </div>
               <div className="p-4 overflow-x-auto text-gray-300 leading-relaxed font-mono whitespace-pre text-xs">
                 {codeText.split('\n').map((line, lIdx) => {
-                  const styledLine = line
-                    .replace(/(const|let|var|import|from|return)/g, '<span class="text-purple-400 font-semibold">$1</span>')
-                    .replace(/(useState|useEffect|useRef|setCount|useState|useCallback|useMemo)/g, '<span class="text-yellow-400 font-medium">$1</span>')
-                    .replace(/('[^']*'|`[^`]*`|"[^"]*")/g, '<span class="text-cyan-400">$1</span>')
-                    .replace(/(\d+)/g, '<span class="text-pink-400">$1</span>')
+                  const styledLine = line.replace(
+                    /('[^']*'|`[^`]*`|"[^"]*")|\b(const|let|var|import|from|return)\b|\b(useState|useEffect|useRef|setCount|useCallback|useMemo)\b|\b(\d+)\b/g,
+                    (match, pStr, pKey, pHook, pNum) => {
+                      if (pStr) return `<span class="text-cyan-400">${pStr}</span>`;
+                      if (pKey) return `<span class="text-purple-400 font-semibold">${pKey}</span>`;
+                      if (pHook) return `<span class="text-yellow-400 font-medium">${pHook}</span>`;
+                      if (pNum) return `<span class="text-pink-400">${pNum}</span>`;
+                      return match;
+                    }
+                  )
                   return (
                     <div key={lIdx} dangerouslySetInnerHTML={{ __html: styledLine || '&nbsp;' }} />
                   )
