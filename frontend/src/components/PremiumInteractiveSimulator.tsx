@@ -734,6 +734,16 @@ export default function PremiumInteractiveSimulator({
     return <span className="text-gray-400">{line}</span>
   }
 
+  const parseInlineMarkdown = (text: string) => {
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold text-white">$1</strong>')
+      .replace(/\*(.*?)\*/g, '<em class="italic text-gray-200">$1</em>')
+      .replace(/`(.*?)`/g, '<code class="px-1.5 py-0.5 rounded bg-white/10 font-mono text-[10px] text-cyan-300">$1</code>')
+  }
+
   const renderFormattedContent = (contentString: string) => {
     const parts = contentString.split('\n')
     let isInsideCodeBlock = false
@@ -784,10 +794,17 @@ export default function PremiumInteractiveSimulator({
       // Headers
       if (part.trim().startsWith('###')) {
         return (
-          <h5 key={index} className="text-white text-sm font-bold font-display mt-5 mb-2.5 flex items-center gap-2">
-            <span className="w-1 h-3.5 rounded-full bg-purple-primary"></span>
-            {part.replace('###', '').trim()}
-          </h5>
+          <h5 key={index} className="text-white text-sm font-bold font-display mt-5 mb-2.5 flex items-center gap-2" dangerouslySetInnerHTML={{ __html: `<span class="w-1 h-3.5 rounded-full bg-purple-primary shrink-0"></span>${parseInlineMarkdown(part.replace('###', '').trim())}` }} />
+        )
+      }
+      if (part.trim().startsWith('##')) {
+        return (
+          <h4 key={index} className="text-white text-base font-bold font-display mt-6 mb-3 flex items-center gap-2" dangerouslySetInnerHTML={{ __html: `<span class="w-1 h-4 rounded-full bg-cyan-primary shrink-0"></span>${parseInlineMarkdown(part.replace('##', '').trim())}` }} />
+        )
+      }
+      if (part.trim().startsWith('#')) {
+        return (
+          <h3 key={index} className="text-white text-lg font-bold font-display mt-7 mb-4" dangerouslySetInnerHTML={{ __html: parseInlineMarkdown(part.replace('#', '').trim()) }} />
         )
       }
 
@@ -796,7 +813,7 @@ export default function PremiumInteractiveSimulator({
         return (
           <div key={index} className="flex items-start gap-2 my-2 pl-1 text-gray-300 text-xs">
             <Check className="w-3.5 h-3.5 text-cyan-primary shrink-0 mt-0.5" />
-            <span>{part.replace('-', '').trim()}</span>
+            <span dangerouslySetInnerHTML={{ __html: parseInlineMarkdown(part.replace('-', '').trim()) }} />
           </div>
         )
       }
@@ -810,7 +827,7 @@ export default function PremiumInteractiveSimulator({
             <span className="flex items-center justify-center w-4 h-4 rounded-full bg-purple-primary/20 text-purple-300 text-[9px] font-bold shrink-0 mt-0.5">
               {number}
             </span>
-            <span>{text}</span>
+            <span dangerouslySetInnerHTML={{ __html: parseInlineMarkdown(text) }} />
           </div>
         )
       }
@@ -818,9 +835,7 @@ export default function PremiumInteractiveSimulator({
       // Normal text paragraphs
       if (part.trim() === '') return null
       return (
-        <p key={index} className="my-2.5 text-gray-300 leading-relaxed font-sans text-xs">
-          {part}
-        </p>
+        <p key={index} className="my-2.5 text-gray-300 leading-relaxed font-sans text-xs" dangerouslySetInnerHTML={{ __html: parseInlineMarkdown(part) }} />
       )
     })
   }
