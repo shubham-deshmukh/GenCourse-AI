@@ -5,7 +5,6 @@ import { useAuthStore } from '../store/useAuthStore'
 import {
   FolderOpen,
   Plus,
-  Key,
   Settings,
   LogOut,
   Clock,
@@ -14,12 +13,6 @@ import {
   Send,
   MessageSquare,
   X,
-  Layers,
-  Lock,
-  Eye,
-  EyeOff,
-  Copy,
-  Check,
   Sparkles,
   Trash2,
 } from 'lucide-react'
@@ -29,18 +22,14 @@ export default function PremiumDashboard() {
   const { logout } = useAuth0()
   const { user } = useAuthStore()
 
-  const [activeTab, setActiveTab] = useState<'library' | 'generate' | 'integrations' | 'settings'>('library')
+  const [activeTab, setActiveTab] = useState<'library' | 'generate' | 'settings'>('library')
   const [isAiOpen, setIsAiOpen] = useState(false)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
 
   // Quiz and simulator control
-  const [simulatorPrompt, setSimulatorPrompt] = useState('Intro to React Hooks')
+  const [simulatorPrompt, setSimulatorPrompt] = useState('')
   const [simulatorIsGenerating, setSimulatorIsGenerating] = useState(false)
   const [selectedCourseForPlayer, setSelectedCourseForPlayer] = useState<string | null>(null)
-
-  // Integrations state
-  const [showApiKey, setShowApiKey] = useState(false)
-  const [copiedKey, setCopiedKey] = useState(false)
 
   // AI tutor chat states
   const [chatMessages, setChatMessages] = useState<Array<{ sender: 'user' | 'ai'; text: string; time: string }>>([
@@ -87,12 +76,6 @@ export default function PremiumDashboard() {
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       }])
     }, 1000)
-  }
-
-  const copyApiKey = () => {
-    navigator.clipboard.writeText('gc_live_9f82d2c18d3a7741e9b25fbc705a6')
-    setCopiedKey(true)
-    setTimeout(() => setCopiedKey(false), 2000)
   }
 
 
@@ -299,6 +282,7 @@ export default function PremiumDashboard() {
             <button
               onClick={() => {
                 setActiveTab('generate')
+                setSimulatorPrompt('')
                 setSelectedCourseForPlayer(null)
               }}
               className={`w-full flex items-center rounded-xl text-xs font-semibold transition-all duration-300 border cursor-pointer ${isSidebarCollapsed ? 'justify-center p-3' : 'gap-3 px-4 py-3'
@@ -310,22 +294,6 @@ export default function PremiumDashboard() {
             >
               <Plus className="w-4 h-4 shrink-0" />
               {!isSidebarCollapsed && <span>Create New Course</span>}
-            </button>
-
-            <button
-              onClick={() => {
-                setActiveTab('integrations')
-                setSelectedCourseForPlayer(null)
-              }}
-              className={`w-full flex items-center rounded-xl text-xs font-semibold transition-all duration-300 border cursor-pointer ${isSidebarCollapsed ? 'justify-center p-3' : 'gap-3 px-4 py-3'
-                } ${activeTab === 'integrations'
-                  ? 'bg-purple-primary/10 border-purple-primary/30 text-white shadow-[0_0_15px_rgba(124,58,237,0.08)]'
-                  : 'bg-transparent border-transparent text-gray-400 hover:text-white hover:bg-white/5'
-                }`}
-              title={isSidebarCollapsed ? "API & Integrations" : undefined}
-            >
-              <Key className="w-4 h-4 shrink-0" />
-              {!isSidebarCollapsed && <span>API & Integrations</span>}
             </button>
 
             <button
@@ -358,15 +326,6 @@ export default function PremiumDashboard() {
                 </div>
                 <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
                   <div className="bg-gradient-to-r from-purple-primary to-cyan-primary h-full w-[45%]"></div>
-                </div>
-              </div>
-              <div className="space-y-1">
-                <div className="flex justify-between text-[10px] text-gray-400">
-                  <span>SCORM Exports</span>
-                  <span>4 / 10</span>
-                </div>
-                <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
-                  <div className="bg-gradient-to-r from-purple-primary to-cyan-primary h-full w-[40%]"></div>
                 </div>
               </div>
             </div>
@@ -444,7 +403,10 @@ export default function PremiumDashboard() {
                       </p>
                     </div>
                     <button
-                      onClick={() => setActiveTab('generate')}
+                      onClick={() => {
+                        setActiveTab('generate')
+                        setSimulatorPrompt('')
+                      }}
                       className="px-5 py-2.5 rounded-full bg-gradient-to-r from-purple-primary to-cyan-primary text-white text-xs font-bold transition hover:opacity-95 shadow-[0_4px_12px_rgba(124,58,237,0.2)] hover:scale-[1.02] cursor-pointer flex items-center gap-1.5"
                     >
                       <Plus className="w-4 h-4" />
@@ -551,78 +513,6 @@ export default function PremiumDashboard() {
                 </div>
               )}
 
-              {/* Tab 3: Integrations & Credentials */}
-              {activeTab === 'integrations' && (
-                <div className="space-y-8">
-                  <div>
-                    <h2 className="font-display font-bold text-2xl md:text-3xl text-gradient-purple-cyan">
-                      API Access & Integrations
-                    </h2>
-                    <p className="font-sans text-gray-400 text-xs mt-1">
-                      Deploy generated course nodes directly into Moodle, Canvas, or custom LTI systems.
-                    </p>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* SCORM Config */}
-                    <div className="glass-panel border-white/10 p-5 rounded-2xl bg-black/20 flex flex-col justify-between gap-6">
-                      <div className="space-y-3">
-                        <div className="p-2 w-max rounded-lg bg-purple-primary/10 border border-purple-primary/20 text-purple-300">
-                          <Layers className="w-5 h-5" />
-                        </div>
-                        <h3 className="font-display font-bold text-base text-white">SCORM 1.2 / 2004 Compiler</h3>
-                        <p className="text-xs text-gray-400 leading-relaxed">
-                          Package custom outlines with tracking assets to easily upload into LMS systems. All tests, quiz tracking, and lesson checks are preserved.
-                        </p>
-                      </div>
-                      <div className="p-3 bg-white/2 rounded-xl border border-white/5 flex justify-between items-center text-xs">
-                        <span className="text-gray-400">Export Standard</span>
-                        <span className="font-semibold text-white">SCORM 2004 (4th Ed)</span>
-                      </div>
-                    </div>
-
-                    {/* API keys */}
-                    <div className="glass-panel border-white/10 p-5 rounded-2xl bg-black/20 space-y-4">
-                      <div className="p-2 w-max rounded-lg bg-cyan-primary/10 border border-cyan-primary/20 text-cyan-300">
-                        <Key className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <h3 className="font-display font-bold text-base text-white">Developer API Tokens</h3>
-                        <p className="text-xs text-gray-400 leading-relaxed mt-1">
-                          Automate generation pipelines via simple cURL scripts in your pipeline servers.
-                        </p>
-                      </div>
-
-                      <div className="pt-2">
-                        <div className="flex p-2 bg-black/45 rounded-xl border border-white/8 items-center justify-between gap-3 font-mono text-xs">
-                          <div className="flex items-center gap-2 truncate">
-                            <Lock className="w-3.5 h-3.5 text-gray-500 shrink-0" />
-                            <span className="truncate text-gray-400 font-mono">
-                              {showApiKey ? 'gc_live_9f82d2c18d3a7741e9b25fbc705a6' : '••••••••••••••••••••••••••••••••••••'}
-                            </span>
-                          </div>
-
-                          <div className="flex items-center gap-1.5 shrink-0">
-                            <button
-                              onClick={() => setShowApiKey(!showApiKey)}
-                              className="p-1.5 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white transition cursor-pointer"
-                            >
-                              {showApiKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                            </button>
-                            <button
-                              onClick={copyApiKey}
-                              className="p-1.5 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white transition cursor-pointer relative"
-                            >
-                              {copiedKey ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
               {/* Tab 4: Billing Settings */}
               {activeTab === 'settings' && (
                 <div className="space-y-6">
@@ -659,8 +549,8 @@ export default function PremiumDashboard() {
                         <p className="text-xl font-bold text-white">28 Days Left</p>
                       </div>
                       <div className="p-4 bg-white/2 rounded-xl border border-white/5 space-y-1">
-                        <span className="text-[9px] text-gray-500 font-bold uppercase tracking-wider block">Connected LTI Nodes</span>
-                        <p className="text-xl font-bold text-white">3 / 10</p>
+                        <span className="text-[9px] text-gray-500 font-bold uppercase tracking-wider block">Local LLM Status</span>
+                        <p className="text-xl font-bold text-white">Online</p>
                       </div>
                     </div>
                   </div>
@@ -672,15 +562,13 @@ export default function PremiumDashboard() {
 
         {/* Footer info bar */}
         {!selectedCourseForPlayer && (
-          <div className="mt-12 pt-6 border-t border-white/5 flex flex-col sm:flex-row justify-between items-center gap-3 text-[10px] text-gray-500 font-sans">
+          <div className="mt-12 pt-6 border-t border-white/5 flex flex-col sm:flex-row justify-between items-center gap-3 text-[10px] text-gray-500 font-sans sm:pr-20">
             <div>
-              <span>Enterprise Deployment Hook: </span>
-              <span className="text-emerald-400 font-semibold shadow-emerald-500/5 font-mono">active_deploy_88a</span>
+              <span>AI Course Builder Engine: </span>
+              <span className="text-emerald-400 font-semibold shadow-emerald-500/5 font-mono">Active (qwen2.5:1.5b-instruct)</span>
             </div>
-            <div className="flex gap-4">
-              <a href="#" className="hover:text-white transition">LTI Docs</a>
-              <span>•</span>
-              <a href="#" className="hover:text-white transition">SCORM Packaging API</a>
+            <div className="font-mono">
+              <span>v1.0.0-rc1</span>
             </div>
           </div>
         )}
