@@ -18,37 +18,60 @@ const COURSE_PRESETS = {
 };
 
 const generateMockCourseData = (title) => {
+  const isProgramming = /react|hook|js|javascript|typescript|code|programming|developer|software|coding/i.test(title);
   return {
     title,
     description: `A comprehensive curriculum about ${title}, compiled dynamically by GenCourse AI's LLM engine.`,
     resources: [
       { name: `${title.replace(/\s+/g, '_')}_Cheat_Sheet.pdf`, size: '2.8 MB', type: 'PDF' },
-      { name: `${title.replace(/\s+/g, '_')}_Exercise_Code.zip`, size: '14.2 MB', type: 'ZIP' }
+      { name: isProgramming ? `${title.replace(/\s+/g, '_')}_Exercise_Code.zip` : `${title.replace(/\s+/g, '_')}_Study_Guide.pdf`, size: '4.2 MB', type: isProgramming ? 'ZIP' : 'PDF' }
     ],
     quizzes: [
       {
         id: `quiz-${Date.now()}-1`,
-        question: `What is the fundamental concept of ${title}?`,
-        options: [
-          `Understanding its core syntax and parameters`,
-          `Configuring external networks and databases`,
-          `Deploying production servers and caching layers`,
-          `Managing user billing and authentication preferences`
-        ],
+        question: isProgramming 
+          ? `What is the fundamental concept of ${title}?`
+          : `Which of the following best describes the core principle of ${title}?`,
+        options: isProgramming
+          ? [
+              `Understanding its core syntax and parameters`,
+              `Configuring external networks and databases`,
+              `Deploying production servers and caching layers`,
+              `Managing user billing and authentication preferences`
+            ]
+          : [
+              `The foundational guidelines and practical applications`,
+              `Writing system configurations and server scripts`,
+              `Debugging code compiling errors`,
+              `Developing reactive software functions`
+            ],
         correctIndex: 0,
-        explanation: `The foundational concepts of ${title} require understanding its core elements and specifications before building advanced features.`
+        explanation: isProgramming
+          ? `The foundational concepts of ${title} require understanding its core elements and specifications before building advanced features.`
+          : `The core principles of ${title} must be fully understood in their historical and practical contexts before moving on to advanced case studies.`
       },
       {
         id: `quiz-${Date.now()}-2`,
-        question: `Which tool or approach is recommended for managing state/actions in ${title}?`,
-        options: [
-          `Using browser cookie parameters`,
-          `Utilizing dedicated built-in lifecycle and hook methods`,
-          `Manually rewriting compile logs`,
-          `Re-routing API gateways`
-        ],
+        question: isProgramming
+          ? `Which tool or approach is recommended for managing state/actions in ${title}?`
+          : `Which strategy is most effective for studying and applying ${title}?`,
+        options: isProgramming
+          ? [
+              `Using browser cookie parameters`,
+              `Utilizing dedicated built-in lifecycle and hook methods`,
+              `Manually rewriting compile logs`,
+              `Re-routing API gateways`
+            ]
+          : [
+              `Reviewing historical archives and system logs`,
+              `Analyzing key case studies and structured methodologies`,
+              `Compiling sample binary assets`,
+              `Executing local test scripts`
+            ],
         correctIndex: 1,
-        explanation: `Best practices for ${title} specify using the dedicated built-in architecture for managing reactive states and operations.`
+        explanation: isProgramming
+          ? `Best practices for ${title} specify using the dedicated built-in architecture for managing reactive states and operations.`
+          : `Studying ${title} is most effective when analyzing structured methodologies and documented case studies.`
       }
     ],
     modules: [
@@ -57,56 +80,82 @@ const generateMockCourseData = (title) => {
         lessons: [
           {
             title: `1.1 Introduction to ${title}`,
-            objectives: [
-              `Understand the core rationale behind ${title}`,
-              `Identify the primary prerequisites and system requirements`,
-              `Configure your local environment for development`
-            ],
+            objectives: isProgramming
+              ? [
+                  `Understand the core rationale behind ${title}`,
+                  `Identify the primary prerequisites and system requirements`,
+                  `Configure your local environment for development`
+                ]
+              : [
+                  `Understand the historical context and importance of ${title}`,
+                  `Identify the core definitions and key terminology`,
+                  `Analyze the initial scope and basic tenets of the field`
+                ],
             videoSearchQuery: `introduction to ${title} tutorial beginner guide`,
             content: {
-              en: `${title} represents a major paradigm shift. In this lesson, we cover the core concepts, historical background, and initial installation setups.\n\n### Key Takeaways:\n- Understand the core constraints of ${title}.\n- Configure local settings and compilers.\n- Test basic setup examples.`,
+              en: `${title} represents a major paradigm shift. In this lesson, we cover the core concepts, historical background, and initial foundational setups.\n\n### Key Takeaways:\n- Understand the core principles of ${title}.\n- Study historical case studies and guidelines.\n- Apply initial definitions to basic scenarios.`,
               es: `${title} representa un cambio de paradigma importante. En esta lección, cubrimos los conceptos básicos, los antecedentes históricos y las configuraciones de instalación iniciales.`,
               fr: `${title} représente un changement de paradigme majeur. Dans cette leçon, nous couvrons les concepts de base, le contexte historique et les configurations d'installation initiales.`
             },
-            script: `Welcome to Lesson 1.1. In this video, we will explore why we use ${title} and how it provides structured, high-performance capability.`,
+            script: `Welcome to Lesson 1.1. In this video, we will explore why we study ${title} and how it provides structured, foundational capability.`,
             videoSlide: `Introduction to ${title}: Core Principles & History`
           },
           {
-            title: `1.2 Building Your First Project`,
-            objectives: [
-              `Create a basic project directory and configuration file`,
-              `Write and run a simple test program`,
-              `Debug common configuration and compiling errors`
-            ],
-            videoSearchQuery: `how to build a project with ${title} code example`,
+            title: isProgramming ? `1.2 Building Your First Project` : `1.2 Core Methodologies in Practice`,
+            objectives: isProgramming
+              ? [
+                  `Create a basic project directory and configuration file`,
+                  `Write and run a simple test program`,
+                  `Debug common configuration and compiling errors`
+                ]
+              : [
+                  `Apply basic principles to a real-world scenario`,
+                  `Organize study notes and key case studies`,
+                  `Evaluate common structural errors in early-stage practices`
+                ],
+            videoSearchQuery: isProgramming ? `how to build a project with ${title} code example` : `practical application of ${title} examples`,
             content: {
-              en: `Let's construct a simple project using ${title}.\n\n\`\`\`javascript\n// Sample configuration\nconst config = {\n  name: "${title}",\n  version: "1.0.0",\n  active: true\n};\nconsole.log("Welcome to " + config.name);\n\`\`\`\nRun this script in your local environment and observe the printed output logs.`,
-              es: `Construyamos un proyecto simple usando ${title}.`,
-              fr: `Construisons un projet simple en utilisant ${title}.`
+              en: isProgramming
+                ? `Let's construct a simple project using ${title}.\n\n\`\`\`javascript\n// Sample configuration\nconst config = {\n  name: "${title}",\n  version: "1.0.0",\n  active: true\n};\nconsole.log("Welcome to " + config.name);\n\`\`\`\nRun this script in your local environment and observe the printed output logs.`
+                : `To successfully apply the concepts of ${title}, start by setting up a dedicated research workspace or journal. Track key dates, primary definitions, and case studies. Documenting your observations systematically will help solidify your understanding of these core principles.`,
+              es: isProgramming ? `Construyamos un proyecto simple usando ${title}.` : `Construyamos un flujo de trabajo práctico usando ${title}.`,
+              fr: isProgramming ? `Construisons un projet simple en utilisant ${title}.` : `Construisons un flux de travail pratique en utilisant ${title}.`
             },
-            script: `Let's write some code! In this lesson, we will set up our workspace, initialize a configuration file, and execute our first script.`,
-            videoSlide: `First Project Setup: Configuration & Execution`
+            script: isProgramming 
+              ? `Let's write some code! In this lesson, we will set up our workspace, initialize a configuration file, and execute our first script.`
+              : `Let's look at real-world applications. In this lesson, we will walk through practical methodologies and review standard case studies.`,
+            videoSlide: isProgramming ? `First Project Setup: Configuration & Execution` : `Core Methodologies: Practical Case Studies`
           }
         ]
       },
       {
-        title: 'Module 2: Advanced Mechanics',
+        title: isProgramming ? 'Module 2: Advanced Mechanics' : 'Module 2: Advanced Concepts & Case Studies',
         lessons: [
           {
-            title: `2.1 Optimizing Performance`,
-            objectives: [
-              `Analyze rendering profiles and resource leaks`,
-              `Implement memoization or cache patterns`,
-              `Review checklist guidelines for production deployment`
-            ],
-            videoSearchQuery: `${title} performance optimization best practices`,
+            title: isProgramming ? `2.1 Optimizing Performance` : `2.1 Deep Dive & Future Trends`,
+            objectives: isProgramming
+              ? [
+                  `Analyze rendering profiles and resource leaks`,
+                  `Implement memoization or cache patterns`,
+                  `Review checklist guidelines for production deployment`
+                ]
+              : [
+                  `Explore complex scenarios and edge cases in ${title}`,
+                  `Understand future industry trends and global applications`,
+                  `Review standard professional guidelines and codes of conduct`
+                ],
+            videoSearchQuery: isProgramming ? `${title} performance optimization best practices` : `advanced concepts in ${title} expert guide`,
             content: {
-              en: `Performance optimization in ${title} requires proper memoization, connection pooling, and asset compilation. Avoid common loops and unnecessary re-renders to ensure high speed.`,
-              es: `La optimización del rendimiento en ${title} requiere una memorización adecuada.`,
-              fr: `L'optimisation des performances dans ${title} nécessite une mémorisation appropriée.`
+              en: isProgramming
+                ? `Performance optimization in ${title} requires proper memoization, connection pooling, and asset compilation. Avoid common loops and unnecessary re-renders to ensure high speed.`
+                : `Taking a deeper dive into ${title} reveals complex paradigms and future trends. Experts focus on integration standards, global frameworks, and ethical guidelines. Staying up-to-date with emerging methodologies is critical for success in this field.`,
+              es: isProgramming ? `La optimización del rendimiento en ${title} requiere una memorización adecuada.` : `La profundización en ${title} revela tendencias futuras.`,
+              fr: isProgramming ? `L'optimisation des performances dans ${title} nécessite une mémorisation appropriée.` : `L'exploration approfondie de ${title} révèle les tendances futures.`
             },
-            script: `Today we discuss optimization. We break down the four critical performance checks to run in your production pipelines.`,
-            videoSlide: `Performance Audits: Speed & Compilation Optimization`
+            script: isProgramming 
+              ? `Today we discuss optimization. We break down the four critical performance checks to run in your production pipelines.`
+              : `Today we examine advanced concepts. We break down future trends and ethical frameworks to consider in your practices.`,
+            videoSlide: isProgramming ? `Performance Audits: Speed & Compilation Optimization` : `Future Trends & Advanced Frameworks`
           }
         ]
       }
@@ -429,6 +478,32 @@ export const streamCourse = async (req, res, next) => {
           }
           if (!content.fr) {
             content.fr = `Le contenu pour ${lessonTitle} est en cours de mise à jour.`;
+          }
+
+          // Clean up duplicate/combined markdown headers (e.g., "## ### Header" -> "## Header")
+          const normalizeHeaders = (text) => {
+            if (typeof text !== 'string') return text;
+            return text.replace(/^(#+)\s+(#+)\s*/gm, (m, p1) => p1 + ' ');
+          };
+          content.en = normalizeHeaders(content.en);
+          content.es = normalizeHeaders(content.es);
+          content.fr = normalizeHeaders(content.fr);
+
+          // If not a programming course, strip any accidentally generated code blocks or placeholders
+          const isProgramming = /react|hook|js|javascript|typescript|code|programming|developer|software|coding|python|java|html|css|sql|rust|c\+\+/i.test(course.title);
+          if (!isProgramming) {
+            const stripCodeBlocks = (text) => {
+              if (typeof text !== 'string') return text;
+              let cleaned = text.replace(/```[a-z]*[\s\S]*?```/g, '');
+              cleaned = cleaned.replace(/###?\s*Code\s*Block\s*\(Optional\):?/gi, '');
+              cleaned = cleaned.replace(/###?\s*Code\s*Block:?/gi, '');
+              cleaned = cleaned.replace(/Code\s*Block\s*\(Optional\):?/gi, '');
+              cleaned = cleaned.replace(/Code\s*Block:?/gi, '');
+              return cleaned.trim().replace(/\n{3,}/g, '\n\n');
+            };
+            content.en = stripCodeBlocks(content.en);
+            content.es = stripCodeBlocks(content.es);
+            content.fr = stripCodeBlocks(content.fr);
           }
         }
 
