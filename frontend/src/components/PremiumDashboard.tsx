@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
 import axios from 'axios'
-import { useAuth0 } from '@auth0/auth0-react'
 import { useAuthStore } from '../store/useAuthStore'
 import { useGenerationStore } from '../store/useGenerationStore'
 import {
@@ -20,7 +19,6 @@ import {
 import PremiumInteractiveSimulator from './PremiumInteractiveSimulator'
 
 export default function PremiumDashboard() {
-  const { logout } = useAuth0()
   const { user } = useAuthStore()
   const isGenerating = useGenerationStore((state) => state.isGenerating)
 
@@ -86,7 +84,7 @@ export default function PremiumDashboard() {
   const fetchCourses = async () => {
     try {
       setIsCoursesLoading(true)
-      const response = await axios.get('http://localhost:5000/api/courses')
+      const response = await axios.get('/api/courses')
       setCourses(response.data)
     } catch (error) {
       console.error('Error fetching courses from database:', error)
@@ -121,7 +119,7 @@ export default function PremiumDashboard() {
     if (!confirmDelete) return
 
     try {
-      await axios.delete(`http://localhost:5000/api/courses/${courseId}`)
+      await axios.delete(`/api/courses/${courseId}`)
       await fetchCourses()
     } catch (error: any) {
       console.error('Error deleting course:', error)
@@ -367,7 +365,10 @@ export default function PremiumDashboard() {
             )}
           </div>
           <button
-            onClick={() => logout({ logoutParams: { returnTo: window.location.origin } })}
+            onClick={() => {
+              localStorage.removeItem('gencourse_mock_mode');
+              window.location.href = '/auth/logout';
+            }}
             className={`border border-red-500/20 hover:bg-red-500/5 text-red-400 hover:text-red-300 text-xs font-semibold transition cursor-pointer flex items-center justify-center ${isSidebarCollapsed ? 'p-2 rounded-xl w-9 h-9' : 'w-full py-2 rounded-lg gap-1.5'
               }`}
             title={isSidebarCollapsed ? "Sign Out" : undefined}

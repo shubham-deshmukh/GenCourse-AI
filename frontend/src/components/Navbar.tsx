@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { useAuth0 } from '@auth0/auth0-react'
 import { useAuthStore } from '../store/useAuthStore'
 import { Sparkles, Menu, X, ArrowRight } from 'lucide-react'
 
@@ -11,7 +10,6 @@ const GithubIcon = (props: React.SVGProps<SVGSVGElement>) => (
 )
 
 export default function Navbar() {
-  const { loginWithRedirect, logout } = useAuth0()
   const { user, isAuthenticated, isLoading } = useAuthStore()
   
   const [isScrolled, setIsScrolled] = useState(false)
@@ -90,7 +88,10 @@ export default function Navbar() {
                       <p className="text-xs text-gray-300 truncate mt-0.5">{user.email}</p>
                     </div>
                     <button
-                      onClick={() => logout({ logoutParams: { returnTo: window.location.origin } })}
+                      onClick={() => {
+                        localStorage.removeItem('gencourse_mock_mode');
+                        window.location.href = '/auth/logout';
+                      }}
                       className="w-full text-left px-4 py-2.5 text-sm text-red-400 hover:bg-white/5 hover:text-red-300 transition cursor-pointer"
                     >
                       Sign Out
@@ -100,7 +101,7 @@ export default function Navbar() {
               </div>
             ) : (
               <button
-                onClick={() => loginWithRedirect()}
+                onClick={() => { window.location.href = '/auth/login'; }}
                 className="text-sm font-semibold text-gray-300 hover:text-white transition cursor-pointer"
               >
                 Sign In
@@ -169,7 +170,10 @@ export default function Navbar() {
                   </div>
                 </div>
                 <button
-                  onClick={() => logout({ logoutParams: { returnTo: window.location.origin } })}
+                  onClick={() => {
+                    localStorage.removeItem('gencourse_mock_mode');
+                    window.location.href = '/auth/logout';
+                  }}
                   className="w-full py-3 text-center text-red-400 font-semibold border border-red-500/20 rounded-xl hover:bg-red-500/10 transition cursor-pointer"
                 >
                   Sign Out
@@ -177,7 +181,7 @@ export default function Navbar() {
               </div>
             ) : (
               <button
-                onClick={() => loginWithRedirect()}
+                onClick={() => { window.location.href = '/auth/login'; }}
                 className="w-full py-3 text-center text-gray-300 hover:text-white font-semibold border border-white/10 rounded-xl hover:bg-white/5 transition cursor-pointer"
               >
                 Sign In

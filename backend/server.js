@@ -2,8 +2,10 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import morgan from 'morgan';
+import { auth } from 'express-openid-connect';
 import connectDB from './config/db.js';
 import courseRoutes from './routes/courseRoutes.js';
+import { protect } from './middlewares/authMiddleware.js';
 
 // Load environment variables
 dotenv.config();
@@ -15,8 +17,26 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
+// Auth0 OIDC session configurations
+const oidcConfig = {
+  authRequired: false,
+  auth0Logout: true,
+  secret: process.env.SESSION_SECRET || 'a-long-random-string-at-least-32-characters-long',
+  baseURL: process.env.BASE_URL || 'http://localhost:5174',
+  clientID: process.env.AUTH0_CLIENT_ID || '22dA63hPklbjnhB97sNTYv5nFZlAGY50',
+  issuerBaseURL: process.env.AUTH0_ISSUER_BASE_URL || 'https://dev-1ppds1up31cu6c8y.jp.auth0.com',
+  routes: {
+    login: '/auth/login',
+    logout: '/auth/logout',
+    callback: '/auth/callback'
+  }
+};
+
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: 'http://localhost:5174',
+  credentials: true
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -24,6 +44,9 @@ app.use(express.urlencoded({ extended: true }));
 if (NODE_ENV !== 'test') {
   app.use(morgan('dev'));
 }
+
+// Mount OIDC Session Auth handler
+app.use(auth(oidcConfig));
 
 // Welcome / Root Endpoint
 app.get('/', (req, res) => {
@@ -42,6 +65,11 @@ app.get('/api/health', (req, res) => {
     timestamp: new Date().toISOString(),
     environment: NODE_ENV
   });
+});
+
+// Auth endpoints
+app.get('/api/auth/me', protect, (req, res) => {
+  res.json(req.user);
 });
 
 // API Routes

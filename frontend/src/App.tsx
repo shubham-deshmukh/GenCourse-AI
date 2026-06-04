@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useAuth0 } from '@auth0/auth0-react'
+import axios from 'axios'
 import { useAuthStore } from './store/useAuthStore'
 import Navbar from './components/Navbar'
 import Hero from './components/Hero'
@@ -10,26 +10,45 @@ import CTA from './components/CTA'
 import Footer from './components/Footer'
 import PremiumDashboard from './components/PremiumDashboard'
 
+// Configure Axios request interceptor to append the X-Mock-User header when mock mode is active
+axios.interceptors.request.use((config) => {
+  const isMock = localStorage.getItem('gencourse_mock_mode') === 'true';
+  if (isMock) {
+    config.headers['X-Mock-User'] = 'true';
+  }
+  return config;
+}, (error) => {
+  return Promise.reject(error);
+});
+
 export default function App() {
   const [prompt, setPrompt] = useState('Intro to React Hooks')
   const [isGenerating, setIsGenerating] = useState(false)
 
-  const { user: auth0User, isAuthenticated: auth0IsAuthenticated, isLoading: auth0IsLoading } = useAuth0()
   const { isAuthenticated, setAuthState } = useAuthStore()
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get('mockUser') === 'true') {
-      setAuthState({
-        name: 'Mock Developer',
-        email: 'developer@example.com',
-        picture: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=150',
-        sub: 'mock-auth-sub-id'
-      }, true, false);
-    } else {
-      setAuthState(auth0User || null, auth0IsAuthenticated, auth0IsLoading)
+    const isMockUrl = params.get('mockUser') === 'true';
+
+    // Store mock mode setting in localStorage to persist across reloads
+    if (isMockUrl) {
+      localStorage.setItem('gencourse_mock_mode', 'true');
     }
-  }, [auth0User, auth0IsAuthenticated, auth0IsLoading, setAuthState])
+
+    const checkAuth = async () => {
+      try {
+        const response = await axios.get('/api/auth/me');
+        const user = response.data;
+        setAuthState(user, true, false);
+      } catch (err) {
+        // If unauthenticated or token expires, reset store state
+        setAuthState(null, false, false);
+      }
+    };
+
+    checkAuth();
+  }, [setAuthState])
 
   const handleGenerate = (topic?: string) => {
     if (topic) {

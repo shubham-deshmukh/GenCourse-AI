@@ -170,7 +170,8 @@ const generateMockCourseData = (title) => {
  */
 export const getCourses = async (req, res, next) => {
   try {
-    const courses = await Course.find()
+    const query = req.user.role === 'admin' ? {} : { creator: req.user._id };
+    const courses = await Course.find(query)
       .populate({
         path: 'modules',
         options: { sort: { order: 1 } },
@@ -206,12 +207,17 @@ export const createCourse = async (req, res, next) => {
     const course = new Course({
       title: trimmedTitle,
       description: `Course shell initialized for "${trimmedTitle}". Outline and lessons will stream in shortly.`,
+      creator: req.user._id,
       resources: [],
       quizzes: [],
       modules: []
     });
 
     await course.save();
+
+    // Add course to user's enrolledCourses list
+    req.user.enrolledCourses.push(course._id);
+    await req.user.save();
 
     console.log(`🆕 Created new course shell for "${trimmedTitle}": ${course._id}`);
     res.status(202).json({

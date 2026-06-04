@@ -40,7 +40,7 @@ export const useGenerationStore = create<GenerationState>((set, get) => ({
       eventSource: null,
     })
 
-    axios.post('http://localhost:5000/api/courses', { title: topic })
+    axios.post('/api/courses', { title: topic })
       .then((res) => {
         const courseId = res.data.courseId
         if (!courseId) {
@@ -54,7 +54,9 @@ export const useGenerationStore = create<GenerationState>((set, get) => ({
         }))
 
         // Establish Server-Sent Events stream
-        const eventSource = new EventSource(`http://localhost:5000/api/courses/${courseId}/stream`)
+        const isMock = localStorage.getItem('gencourse_mock_mode') === 'true';
+        const streamUrl = `/api/courses/${courseId}/stream` + (isMock ? '?mockUser=true' : '');
+        const eventSource = new EventSource(streamUrl)
         set({ eventSource })
 
         eventSource.addEventListener('status', (event: any) => {

@@ -450,7 +450,7 @@ export default function PremiumInteractiveSimulator({
       if (!isGenerating && prompt && hideInput) {
         try {
           // Fetch existing courses and match by title (case-insensitive)
-          const response = await axios.get('http://localhost:5000/api/courses')
+          const response = await axios.get('/api/courses')
           const matchedCourse = response.data.find(
             (c: any) => c.title.toLowerCase() === prompt.toLowerCase()
           )
