@@ -1,4 +1,4 @@
-import { Sparkles, Network, BookOpen, CheckSquare, Award, Globe } from 'lucide-react'
+import { Sparkles, Network, BookOpen, CheckSquare, Globe } from 'lucide-react'
 
 const PIPELINE_NODES = [
   {
@@ -26,16 +26,10 @@ const PIPELINE_NODES = [
     color: 'from-teal-500 to-emerald-500'
   },
   {
-    icon: Award,
-    label: '5. Assessment Engine',
-    desc: 'Assembles standard examinations and grading matrices.',
-    color: 'from-emerald-500 to-pink-500'
-  },
-  {
     icon: Globe,
-    label: '6. Publishing Layer',
+    label: '5. Publishing Layer',
     desc: 'Compiles localized portals, audio files, and exports PDFs.',
-    color: 'from-pink-500 to-purple-500'
+    color: 'from-emerald-500 to-purple-500'
   }
 ]
 
@@ -62,7 +56,7 @@ export default function Workflow() {
           {/* Connector Line (Desktop) */}
           <div className="hidden lg:block absolute top-1/2 left-4 right-4 h-0.5 bg-gradient-to-r from-purple-primary via-cyan-primary to-pink-primary -translate-y-1/2 z-0 opacity-30"></div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-8 relative z-10">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 relative z-10">
             {PIPELINE_NODES.map((node, idx) => {
               const Icon = node.icon
               return (

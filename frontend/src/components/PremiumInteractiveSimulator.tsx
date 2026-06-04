@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from 'react'
 import axios from 'axios'
 import {
   BookOpen,
-  Play,
   Download,
   CheckCircle,
   Terminal,
@@ -10,11 +9,9 @@ import {
   Globe,
   Sliders,
   FileText,
-  Volume2,
   Search,
   Map,
   HelpCircle,
-  Award,
   Layers,
   Sparkles,
   Check,
@@ -383,7 +380,7 @@ export default function PremiumInteractiveSimulator({
 
   // Video player simulation
   const [isPlayingVideo, setIsPlayingVideo] = useState(false)
-  const [videoProgress, setVideoProgress] = useState(0)
+  const [, setVideoProgress] = useState(0)
   const videoTimerRef = useRef<any>(null)
 
   // Interactive tracking states
@@ -403,7 +400,6 @@ export default function PremiumInteractiveSimulator({
     { title: 'Curriculum Planner', desc: 'Generating structured modules and outline', icon: Map },
     { title: 'Lesson Generator', desc: 'Synthesizing textbook chapters & scripts', icon: BookOpen },
     { title: 'Quiz Builder', desc: 'Building concept reviews & quizzes', icon: HelpCircle },
-    { title: 'Assessment Engine', desc: 'Assembling final exams & evaluations', icon: Award },
     { title: 'Publishing Layer', desc: 'Compiling localized pages & PDFs', icon: Layers }
   ]
 
@@ -548,7 +544,7 @@ export default function PremiumInteractiveSimulator({
             setLogs((prev) => [...prev, `[SYSTEM] Generation complete. Launching student workspace portal...`])
             setActiveCourse(finalCourse)
             setProgress(100)
-            setCurrentStepIndex(6)
+            setCurrentStepIndex(5)
             eventSource.close()
 
             isRunningRef.current = false
@@ -604,7 +600,7 @@ export default function PremiumInteractiveSimulator({
             title: topic
           })
           setProgress(100)
-          setCurrentStepIndex(6)
+          setCurrentStepIndex(5)
           isRunningRef.current = false
           setIsGenerating(false)
           setActiveModuleIndex(0)
@@ -720,14 +716,6 @@ export default function PremiumInteractiveSimulator({
         </span>
       )
     }
-    if (line.startsWith('[ASSESS-ENG]')) {
-      return (
-        <span className="text-gray-400">
-          <span className="text-blue-400 font-semibold mr-1.5">[ASSESS-ENG]</span>
-          {line.replace('[ASSESS-ENG]', '')}
-        </span>
-      )
-    }
     if (line.startsWith('[PUBLISH-LAYER]')) {
       return (
         <span className="text-gray-400">
@@ -837,15 +825,7 @@ export default function PremiumInteractiveSimulator({
     })
   }
 
-  const getScriptSegments = (scriptText: string) => {
-    return scriptText.split('. ').filter(Boolean).map(s => s.trim() + '.');
-  }
 
-  const formatTime = (secs: number) => {
-    const m = Math.floor(secs / 60)
-    const s = secs % 60
-    return `${m}:${s < 10 ? '0' : ''}${s}`
-  }
 
   const startDownload = (name: string) => {
     if (downloadProgress[name] !== undefined) return

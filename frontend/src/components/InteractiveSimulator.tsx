@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import {
   BookOpen,
-  Play,
   Download,
   CheckCircle,
   Terminal,
@@ -9,11 +8,9 @@ import {
   Globe,
   Sliders,
   FileText,
-  Volume2,
   Search,
   Map,
   HelpCircle,
-  Award,
   Layers,
   Sparkles,
   Check,
@@ -378,7 +375,7 @@ export default function InteractiveSimulator({
 
   // Video player simulation
   const [isPlayingVideo, setIsPlayingVideo] = useState(false)
-  const [videoProgress, setVideoProgress] = useState(0)
+  const [, setVideoProgress] = useState(0)
   const videoTimerRef = useRef<any>(null)
 
   // Interactive tracking states
@@ -398,7 +395,6 @@ export default function InteractiveSimulator({
     { title: 'Curriculum Planner', desc: 'Generating structured modules and outline', icon: Map },
     { title: 'Lesson Generator', desc: 'Synthesizing textbook chapters & scripts', icon: BookOpen },
     { title: 'Quiz Builder', desc: 'Building concept reviews & quizzes', icon: HelpCircle },
-    { title: 'Assessment Engine', desc: 'Assembling final exams & evaluations', icon: Award },
     { title: 'Publishing Layer', desc: 'Compiling localized pages & PDFs', icon: Layers }
   ]
 
@@ -447,7 +443,6 @@ export default function InteractiveSimulator({
       `[LESSON-GEN] Synthesizing voiceover transcripts and slide outlines...`,
       `[QUIZ-BUILDER] Constructing dynamic knowledge checkups for each module...`,
       `[QUIZ-BUILDER] Generated 10 test questions with adaptive hints...`,
-      `[ASSESS-ENG] Compiling final exams and grading framework parameters...`,
       `[PUBLISH-LAYER] Processing multilingual localizations (ES, FR, EN)...`,
       `[PUBLISH-LAYER] Packaging offline assets and rendering printable PDF workbooks...`,
       `[SYSTEM] Generation complete. Launching student workspace portal...`
@@ -467,15 +462,14 @@ export default function InteractiveSimulator({
       }
 
       // Advance core workflow steps
-      if (progressVal === 16) setCurrentStepIndex(1)
-      if (progressVal === 32) setCurrentStepIndex(2)
-      if (progressVal === 48) setCurrentStepIndex(3)
-      if (progressVal === 64) setCurrentStepIndex(4)
-      if (progressVal === 80) setCurrentStepIndex(5)
+      if (progressVal === 20) setCurrentStepIndex(1)
+      if (progressVal === 40) setCurrentStepIndex(2)
+      if (progressVal === 60) setCurrentStepIndex(3)
+      if (progressVal === 80) setCurrentStepIndex(4)
 
       if (progressVal >= 100) {
         clearInterval(interval)
-        setCurrentStepIndex(6) // all done
+        setCurrentStepIndex(5) // all done
 
         const matchingCourse = COURSES_DATABASE[topic] || COURSES_DATABASE['Intro to React Hooks']
         setActiveCourse({
@@ -560,14 +554,6 @@ export default function InteractiveSimulator({
         <span className="text-gray-400">
           <span className="text-yellow-400 font-semibold mr-1.5">[QUIZ-BUILDER]</span>
           {line.replace('[QUIZ-BUILDER]', '')}
-        </span>
-      )
-    }
-    if (line.startsWith('[ASSESS-ENG]')) {
-      return (
-        <span className="text-gray-400">
-          <span className="text-blue-400 font-semibold mr-1.5">[ASSESS-ENG]</span>
-          {line.replace('[ASSESS-ENG]', '')}
         </span>
       )
     }
@@ -680,15 +666,7 @@ export default function InteractiveSimulator({
     })
   }
 
-  const getScriptSegments = (scriptText: string) => {
-    return scriptText.split('. ').filter(Boolean).map(s => s.trim() + '.');
-  }
 
-  const formatTime = (secs: number) => {
-    const m = Math.floor(secs / 60)
-    const s = secs % 60
-    return `${m}:${s < 10 ? '0' : ''}${s}`
-  }
 
   const startDownload = (name: string) => {
     if (downloadProgress[name] !== undefined) return
