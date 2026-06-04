@@ -6,6 +6,9 @@ import { generateCourseOutline, generateLessonDetails } from '../services/llmSer
 import mongoose from 'mongoose';
 import fs from 'fs';
 
+// Track in-progress course generations to prevent concurrent duplicate generation runs
+const activeGenerations = new Set();
+
 // Pre-seeded template lookup list for fallback matching
 const COURSE_PRESETS = {
   'Intro to React Hooks': 'Intro to React Hooks',
@@ -180,9 +183,23 @@ export const createCourse = async (req, res, next) => {
 export const streamCourse = async (req, res, next) => {
   const { id } = req.params;
 
+  if (activeGenerations.has(id)) {
+    console.log(`⚠️ Generation already in progress for course ${id}. Skipping duplicate request.`);
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders();
+    res.write(`event: status\ndata: ${JSON.stringify({ message: 'Generation already in progress...' })}\n\n`);
+    res.end();
+    return;
+  }
+
+  activeGenerations.add(id);
+
   try {
     const course = await Course.findById(id);
     if (!course) {
+      activeGenerations.delete(id);
       return res.status(404).json({ message: 'Course not found' });
     }
 
@@ -314,8 +331,19 @@ export const streamCourse = async (req, res, next) => {
       });
     }
 
-    course.modules = moduleIds;
-    await course.save();
+    // Retrieve the most up-to-date course document to prevent version mismatch/VersionError
+    const freshCourse = await Course.findById(course._id);
+    if (!freshCourse) {
+      throw new Error(`Course document not found for ID: ${course._id}`);
+    }
+
+    freshCourse.title = course.title;
+    freshCourse.description = course.description;
+    freshCourse.resources = course.resources;
+    freshCourse.quizzes = course.quizzes;
+    freshCourse.modules = moduleIds;
+
+    await freshCourse.save();
 
     // Populate modules for the initial structure
     const populatedCourse = await Course.findById(course._id).populate({
@@ -464,6 +492,8 @@ export const streamCourse = async (req, res, next) => {
     } else {
       next(error);
     }
+  } finally {
+    activeGenerations.delete(id);
   }
 };
 
