@@ -23,25 +23,25 @@ import {
   Sparkles,
   Trash2,
 } from 'lucide-react'
-import InteractiveSimulator from './InteractiveSimulator'
+import PremiumInteractiveSimulator from './PremiumInteractiveSimulator'
 
 export default function PremiumDashboard() {
   const { logout } = useAuth0()
   const { user } = useAuthStore()
-  
+
   const [activeTab, setActiveTab] = useState<'library' | 'generate' | 'integrations' | 'settings'>('library')
-  const [isAiOpen, setIsAiOpen] = useState(true)
+  const [isAiOpen, setIsAiOpen] = useState(false)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
-  
+
   // Quiz and simulator control
   const [simulatorPrompt, setSimulatorPrompt] = useState('Intro to React Hooks')
   const [simulatorIsGenerating, setSimulatorIsGenerating] = useState(false)
   const [selectedCourseForPlayer, setSelectedCourseForPlayer] = useState<string | null>(null)
-  
+
   // Integrations state
   const [showApiKey, setShowApiKey] = useState(false)
   const [copiedKey, setCopiedKey] = useState(false)
-  
+
   // AI tutor chat states
   const [chatMessages, setChatMessages] = useState<Array<{ sender: 'user' | 'ai'; text: string; time: string }>>([
     { sender: 'ai', text: 'Hello! I am your AI Course Tutor. Select any course in your library or ask me any question about lessons.', time: '09:00 AM' }
@@ -62,14 +62,14 @@ export default function PremiumDashboard() {
 
     const timeString = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     const userMsg = { sender: 'user' as const, text: chatInput, time: timeString }
-    
+
     setChatMessages(prev => [...prev, userMsg])
     setChatInput('')
 
     // Simulated responses
     setTimeout(() => {
       let aiResponseText = "That's a great question! I am analyzing the generated course outline database to formulate a comprehensive answer for you."
-      
+
       const lowerInput = chatInput.toLowerCase()
       if (lowerInput.includes('react') || lowerInput.includes('hook')) {
         aiResponseText = "React Hooks let you use state and other React features without writing a class. Remember the Rules of Hooks: call them only at the top level and only from React function components."
@@ -150,18 +150,18 @@ export default function PremiumDashboard() {
     } catch (error) {
       console.error('Error fetching courses from database:', error)
       // fallback
-      const mockMapped = userCoursesPresets.map((c, idx) => ({
-        _id: `mock-${idx}`,
-        title: c.title,
-        description: '',
-        modules: Array.from({ length: c.lessonsCount }).map((_, mIdx) => ({
-          title: `Module ${mIdx + 1}`,
-          lessons: Array.from({ length: 1 })
-        })),
-        resources: [],
-        quizzes: []
-      }))
-      setCourses(mockMapped)
+      // const mockMapped = userCoursesPresets.map((c, idx) => ({
+      //   _id: `mock-${idx}`,
+      //   title: c.title,
+      //   description: '',
+      //   modules: Array.from({ length: c.lessonsCount }).map((_, mIdx) => ({
+      //     title: `Module ${mIdx + 1}`,
+      //     lessons: Array.from({ length: 1 })
+      //   })),
+      //   resources: [],
+      //   quizzes: []
+      // }))
+      // setCourses(mockMapped)
     } finally {
       setIsCoursesLoading(false)
     }
@@ -169,7 +169,7 @@ export default function PremiumDashboard() {
 
   const handleDeleteCourse = async (courseId: string, e: React.MouseEvent) => {
     e.stopPropagation() // Prevent click from triggering open
-    
+
     // Check if it's a mock course
     if (courseId.startsWith('mock-')) {
       alert("Mock courses cannot be deleted as they are local presets.")
@@ -267,9 +267,8 @@ export default function PremiumDashboard() {
 
       {/* Pane 1: Left Navigation Sidebar */}
       <aside
-        className={`border-r border-white/5 bg-[#030014]/65 backdrop-blur-xl flex flex-col justify-between shrink-0 hidden md:flex transition-all duration-300 ${
-          isSidebarCollapsed ? 'w-20' : 'w-64'
-        }`}
+        className={`border-r border-white/5 bg-[#030014]/65 backdrop-blur-xl flex flex-col justify-between shrink-0 hidden md:flex transition-all duration-300 ${isSidebarCollapsed ? 'w-20' : 'w-64'
+          }`}
       >
         <div className={`transition-all duration-300 flex-1 flex flex-col min-h-0 ${isSidebarCollapsed ? 'p-4 space-y-6' : 'p-6 space-y-8'}`}>
           {/* Logo & Project Title */}
@@ -323,19 +322,17 @@ export default function PremiumDashboard() {
                 Workspace Hub
               </span>
             )}
-            
+
             <button
               onClick={() => {
                 setActiveTab('library')
                 setSelectedCourseForPlayer(null)
               }}
-              className={`w-full flex items-center rounded-xl text-xs font-semibold transition-all duration-300 border cursor-pointer ${
-                isSidebarCollapsed ? 'justify-center p-3' : 'gap-3 px-4 py-3'
-              } ${
-                activeTab === 'library' && !selectedCourseForPlayer
+              className={`w-full flex items-center rounded-xl text-xs font-semibold transition-all duration-300 border cursor-pointer ${isSidebarCollapsed ? 'justify-center p-3' : 'gap-3 px-4 py-3'
+                } ${activeTab === 'library' && !selectedCourseForPlayer
                   ? 'bg-purple-primary/10 border-purple-primary/30 text-white shadow-[0_0_15px_rgba(124,58,237,0.08)]'
                   : 'bg-transparent border-transparent text-gray-400 hover:text-white hover:bg-white/5'
-              }`}
+                }`}
               title={isSidebarCollapsed ? "My Course Library" : undefined}
             >
               <FolderOpen className="w-4 h-4 shrink-0" />
@@ -347,13 +344,11 @@ export default function PremiumDashboard() {
                 setActiveTab('generate')
                 setSelectedCourseForPlayer(null)
               }}
-              className={`w-full flex items-center rounded-xl text-xs font-semibold transition-all duration-300 border cursor-pointer ${
-                isSidebarCollapsed ? 'justify-center p-3' : 'gap-3 px-4 py-3'
-              } ${
-                activeTab === 'generate'
+              className={`w-full flex items-center rounded-xl text-xs font-semibold transition-all duration-300 border cursor-pointer ${isSidebarCollapsed ? 'justify-center p-3' : 'gap-3 px-4 py-3'
+                } ${activeTab === 'generate'
                   ? 'bg-purple-primary/10 border-purple-primary/30 text-white shadow-[0_0_15px_rgba(124,58,237,0.08)]'
                   : 'bg-transparent border-transparent text-gray-400 hover:text-white hover:bg-white/5'
-              }`}
+                }`}
               title={isSidebarCollapsed ? "Create New Course" : undefined}
             >
               <Plus className="w-4 h-4 shrink-0" />
@@ -365,13 +360,11 @@ export default function PremiumDashboard() {
                 setActiveTab('integrations')
                 setSelectedCourseForPlayer(null)
               }}
-              className={`w-full flex items-center rounded-xl text-xs font-semibold transition-all duration-300 border cursor-pointer ${
-                isSidebarCollapsed ? 'justify-center p-3' : 'gap-3 px-4 py-3'
-              } ${
-                activeTab === 'integrations'
+              className={`w-full flex items-center rounded-xl text-xs font-semibold transition-all duration-300 border cursor-pointer ${isSidebarCollapsed ? 'justify-center p-3' : 'gap-3 px-4 py-3'
+                } ${activeTab === 'integrations'
                   ? 'bg-purple-primary/10 border-purple-primary/30 text-white shadow-[0_0_15px_rgba(124,58,237,0.08)]'
                   : 'bg-transparent border-transparent text-gray-400 hover:text-white hover:bg-white/5'
-              }`}
+                }`}
               title={isSidebarCollapsed ? "API & Integrations" : undefined}
             >
               <Key className="w-4 h-4 shrink-0" />
@@ -383,13 +376,11 @@ export default function PremiumDashboard() {
                 setActiveTab('settings')
                 setSelectedCourseForPlayer(null)
               }}
-              className={`w-full flex items-center rounded-xl text-xs font-semibold transition-all duration-300 border cursor-pointer ${
-                isSidebarCollapsed ? 'justify-center p-3' : 'gap-3 px-4 py-3'
-              } ${
-                activeTab === 'settings'
+              className={`w-full flex items-center rounded-xl text-xs font-semibold transition-all duration-300 border cursor-pointer ${isSidebarCollapsed ? 'justify-center p-3' : 'gap-3 px-4 py-3'
+                } ${activeTab === 'settings'
                   ? 'bg-purple-primary/10 border-purple-primary/30 text-white shadow-[0_0_15px_rgba(124,58,237,0.08)]'
                   : 'bg-transparent border-transparent text-gray-400 hover:text-white hover:bg-white/5'
-              }`}
+                }`}
               title={isSidebarCollapsed ? "Account Settings" : undefined}
             >
               <Settings className="w-4 h-4 shrink-0" />
@@ -426,9 +417,8 @@ export default function PremiumDashboard() {
         </div>
 
         {/* Sidebar Footer User Details */}
-        <div className={`border-t border-white/5 bg-black/20 flex flex-col transition-all duration-300 ${
-          isSidebarCollapsed ? 'p-3 items-center gap-4' : 'p-4 gap-3'
-        }`}>
+        <div className={`border-t border-white/5 bg-black/20 flex flex-col transition-all duration-300 ${isSidebarCollapsed ? 'p-3 items-center gap-4' : 'p-4 gap-3'
+          }`}>
           <div className="flex items-center gap-3 w-full justify-center">
             <img
               src={user?.picture || 'https://via.placeholder.com/150'}
@@ -445,9 +435,8 @@ export default function PremiumDashboard() {
           </div>
           <button
             onClick={() => logout({ logoutParams: { returnTo: window.location.origin } })}
-            className={`border border-red-500/20 hover:bg-red-500/5 text-red-400 hover:text-red-300 text-xs font-semibold transition cursor-pointer flex items-center justify-center ${
-              isSidebarCollapsed ? 'p-2 rounded-xl w-9 h-9' : 'w-full py-2 rounded-lg gap-1.5'
-            }`}
+            className={`border border-red-500/20 hover:bg-red-500/5 text-red-400 hover:text-red-300 text-xs font-semibold transition cursor-pointer flex items-center justify-center ${isSidebarCollapsed ? 'p-2 rounded-xl w-9 h-9' : 'w-full py-2 rounded-lg gap-1.5'
+              }`}
             title={isSidebarCollapsed ? "Sign Out" : undefined}
           >
             <LogOut className="w-3.5 h-3.5 shrink-0" />
@@ -474,11 +463,11 @@ export default function PremiumDashboard() {
                   <span className="text-[10px] text-gray-400 uppercase tracking-widest font-semibold">Active Student Portal</span>
                 </div>
               </div>
-              <InteractiveSimulator
+              <PremiumInteractiveSimulator
                 prompt={selectedCourseForPlayer}
-                setPrompt={() => {}}
+                setPrompt={() => { }}
                 isGenerating={false}
-                setIsGenerating={() => {}}
+                setIsGenerating={() => { }}
                 minimal={true}
                 hideInput={true}
               />
@@ -593,7 +582,7 @@ export default function PremiumDashboard() {
                     </p>
                   </div>
                   <div className="glass-panel border-white/10 p-6 rounded-3xl bg-black/30">
-                    <InteractiveSimulator
+                    <PremiumInteractiveSimulator
                       prompt={simulatorPrompt}
                       setPrompt={setSimulatorPrompt}
                       isGenerating={simulatorIsGenerating}
@@ -655,7 +644,7 @@ export default function PremiumDashboard() {
                               {showApiKey ? 'gc_live_9f82d2c18d3a7741e9b25fbc705a6' : '••••••••••••••••••••••••••••••••••••'}
                             </span>
                           </div>
-                          
+
                           <div className="flex items-center gap-1.5 shrink-0">
                             <button
                               onClick={() => setShowApiKey(!showApiKey)}
@@ -742,9 +731,8 @@ export default function PremiumDashboard() {
 
       {/* Pane 3: Right Collapsible AI Tutor Panel */}
       <aside
-        className={`border-l border-white/5 bg-[#030014]/65 backdrop-blur-xl shrink-0 transition-all duration-300 relative flex flex-col justify-between ${
-          isAiOpen ? 'w-80 opacity-100' : 'w-0 opacity-0 pointer-events-none'
-        }`}
+        className={`border-l border-white/5 bg-[#030014]/65 backdrop-blur-xl shrink-0 transition-all duration-300 relative flex flex-col justify-between ${isAiOpen ? 'w-80 opacity-100' : 'w-0 opacity-0 pointer-events-none'
+          }`}
       >
         {/* Header */}
         <div className="p-4 border-b border-white/5 flex justify-between items-center shrink-0">
@@ -767,11 +755,10 @@ export default function PremiumDashboard() {
             return (
               <div key={idx} className={`flex flex-col ${isAi ? 'items-start' : 'items-end'} space-y-1.5`}>
                 <div
-                  className={`p-3 rounded-2xl text-xs leading-relaxed max-w-[85%] border ${
-                    isAi
-                      ? 'bg-purple-primary/5 border-purple-primary/10 text-gray-300 rounded-tl-sm'
-                      : 'bg-gradient-to-r from-purple-primary to-cyan-primary border-transparent text-white rounded-tr-sm shadow-md'
-                  }`}
+                  className={`p-3 rounded-2xl text-xs leading-relaxed max-w-[85%] border ${isAi
+                    ? 'bg-purple-primary/5 border-purple-primary/10 text-gray-300 rounded-tl-sm'
+                    : 'bg-gradient-to-r from-purple-primary to-cyan-primary border-transparent text-white rounded-tr-sm shadow-md'
+                    }`}
                 >
                   <p>{m.text}</p>
                 </div>

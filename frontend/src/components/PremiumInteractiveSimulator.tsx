@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import axios from 'axios'
 import {
   BookOpen,
   Play,
@@ -19,7 +20,7 @@ import {
   Check,
 } from 'lucide-react'
 
-interface InteractiveSimulatorProps {
+interface PremiumInteractiveSimulatorProps {
   prompt: string
   setPrompt: (val: string) => void
   isGenerating: boolean
@@ -356,7 +357,7 @@ const QUICK_SUGGESTIONS = [
   { topic: 'Acoustic Guitar 101', label: 'Acoustic Guitar', icon: '🎸' }
 ]
 
-export default function InteractiveSimulator({
+export default function PremiumInteractiveSimulator({
   prompt,
   setPrompt,
   isGenerating,
@@ -364,7 +365,7 @@ export default function InteractiveSimulator({
   minimal = false,
   hideInput = false,
   onSimulationComplete
-}: InteractiveSimulatorProps) {
+}: PremiumInteractiveSimulatorProps) {
   const [activeCourse, setActiveCourse] = useState<CourseData | null>(null)
   const [activeModuleIndex, setActiveModuleIndex] = useState(0)
   const [activeLessonIndex, setActiveLessonIndex] = useState(0)
@@ -477,23 +478,33 @@ export default function InteractiveSimulator({
         clearInterval(interval)
         setCurrentStepIndex(6) // all done
 
-        const matchingCourse = COURSES_DATABASE[topic] || COURSES_DATABASE['Intro to React Hooks']
-        setActiveCourse({
-          ...matchingCourse,
-          title: topic
-        })
-        if (onSimulationComplete) {
-          onSimulationComplete()
-        }
-        isRunningRef.current = false
-        setIsGenerating(false)
-        setActiveModuleIndex(0)
-        setActiveLessonIndex(0)
-        setVideoProgress(0)
-        setIsPlayingVideo(false)
-        setActiveTab('content')
-        setSelectedAnswers({})
-        setShowExplanation({})
+        // Fetch / Generate from backend (saves to DB concurrently)
+        axios.post('http://localhost:5000/api/courses', { title: topic })
+          .then((res) => {
+            setActiveCourse(res.data)
+            if (onSimulationComplete) {
+              onSimulationComplete()
+            }
+          })
+          .catch((err) => {
+            console.error('Error fetching generated course from backend:', err)
+            const matchingCourse = COURSES_DATABASE[topic] || COURSES_DATABASE['Intro to React Hooks']
+            setActiveCourse({
+              ...matchingCourse,
+              title: topic
+            })
+          })
+          .finally(() => {
+            isRunningRef.current = false
+            setIsGenerating(false)
+            setActiveModuleIndex(0)
+            setActiveLessonIndex(0)
+            setVideoProgress(0)
+            setIsPlayingVideo(false)
+            setActiveTab('content')
+            setSelectedAnswers({})
+            setShowExplanation({})
+          })
       }
     }, 150)
   }
@@ -515,13 +526,32 @@ export default function InteractiveSimulator({
 
   // Load default/selected course matching prompt on page load or when prompt shifts
   useEffect(() => {
-    // Only auto-load if in player mode (hideInput is true)
-    if (!isGenerating && prompt && hideInput) {
-      const matchingCourse = COURSES_DATABASE[prompt] || COURSES_DATABASE['Intro to React Hooks']
-      setActiveCourse({
-        ...matchingCourse,
-        title: prompt || 'Intro to React Hooks'
-      })
+    let active = true
+    const loadCourseData = async () => {
+      // Only auto-load if in player mode (hideInput is true)
+      if (!isGenerating && prompt && hideInput) {
+        try {
+          const response = await axios.post('http://localhost:5000/api/courses', {
+            title: prompt
+          })
+          if (active) {
+            setActiveCourse(response.data)
+          }
+        } catch (error) {
+          console.error('Error loading course from database:', error)
+          const matchingCourse = COURSES_DATABASE[prompt] || COURSES_DATABASE['Intro to React Hooks']
+          if (active) {
+            setActiveCourse({
+              ...matchingCourse,
+              title: prompt || 'Intro to React Hooks'
+            })
+          }
+        }
+      }
+    }
+    loadCourseData()
+    return () => {
+      active = false
     }
   }, [prompt, isGenerating, hideInput])
 
@@ -735,10 +765,10 @@ export default function InteractiveSimulator({
         {!minimal && (
           <div className="text-center mb-16">
             <h2 className="font-display font-bold text-3xl md:text-5xl text-gradient-purple-cyan mb-4">
-              Interactive Generator Workspace
+              Premium Generator Workspace
             </h2>
             <p className="font-sans text-gray-400 text-lg max-w-2xl mx-auto">
-              Test our course engine. Enter a custom topic or watch our AI pipeline assemble lessons, scripts, and multi-language worksheets.
+              Enter a custom topic and watch our AI pipeline generate lessons, scripts, and multi-language worksheets in real-time.
             </p>
           </div>
         )}
@@ -765,12 +795,12 @@ export default function InteractiveSimulator({
               >
                 {isGenerating ? (
                   <>
-                    <span>Simulating...</span>
+                    <span>Generating...</span>
                     <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                   </>
                 ) : (
                   <>
-                    <span>Simulate</span>
+                    <span>Generate</span>
                     <Cpu className="w-3.5 h-3.5" />
                   </>
                 )}
@@ -803,9 +833,9 @@ export default function InteractiveSimulator({
                   </button>
                 )
               })}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
         {/* Main Work Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
@@ -916,7 +946,7 @@ export default function InteractiveSimulator({
                   {logs.length === 0 ? (
                     <div className="h-full flex flex-col justify-center items-center text-center text-gray-600 italic py-12">
                       <Sliders className="w-6 h-6 mb-2 opacity-20 text-gray-400" />
-                      <p>No operations queued. Ready to simulate.</p>
+                      <p>No operations queued. Ready to generate.</p>
                     </div>
                   ) : (
                     logs.map((log, idx) => (
@@ -1507,7 +1537,7 @@ export default function InteractiveSimulator({
               <div className="glass-panel rounded-3xl p-12 border-white/10 text-center h-full min-h-[620px] flex flex-col justify-center items-center bg-black/40 relative overflow-hidden shadow-2xl">
                 <div className="absolute inset-0 bg-grid-pattern opacity-5 pointer-events-none"></div>
                 <BookOpen className="w-16 h-16 text-gray-600 mb-4 animate-bounce" />
-                <h3 className="font-display text-2xl font-bold text-white mb-2">Simulator Workspace Ready</h3>
+                <h3 className="font-display text-2xl font-bold text-white mb-2">Generator Workspace Ready</h3>
                 <p className="text-gray-400 text-sm max-w-sm">
                   Enter a custom prompt in the input block above to compile the course content dashboard dynamically.
                 </p>
