@@ -112,20 +112,23 @@ Target JSON Schema:
 {
   "title": "${targetLessonTitle}",
   "objectives": [
-    "Identify the main goals of this lesson...",
-    "Understand how to apply..."
+    "Objective 1...",
+    "Objective 2..."
   ],
   "content": {
-    "en": "Detailed, rich textbook content in English. Use markdown formatting (headers ###, lists, and bold text) for styling. Incorporate a code block (using \`\`\`language) ONLY if the lesson topic is directly code/programming-related.",
-    "es": "Detailed textbook content translated/adapted into Spanish.",
-    "fr": "Detailed textbook content translated/adapted into French."
+    "en": "...",
+    "es": "...",
+    "fr": "..."
   }
 }
 
 Constraints & Formatting Rules:
-1. **Objectives**: Include exactly 2-3 specific learning objectives for this lesson inside the "objectives" array.
-2. **Optional Code Blocks**: Include code blocks in the "content" fields *only* if it is relevant to the topic (e.g., React Hooks or TypeScript). If the lesson is about a non-programming topic (e.g., Copyright Law or Guitar Tuning), do not include code blocks.
-3. **Volume**: The "content" fields must be comprehensive (at least 300-500 words per language) and use markdown formatting to separate sections.
+1. **Objectives**: Replace "Objective 1..." and "Objective 2..." with exactly 2-3 specific learning objectives for this lesson inside the "objectives" array.
+2. **Content Generation**: Write detailed textbook-style content for the "en" (English), "es" (Spanish), and "fr" (French) keys in the "content" object:
+   - **English ("en")**: Write comprehensive (at least 300-500 words) detailed textbook-style content in English. Use markdown formatting (headers ###, lists, and bold text) for styling. Incorporate a code block (using \`\`\`language) ONLY if the lesson topic is directly code/programming-related.
+   - **Spanish ("es")**: Write a detailed translation or adaptation of the English content into Spanish.
+   - **French ("fr")**: Write a detailed translation or adaptation of the English content into French.
+3. **Optional Code Blocks**: Include code blocks in the "content" fields *only* if it is relevant to the topic (e.g., React Hooks or TypeScript). If the lesson is about a non-programming topic (e.g., Copyright Law or Guitar Tuning), do not include code blocks.
 4. **Flow**: Ensure the content flows naturally from the previous lessons in the module list and does not repeat basic introductory material if this is a later lesson (e.g., Lesson 1.2 or 2.1).
 5. All translations must maintain exact content parity and structure.`;
 

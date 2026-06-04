@@ -63,9 +63,9 @@ Target JSON Schema:
 }
 
 Constraints:
-1. Design exactly 4-5 logical modules.
-2. Each module must contain exactly 3-4 lessons.
-3. Provide exactly 5-6 multiple-choice quiz questions covering the entire syllabus.
+1. Design exactly 3 logical modules.
+2. Each module must contain exactly 2 lessons.
+3. Provide exactly 3 multiple-choice quiz questions covering the entire syllabus.
 4. All JSON keys and strings must be enclosed in double quotes. Ensure valid JSON format.`;
 
 // Lesson details prompt template
@@ -90,20 +90,23 @@ Target JSON Schema:
 {
   "title": "${targetLessonTitle}",
   "objectives": [
-    "Identify the main goals of this lesson...",
-    "Understand how to apply..."
+    "Objective 1...",
+    "Objective 2..."
   ],
   "content": {
-    "en": "Detailed technical textbook content in English (around 150-200 words). Use markdown formatting (headers ###, lists, and bold text) for styling. Incorporate a code block (using \`\`\`language) ONLY if the lesson topic is directly code/programming-related.",
-    "es": "A brief translated summary in Spanish (50-80 words).",
-    "fr": "A brief translated summary in French (50-80 words)."
+    "en": "...",
+    "es": "...",
+    "fr": "..."
   }
 }
 
 Constraints & Formatting Rules:
-1. **Objectives**: Include exactly 2-3 specific learning objectives for this lesson inside the "objectives" array.
-2. **Optional Code Blocks**: Include code blocks in the "content" fields *only* if it is relevant to the topic (e.g., React Hooks or TypeScript). If the lesson is about a non-programming topic (e.g., Copyright Law or Guitar Tuning), do not include code blocks.
-3. **Volume**: The English content field should be around 150-200 words. Spanish and French translations should be brief summaries (50-80 words) to optimize generation speed.
+1. **Objectives**: Replace "Objective 1..." and "Objective 2..." with exactly 2-3 specific learning objectives for this lesson inside the "objectives" array.
+2. **Content Generation**: Write detailed textbook-style content for the "en" (English), "es" (Spanish), and "fr" (French) keys in the "content" object:
+   - **English ("en")**: Write around 150-200 words of detailed technical explanation. Use markdown formatting (headers ###, lists, and bold text) for styling. Incorporate a code block (using \`\`\`language) ONLY if the lesson topic is directly code/programming-related.
+   - **Spanish ("es")**: Write a brief translated summary of the English content (50-80 words).
+   - **French ("fr")**: Write a brief translated summary of the English content (50-80 words).
+3. **Optional Code Blocks**: Include code blocks in the "content" fields *only* if it is relevant to the topic (e.g., React Hooks or TypeScript). If the lesson is about a non-programming topic (e.g., Copyright Law or Guitar Tuning), do not include code blocks.
 4. **Flow**: Ensure the content flows naturally from the previous lessons in the module list and does not repeat basic introductory material if this is a later lesson (e.g., Lesson 1.2 or 2.1).
 5. All translations must maintain exact content parity and structure.`;
 

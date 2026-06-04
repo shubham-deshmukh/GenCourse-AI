@@ -398,29 +398,17 @@ export const streamCourse = async (req, res, next) => {
           }
         }
 
-        // Fallback to mock data or templates if generation failed
+        // Save error placeholder if generation failed
         if (!lessonDetails) {
-          const mockFallbackData = generateMockCourseData(course.title);
-          const mockLesson = mockFallbackData.modules?.[mIdx]?.lessons?.[lIdx];
-          if (mockLesson) {
-            lessonDetails = mockLesson;
-          } else {
-            lessonDetails = {
-              title: lessonTitle,
-              objectives: [
-                `Understand the core concepts of ${lessonTitle}`,
-                `Learn best practices and practical applications`
-              ],
-              videoSearchQuery: `${lessonTitle} tutorial lecture`,
-              content: {
-                en: `### Introduction to ${lessonTitle}\n\nThis lesson covers the fundamentals, concepts, and key principles of **${lessonTitle}** as part of the course **${course.title}**.\n\n### Key Takeaways:\n- Understand the architectural role of ${lessonTitle}.\n- Discover best practices for working with this component.\n- Build and configure basic projects successfully.`,
-                es: `### Introducción a ${lessonTitle}\n\nEsta lección cubre los fundamentos y conceptos clave de **${lessonTitle}**.`,
-                fr: `### Introduction à ${lessonTitle}\n\nEsta lección cubre los fundamentos y conceptos clave de **${lessonTitle}**.`
-              },
-              script: `Welcome to this video lecture. In this lesson, we will explore the core concepts of ${lessonTitle} and how it fits into the overall architecture.`,
-              videoSlide: `Visual slide showing core concepts of ${lessonTitle}`
-            };
-          }
+          lessonDetails = {
+            title: lessonTitle,
+            objectives: ['Content Unavailable'],
+            content: {
+              en: `### ❌ Content Unavailable\n\nWe encountered an issue compiling the learning content for **${lessonTitle}**.\n\n*Please try refreshing the page or recreating the course. If the issue persists, please contact support.*`,
+              es: `### ❌ Contenido no disponible\n\nSe produjo un problema al compilar el contenido de aprendizaje para **${lessonTitle}**.\n\n*Intente actualizar la página o volver a crear el curso. Si el problema persiste, póngase en contacto con el soporte.*`,
+              fr: `### ❌ Contenu non disponible\n\nNous avons rencontré un problème lors de la compilation du contenu d'apprentissage pour **${lessonTitle}**.\n\n*Veuillez essayer de rafraîchir la page ou de recréer le cours. Si le problème persiste, veuillez contacter l'assistance.*`
+            }
+          };
         }
 
         // Save Lesson to DB
