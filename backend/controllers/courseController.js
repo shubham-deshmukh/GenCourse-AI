@@ -150,101 +150,90 @@ export const createCourse = async (req, res, next) => {
 
     const trimmedTitle = title.trim();
 
-    // Check if course already exists (case-insensitive check)
-    const existingCourse = await Course.findOne({
-      title: { $regex: new RegExp(`^${trimmedTitle}$`, 'i') }
-    }).populate({
-      path: 'modules',
-      options: { sort: { order: 1 } },
-      populate: {
-        path: 'lessons',
-        options: { sort: { order: 1 } }
-      }
-    });
-
-    if (existingCourse) {
-      console.log(`📚 Found existing course matching "${trimmedTitle}": ${existingCourse._id}`);
-      return res.json(existingCourse);
-    }
-
-    let cData;
-    let isRealAI = false;
-
-    if (process.env.OLLAMA_BASE_URL || process.env.GEMINI_API_KEY) {
-      try {
-        console.log(`🤖 Compiling curriculum outline for "${trimmedTitle}" via LLM...`);
-        const outline = await generateCourseOutline(trimmedTitle);
-        console.log(`✅ Outline returned: "${outline.title}" with ${outline.modules?.length} modules.`);
-
-        const modulesData = [];
-        for (let mIdx = 0; mIdx < outline.modules.length; mIdx++) {
-          const mod = outline.modules[mIdx];
-          console.log(`  📦 Module: "${mod.title}" has ${mod.lessonTitles?.length} lessons.`);
-
-          const lessonsList = [];
-          for (let lIdx = 0; lIdx < mod.lessonTitles.length; lIdx++) {
-            const lessonTitle = mod.lessonTitles[lIdx];
-            lessonsList.push({
-              title: lessonTitle,
-              objectives: [
-                `Understand the core concepts of ${lessonTitle}`,
-                `Learn best practices and practical applications`
-              ],
-              videoSearchQuery: `${lessonTitle} tutorial lecture`,
-              content: {
-                en: `### Introduction to ${lessonTitle}\n\nThis lesson covers the fundamentals, concepts, and key principles of **${lessonTitle}** as part of the course **${outline.title}**.\n\n### Key Takeaways:\n- Understand the architectural role of ${lessonTitle}.\n- Discover best practices for working with this component.\n- Build and configure basic projects successfully.`,
-                es: `### Introducción a ${lessonTitle}\n\nEsta lección cubre los fundamentos y conceptos clave de **${lessonTitle}**.`,
-                fr: `### Introduction à ${lessonTitle}\n\nCette leçon couvre les principes fondamentaux de **${lessonTitle}**.`
-              },
-              script: `Welcome to this video lecture. In this lesson, we will explore the core concepts of ${lessonTitle} and how it fits into the overall architecture.`,
-              videoSlide: `Visual slide showing core concepts of ${lessonTitle}`
-            });
-          }
-
-          modulesData.push({
-            title: mod.title,
-            lessons: lessonsList
-          });
-        }
-
-        cData = {
-          title: outline.title || trimmedTitle,
-          description: outline.description || `A dynamic course on ${trimmedTitle}.`,
-          resources: outline.resources || [
-            { name: `${trimmedTitle.replace(/\s+/g, '_')}_Guide.pdf`, size: '2.5 MB', type: 'PDF' }
-          ],
-          quizzes: outline.quizzes || [],
-          modules: modulesData
-        };
-
-        console.log(`💾 Saving generated course structure to DB...`);
-        isRealAI = true;
-      } catch (err) {
-        console.error('❌ Failed to generate course via LLM, falling back to mock data:', err.message);
-      }
-    }
-
-    if (!isRealAI) {
-      console.log(`🤖 Compiling curriculum outline for "${trimmedTitle}" (MOCK FALLBACK)...`);
-      cData = generateMockCourseData(trimmedTitle);
-    }
-
-    // Save Course structure
+    // Create shell Course structure in database
     const course = new Course({
-      title: cData.title,
-      description: cData.description,
-      resources: cData.resources,
-      quizzes: cData.quizzes,
+      title: trimmedTitle,
+      description: `Course shell initialized for "${trimmedTitle}". Outline and lessons will stream in shortly.`,
+      resources: [],
+      quizzes: [],
       modules: []
     });
 
     await course.save();
 
-    const moduleIds = [];
+    console.log(`🆕 Created new course shell for "${trimmedTitle}": ${course._id}`);
+    res.status(202).json({
+      message: 'Course creation initiated',
+      courseId: course._id,
+      title: course.title
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
-    // Create Modules and lessons recursively
-    for (let mIdx = 0; mIdx < cData.modules.length; mIdx++) {
-      const mData = cData.modules[mIdx];
+/**
+ * @desc    SSE stream course generation (outline and lessons)
+ * @route   GET /api/courses/:id/stream
+ * @access  Public
+ */
+export const streamCourse = async (req, res, next) => {
+  const { id } = req.params;
+
+  try {
+    const course = await Course.findById(id);
+    if (!course) {
+      return res.status(404).json({ message: 'Course not found' });
+    }
+
+    // Set headers for Server-Sent Events (SSE)
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders();
+
+    const sendEvent = (event, data) => {
+      res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+    };
+
+    console.log(`🔗 Established SSE stream for course: "${course.title}" (${course._id})`);
+    sendEvent('status', { message: 'Generation started' });
+
+    let isRealAI = false;
+    let cOutline;
+
+    if (process.env.OLLAMA_BASE_URL || process.env.GEMINI_API_KEY) {
+      try {
+        console.log(`🤖 Compiling outline for "${course.title}" via LLM...`);
+        sendEvent('status', { message: 'Compiling curriculum outline via LLM...' });
+        cOutline = await generateCourseOutline(course.title);
+        isRealAI = true;
+      } catch (err) {
+        console.error('❌ LLM outline generation failed, falling back to mock:', err.message);
+        sendEvent('status', { message: 'LLM outline generation failed, falling back to mock...' });
+      }
+    }
+
+    if (!isRealAI) {
+      console.log(`🤖 Generating mock outline fallback for "${course.title}"...`);
+      sendEvent('status', { message: 'Generating mock outline fallback...' });
+      cOutline = generateMockCourseData(course.title);
+    }
+
+    // Stage 2: Save Course Outline / Modules to DB & Stream
+    console.log(`💾 Saving generated course outline to DB...`);
+    course.title = cOutline.title || course.title;
+    course.description = cOutline.description || `A comprehensive course on ${course.title}.`;
+    course.resources = cOutline.resources || [
+      { name: `${course.title.replace(/\s+/g, '_')}_Guide.pdf`, size: '2.5 MB', type: 'PDF' }
+    ];
+    course.quizzes = cOutline.quizzes || [];
+
+    const moduleIds = [];
+    const savedModules = [];
+
+    for (let mIdx = 0; mIdx < cOutline.modules.length; mIdx++) {
+      const mData = cOutline.modules[mIdx];
       const moduleDoc = new Module({
         courseId: course._id,
         title: mData.title,
@@ -253,35 +242,123 @@ export const createCourse = async (req, res, next) => {
       });
 
       await moduleDoc.save();
-
-      const lessonIds = [];
-      for (let lIdx = 0; lIdx < mData.lessons.length; lIdx++) {
-        const lData = mData.lessons[lIdx];
-        const lessonDoc = new Lesson({
-          moduleId: moduleDoc._id,
-          title: lData.title,
-          content: lData.content,
-          objectives: lData.objectives || [],
-          videoSearchQuery: lData.videoSearchQuery || '',
-          script: lData.script,
-          videoSlide: lData.videoSlide,
-          order: lIdx
-        });
-
-        await lessonDoc.save();
-        lessonIds.push(lessonDoc._id);
-      }
-
-      moduleDoc.lessons = lessonIds;
-      await moduleDoc.save();
       moduleIds.push(moduleDoc._id);
+      savedModules.push({
+        doc: moduleDoc,
+        lessonTitles: mData.lessonTitles || mData.lessons?.map(l => l.title) || []
+      });
     }
 
     course.modules = moduleIds;
     await course.save();
 
-    // Retrieve fully populated newly created course
+    // Populate modules for the initial structure
     const populatedCourse = await Course.findById(course._id).populate({
+      path: 'modules',
+      options: { sort: { order: 1 } }
+    });
+
+    const outlineData = populatedCourse.toObject();
+    for (let mIdx = 0; mIdx < outlineData.modules.length; mIdx++) {
+      const mod = outlineData.modules[mIdx];
+      const savedMod = savedModules.find(sm => sm.doc._id.toString() === mod._id.toString());
+      if (savedMod) {
+        mod.lessons = savedMod.lessonTitles.map((title, lIdx) => ({
+          title: title,
+          order: lIdx,
+          isPlaceholder: true
+        }));
+      }
+    }
+
+    sendEvent('outline', outlineData);
+
+    // Stage 3: Generate detailed lesson content for each chapter one by one
+    for (let mIdx = 0; mIdx < savedModules.length; mIdx++) {
+      const { doc: moduleDoc, lessonTitles } = savedModules[mIdx];
+
+      console.log(`📦 Generating lessons for module: "${moduleDoc.title}"...`);
+      sendEvent('status', { message: `Generating lessons for module: "${moduleDoc.title}"...` });
+
+      const lessonIds = [];
+
+      for (let lIdx = 0; lIdx < lessonTitles.length; lIdx++) {
+        const lessonTitle = lessonTitles[lIdx];
+        console.log(`  📖 Generating lesson ${mIdx + 1}.${lIdx + 1}: "${lessonTitle}"...`);
+        sendEvent('status', { message: `Generating lesson: "${lessonTitle}"...` });
+
+        let lessonDetails;
+        if (isRealAI) {
+          try {
+            const cleanCourse = { title: course.title, description: course.description };
+            const cleanModule = { title: moduleDoc.title, lessonTitles: lessonTitles };
+            lessonDetails = await generateLessonDetails(cleanCourse, cleanModule, lessonTitle);
+          } catch (err) {
+            console.error(`  ❌ Failed to generate lesson details for "${lessonTitle}":`, err.message);
+          }
+        } else {
+          // Find the corresponding lesson object in the mock modules
+          const mockModule = cOutline.modules?.[mIdx];
+          const mockLesson = mockModule?.lessons?.[lIdx];
+          if (mockLesson) {
+            lessonDetails = mockLesson;
+          }
+        }
+
+        // Fallback to mock data or templates if generation failed
+        if (!lessonDetails) {
+          const mockFallbackData = generateMockCourseData(course.title);
+          const mockLesson = mockFallbackData.modules?.[mIdx]?.lessons?.[lIdx];
+          if (mockLesson) {
+            lessonDetails = mockLesson;
+          } else {
+            lessonDetails = {
+              title: lessonTitle,
+              objectives: [
+                `Understand the core concepts of ${lessonTitle}`,
+                `Learn best practices and practical applications`
+              ],
+              videoSearchQuery: `${lessonTitle} tutorial lecture`,
+              content: {
+                en: `### Introduction to ${lessonTitle}\n\nThis lesson covers the fundamentals, concepts, and key principles of **${lessonTitle}** as part of the course **${course.title}**.\n\n### Key Takeaways:\n- Understand the architectural role of ${lessonTitle}.\n- Discover best practices for working with this component.\n- Build and configure basic projects successfully.`,
+                es: `### Introducción a ${lessonTitle}\n\nEsta lección cubre los fundamentos y conceptos clave de **${lessonTitle}**.`,
+                fr: `### Introduction à ${lessonTitle}\n\nEsta lección cubre los fundamentos y conceptos clave de **${lessonTitle}**.`
+              },
+              script: `Welcome to this video lecture. In this lesson, we will explore the core concepts of ${lessonTitle} and how it fits into the overall architecture.`,
+              videoSlide: `Visual slide showing core concepts of ${lessonTitle}`
+            };
+          }
+        }
+
+        // Save Lesson to DB
+        const lessonDoc = new Lesson({
+          moduleId: moduleDoc._id,
+          title: lessonDetails.title || lessonTitle,
+          content: lessonDetails.content,
+          objectives: lessonDetails.objectives || [],
+          videoSearchQuery: lessonDetails.videoSearchQuery || '',
+          script: lessonDetails.script || '',
+          videoSlide: lessonDetails.videoSlide || '',
+          order: lIdx
+        });
+
+        await lessonDoc.save();
+        lessonIds.push(lessonDoc._id);
+
+        // Update module lessons list in DB
+        moduleDoc.lessons.push(lessonDoc._id);
+        await moduleDoc.save();
+
+        // Stream this generated lesson directly to the client
+        sendEvent('lesson', {
+          moduleId: moduleDoc._id,
+          lesson: lessonDoc
+        });
+      }
+    }
+
+    // Final populated course to finalize SSE connection
+    const finalCourse = await Course.findById(course._id).populate({
       path: 'modules',
       options: { sort: { order: 1 } },
       populate: {
@@ -290,10 +367,18 @@ export const createCourse = async (req, res, next) => {
       }
     });
 
-    console.log(`✅ Saved new course matching "${trimmedTitle}" in database.`);
-    res.status(201).json(populatedCourse);
+    console.log(`✅ Fully generated course "${course.title}" and saved to DB.`);
+    sendEvent('complete', finalCourse);
+    res.end();
+
   } catch (error) {
-    next(error);
+    console.error('❌ SSE Course Generation Error:', error);
+    if (res.headersSent) {
+      res.write(`event: error\ndata: ${JSON.stringify({ message: error.message })}\n\n`);
+      res.end();
+    } else {
+      next(error);
+    }
   }
 };
 

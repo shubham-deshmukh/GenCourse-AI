@@ -85,11 +85,11 @@ Target JSON Schema:
   ],
   "videoSearchQuery": "A highly descriptive search query for finding a relevant YouTube video for this lesson (e.g. 'react hooks useEffect dependency array rules tutorial')",
   "content": {
-    "en": "Detailed, rich textbook content in English. Use markdown formatting (headers ###, lists, and bold text) for styling. Incorporate a code block (using \`\`\`language) ONLY if the lesson topic is directly code/programming-related.",
-    "es": "Detailed textbook content translated/adapted into Spanish.",
-    "fr": "Detailed textbook content translated/adapted into French."
+    "en": "Detailed technical textbook content in English (around 150-200 words). Use markdown formatting (headers ###, lists, and bold text) for styling. Incorporate a code block (using \`\`\`language) ONLY if the lesson topic is directly code/programming-related.",
+    "es": "A brief translated summary in Spanish (50-80 words).",
+    "fr": "A brief translated summary in French (50-80 words)."
   },
-  "script": "A detailed word-for-word voiceover script for the video lecture of this lesson. It should explain the concepts in an engaging, narrative conversational tone.",
+  "script": "A brief word-for-word voiceover script (around 80-120 words) for the video lecture of this lesson. It should explain the concepts in an engaging, narrative conversational tone.",
   "videoSlide": "A short description of what should be displayed visually on the slide during the video lecture (e.g. Slide showing comparisons between X and Y)."
 }
 
@@ -97,7 +97,7 @@ Constraints & Formatting Rules:
 1. **Objectives**: Include exactly 2-3 specific learning objectives for this lesson inside the "objectives" array.
 2. **Video Search Query**: The "videoSearchQuery" must be a clean search phrase (3-7 words) optimized for finding high-quality educational videos on YouTube related to this lesson. Do not include URLs.
 3. **Optional Code Blocks**: Include code blocks in the "content" fields *only* if it is relevant to the topic (e.g., React Hooks or TypeScript). If the lesson is about a non-programming topic (e.g., Copyright Law or Guitar Tuning), do not include code blocks.
-4. **Volume**: The "content" fields must be comprehensive (at least 300-500 words per language) and use markdown formatting to separate sections.
+4. **Volume**: The English content field should be around 150-200 words. Spanish and French translations should be brief summaries (50-80 words) to optimize generation speed.
 5. **Flow**: Ensure the content flows naturally from the previous lessons in the module list and does not repeat basic introductory material if this is a later lesson (e.g., Lesson 1.2 or 2.1).
 6. All translations must maintain exact content parity and structure.`;
 
@@ -115,16 +115,22 @@ export const generateCourseOutline = async (topic) => {
     console.log(`🦙 Attempting local Ollama generation using model: "${ollamaModel}" at "${ollamaBaseUrl}"...`);
     const response = await axios.post(`${ollamaBaseUrl}/api/chat`, {
       model: ollamaModel,
+      think: false,
       messages: [
         {
           role: 'system',
-          content: 'You are an expert curriculum designer. You must respond with a raw JSON object matching the requested schema. Do not include markdown code block syntax.'
+          content: 'You are an expert curriculum designer. You must respond with a raw JSON object matching the requested schema. Do not include markdown code block syntax. Be concise.'
         },
         {
           role: 'user',
           content: prompt
         }
       ],
+      options: {
+        temperature: 0.1,
+        num_predict: 2048
+      },
+      keep_alive: '30m',
       stream: false,
       format: 'json'
     }, {
@@ -140,7 +146,7 @@ export const generateCourseOutline = async (topic) => {
     return JSON.parse(contentText.trim());
   } catch (ollamaError) {
     console.warn(`⚠️ Local Ollama generation failed/unavailable: ${ollamaError.message}`);
-    
+
     // Check if Gemini fallback is configured
     if (process.env.GEMINI_API_KEY) {
       console.log('🤖 Falling back to secondary provider (Google Gemini)...');
@@ -182,16 +188,22 @@ export const generateLessonDetails = async (course, module, targetLessonTitle) =
     console.log(`🦙 Attempting local Ollama lesson generation using model: "${ollamaModel}" at "${ollamaBaseUrl}"...`);
     const response = await axios.post(`${ollamaBaseUrl}/api/chat`, {
       model: ollamaModel,
+      think: false,
       messages: [
         {
           role: 'system',
-          content: 'You are an expert technical writer. You must respond with a raw JSON object matching the requested schema. Do not include markdown code block syntax.'
+          content: 'You are an expert technical writer. You must respond with a raw JSON object matching the requested schema. Do not include markdown code block syntax. Be highly concise and clear.'
         },
         {
           role: 'user',
           content: prompt
         }
       ],
+      options: {
+        temperature: 0.1,
+        num_predict: 2048
+      },
+      keep_alive: '30m',
       stream: false,
       format: 'json'
     }, {
