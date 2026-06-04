@@ -14,12 +14,22 @@ export default function App() {
   const [prompt, setPrompt] = useState('Intro to React Hooks')
   const [isGenerating, setIsGenerating] = useState(false)
 
-  const { user: auth0User, isAuthenticated, isLoading } = useAuth0()
-  const setAuthState = useAuthStore((state) => state.setAuthState)
+  const { user: auth0User, isAuthenticated: auth0IsAuthenticated, isLoading: auth0IsLoading } = useAuth0()
+  const { isAuthenticated, setAuthState } = useAuthStore()
 
   useEffect(() => {
-    setAuthState(auth0User || null, isAuthenticated, isLoading)
-  }, [auth0User, isAuthenticated, isLoading, setAuthState])
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('mockUser') === 'true') {
+      setAuthState({
+        name: 'Mock Developer',
+        email: 'developer@example.com',
+        picture: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=150',
+        sub: 'mock-auth-sub-id'
+      }, true, false);
+    } else {
+      setAuthState(auth0User || null, auth0IsAuthenticated, auth0IsLoading)
+    }
+  }, [auth0User, auth0IsAuthenticated, auth0IsLoading, setAuthState])
 
   const handleGenerate = (topic?: string) => {
     if (topic) {

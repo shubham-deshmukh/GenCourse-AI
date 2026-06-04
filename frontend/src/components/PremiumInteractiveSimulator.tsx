@@ -32,6 +32,8 @@ interface PremiumInteractiveSimulatorProps {
 
 // Sample Data Structure
 interface Lesson {
+  _id?: string
+  isPlaceholder?: boolean
   title: string
   content: {
     en: string
@@ -43,6 +45,7 @@ interface Lesson {
 }
 
 interface Module {
+  _id?: string
   title: string
   lessons: Lesson[]
 }
@@ -56,6 +59,7 @@ interface QuizQuestion {
 }
 
 interface CourseData {
+  _id?: string
   title: string
   description: string
   modules: Module[]
@@ -439,62 +443,114 @@ export default function PremiumInteractiveSimulator({
     setIsGenerating(true)
     setLogs([])
 
-    const simulatedLogs = [
-      `[ANALYZE] Ingesting prompt: "${topic}"`,
-      `[ANALYZE] Defining skill levels, audience personas, and study goals...`,
-      `[PLANNER] Building structural graph for course outline...`,
-      `[PLANNER] Assembled Outline: 3 major modules, 6 custom chapters.`,
-      `[LESSON-GEN] Writing comprehensive lesson textbook content files...`,
-      `[LESSON-GEN] Synthesizing voiceover transcripts and slide outlines...`,
-      `[QUIZ-BUILDER] Constructing dynamic knowledge checkups for each module...`,
-      `[QUIZ-BUILDER] Generated 10 test questions with adaptive hints...`,
-      `[ASSESS-ENG] Compiling final exams and grading framework parameters...`,
-      `[PUBLISH-LAYER] Processing multilingual localizations (ES, FR, EN)...`,
-      `[PUBLISH-LAYER] Packaging offline assets and rendering printable PDF workbooks...`,
-      `[SYSTEM] Generation complete. Launching student workspace portal...`
-    ]
+    setLogs((prev) => [...prev, `[ANALYZE] Ingesting prompt: "${topic}"`])
+    setLogs((prev) => [...prev, `[ANALYZE] Initializing course creation handshake...`])
 
-    let logCounter = 0
-    let progressVal = 0
+    axios.post('http://localhost:5000/api/courses', { title: topic })
+      .then((res) => {
+        const courseId = res.data.courseId
+        if (!courseId) {
+          throw new Error('No courseId returned from server')
+        }
 
-    const interval = setInterval(() => {
-      progressVal += 4
-      setProgress(progressVal)
+        setLogs((prev) => [...prev, `[ANALYZE] Handshake successful. Course ID: ${courseId}`])
+        setCurrentStepIndex(1)
+        setProgress(15)
 
-      // Add logs incrementally
-      if (progressVal % 8 === 0 && logCounter < simulatedLogs.length) {
-        setLogs((prev) => [...prev, simulatedLogs[logCounter]])
-        logCounter++
-      }
+        // Establish Server-Sent Events stream
+        const eventSource = new EventSource(`http://localhost:5000/api/courses/${courseId}/stream`)
 
-      // Advance core workflow steps
-      if (progressVal === 16) setCurrentStepIndex(1)
-      if (progressVal === 32) setCurrentStepIndex(2)
-      if (progressVal === 48) setCurrentStepIndex(3)
-      if (progressVal === 64) setCurrentStepIndex(4)
-      if (progressVal === 80) setCurrentStepIndex(5)
-
-      if (progressVal >= 100) {
-        clearInterval(interval)
-        setCurrentStepIndex(6) // all done
-
-        // Fetch / Generate from backend (saves to DB concurrently)
-        axios.post('http://localhost:5000/api/courses', { title: topic })
-          .then((res) => {
-            setActiveCourse(res.data)
-            if (onSimulationComplete) {
-              onSimulationComplete()
+        eventSource.addEventListener('status', (event: any) => {
+          try {
+            const data = JSON.parse(event.data)
+            const msg = data.message || ''
+            
+            // Format log message depending on content
+            let formattedMsg = msg
+            if (!msg.startsWith('[')) {
+              if (msg.includes('Generating lesson') || msg.includes('lessons for module')) {
+                formattedMsg = `[LESSON-GEN] ${msg}`
+              } else if (msg.includes('outline') || msg.includes('Modules')) {
+                formattedMsg = `[PLANNER] ${msg}`
+              } else if (msg.includes('started')) {
+                formattedMsg = `[ANALYZE] ${msg}`
+              } else {
+                formattedMsg = `[SYSTEM] ${msg}`
+              }
             }
-          })
-          .catch((err) => {
-            console.error('Error fetching generated course from backend:', err)
-            const matchingCourse = COURSES_DATABASE[topic] || COURSES_DATABASE['Intro to React Hooks']
-            setActiveCourse({
-              ...matchingCourse,
-              title: topic
+            setLogs((prev) => [...prev, formattedMsg])
+            
+            setProgress((prev) => {
+              if (prev < 90) return prev + 2
+              return prev
             })
-          })
-          .finally(() => {
+          } catch (err) {
+            console.error('Error parsing SSE status:', err)
+          }
+        })
+
+        eventSource.addEventListener('outline', (event: any) => {
+          try {
+            const data = JSON.parse(event.data)
+            setLogs((prev) => [...prev, `[PLANNER] Course curriculum structure generated and saved.`])
+            
+            const outlineCourse = {
+              ...data,
+              modules: (data.modules || []).map((m: any) => ({
+                ...m,
+                lessons: m.lessons || []
+              }))
+            }
+            
+            setActiveCourse(outlineCourse)
+            setCurrentStepIndex(2)
+            setProgress(35)
+          } catch (err) {
+            console.error('Error parsing SSE outline:', err)
+          }
+        })
+
+        eventSource.addEventListener('lesson', (event: any) => {
+          try {
+            const data = JSON.parse(event.data)
+            const { moduleId, lesson } = data
+
+            setLogs((prev) => [...prev, `[LESSON-GEN] Synthesized and saved chapter: "${lesson.title}"`])
+
+            setActiveCourse((prevCourse) => {
+              if (!prevCourse) return null
+              const updatedModules = (prevCourse.modules || []).map((m: any) => {
+                if (m._id === moduleId || m.title === moduleId) {
+                  const lessonExists = (m.lessons || []).some((l: any) => l._id === lesson._id || l.title === lesson.title)
+                  const newLessons = lessonExists
+                    ? m.lessons.map((l: any) => (l._id === lesson._id || l.title === lesson.title) ? lesson : l)
+                    : [...(m.lessons || []), lesson]
+                  return { ...m, lessons: newLessons }
+                }
+                return m
+              })
+              return { ...prevCourse, modules: updatedModules }
+            })
+
+            setCurrentStepIndex(3)
+            setProgress((prev) => {
+              if (prev < 95) return prev + 8
+              return prev
+            })
+          } catch (err) {
+            console.error('Error parsing SSE lesson:', err)
+          }
+        })
+
+        eventSource.addEventListener('complete', (event: any) => {
+          try {
+            const finalCourse = JSON.parse(event.data)
+            setLogs((prev) => [...prev, `[SYSTEM] Generation complete. Launching student workspace portal...`])
+            setActiveCourse(finalCourse)
+            setProgress(100)
+            setCurrentStepIndex(6)
+            eventSource.close()
+
             isRunningRef.current = false
             setIsGenerating(false)
             setActiveModuleIndex(0)
@@ -504,9 +560,66 @@ export default function PremiumInteractiveSimulator({
             setActiveTab('content')
             setSelectedAnswers({})
             setShowExplanation({})
+
+            if (onSimulationComplete) {
+              onSimulationComplete()
+            }
+          } catch (err) {
+            console.error('Error parsing SSE complete:', err)
+            eventSource.close()
+            isRunningRef.current = false
+            setIsGenerating(false)
+          }
+        })
+
+        eventSource.addEventListener('error', (event: any) => {
+          try {
+            const data = JSON.parse(event.data)
+            setLogs((prev) => [...prev, `[SYSTEM] Generation error: ${data.message || 'Unknown error'}`])
+          } catch (err) {
+            setLogs((prev) => [...prev, `[SYSTEM] Generation error occurred.`])
+          }
+          eventSource.close()
+          isRunningRef.current = false
+          setIsGenerating(false)
+        })
+
+        eventSource.onerror = (err) => {
+          console.error('SSE connection error:', err)
+          setLogs((prev) => [...prev, `[SYSTEM] Connection closed or timed out.`])
+          eventSource.close()
+          isRunningRef.current = false
+          setIsGenerating(false)
+        }
+      })
+      .catch((err) => {
+        console.error('Error initiating course generation:', err)
+        setLogs((prev) => [...prev, `[SYSTEM] Failed to initiate course generation: ${err.message}`])
+        setLogs((prev) => [...prev, `[SYSTEM] Falling back to local offline preset database...`])
+        
+        setTimeout(() => {
+          const matchingCourse = COURSES_DATABASE[topic] || COURSES_DATABASE['Intro to React Hooks']
+          setActiveCourse({
+            ...matchingCourse,
+            title: topic
           })
-      }
-    }, 150)
+          setProgress(100)
+          setCurrentStepIndex(6)
+          isRunningRef.current = false
+          setIsGenerating(false)
+          setActiveModuleIndex(0)
+          setActiveLessonIndex(0)
+          setVideoProgress(0)
+          setIsPlayingVideo(false)
+          setActiveTab('content')
+          setSelectedAnswers({})
+          setShowExplanation({})
+          
+          if (onSimulationComplete) {
+            onSimulationComplete()
+          }
+        }, 1500)
+      })
   }
 
   // Hook simulator trigger from Hero or elsewhere
@@ -531,11 +644,25 @@ export default function PremiumInteractiveSimulator({
       // Only auto-load if in player mode (hideInput is true)
       if (!isGenerating && prompt && hideInput) {
         try {
-          const response = await axios.post('http://localhost:5000/api/courses', {
-            title: prompt
-          })
-          if (active) {
-            setActiveCourse(response.data)
+          // Fetch existing courses and match by title (case-insensitive)
+          const response = await axios.get('http://localhost:5000/api/courses')
+          const matchedCourse = response.data.find(
+            (c: any) => c.title.toLowerCase() === prompt.toLowerCase()
+          )
+
+          if (matchedCourse) {
+            if (active) {
+              setActiveCourse(matchedCourse)
+            }
+          } else {
+            console.warn(`Course matching "${prompt}" not found in DB, falling back to local preset.`)
+            const matchingCourse = COURSES_DATABASE[prompt] || COURSES_DATABASE['Intro to React Hooks']
+            if (active) {
+              setActiveCourse({
+                ...matchingCourse,
+                title: prompt
+              })
+            }
           }
         } catch (error) {
           console.error('Error loading course from database:', error)
@@ -543,7 +670,7 @@ export default function PremiumInteractiveSimulator({
           if (active) {
             setActiveCourse({
               ...matchingCourse,
-              title: prompt || 'Intro to React Hooks'
+              title: prompt
             })
           }
         }
@@ -963,7 +1090,7 @@ export default function PremiumInteractiveSimulator({
 
           {/* Right Column: Portal Course Viewer */}
           <div className={hideInput ? "lg:col-span-12" : "lg:col-span-7"}>
-            {isGenerating ? (
+            {isGenerating && !activeCourse ? (
               <div className="glass-panel rounded-3xl p-12 border-white/10 text-center h-full min-h-[620px] flex flex-col justify-center items-center bg-black/40 relative overflow-hidden shadow-2xl">
                 <div className="absolute inset-0 bg-grid-pattern opacity-5 pointer-events-none"></div>
                 <div className="absolute w-48 h-48 bg-purple-primary/10 rounded-full blur-3xl -z-10 animate-pulse-slow"></div>
@@ -1017,6 +1144,24 @@ export default function PremiumInteractiveSimulator({
                     </select>
                   </div>
                 </div>
+
+                {isGenerating && (
+                  <div className="bg-purple-primary/10 border-b border-white/5 px-5 py-2.5 flex items-center justify-between gap-4 animate-pulse select-none">
+                    <div className="flex items-center gap-2">
+                      <span className="relative flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-purple-500"></span>
+                      </span>
+                      <span className="text-[11px] text-purple-300 font-semibold">Course outline generated. Compiling lessons...</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-[10px] text-gray-500 font-mono">Progress: {progress}%</span>
+                      <div className="w-20 bg-white/5 h-1.5 rounded-full overflow-hidden">
+                        <div className="bg-gradient-to-r from-purple-primary to-cyan-primary h-full" style={{ width: `${progress}%` }}></div>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Segmented Sliding Tab Control */}
                 <div className="p-3 bg-white/1 border-b border-white/5">
@@ -1091,18 +1236,22 @@ export default function PremiumInteractiveSimulator({
                                   setVideoProgress(0)
                                   setIsPlayingVideo(false)
                                 }}
-                                className={`w-full text-left px-2.5 py-2 rounded-xl text-xs transition duration-200 flex items-center justify-between gap-2 border cursor-pointer ${isSelected
+                                className={`w-full text-left px-2.5 py-2 rounded-xl text-xs transition duration-200 flex items-center justify-between gap-2 border ${les.isPlaceholder ? 'cursor-wait' : 'cursor-pointer'} ${isSelected
                                     ? 'bg-purple-primary/15 border-purple-primary/30 text-white font-medium shadow-[inset_0_0_8px_rgba(124,58,237,0.05)]'
                                     : 'bg-transparent border-transparent text-gray-400 hover:text-white hover:bg-white/5'
                                   }`}
                               >
                                 <div className="flex items-center gap-2 truncate">
-                                  {isCompleted ? (
+                                  {les.isPlaceholder ? (
+                                    <div className="w-3 h-3 border-2 border-purple-primary/30 border-t-purple-primary rounded-full animate-spin shrink-0"></div>
+                                  ) : isCompleted ? (
                                     <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                                   ) : (
                                     <FileText className={`w-3.5 h-3.5 shrink-0 ${isSelected ? 'text-cyan-400' : 'text-gray-500'}`} />
                                   )}
-                                  <span className="truncate">{les.title}</span>
+                                  <span className={`truncate ${les.isPlaceholder ? 'text-gray-500 italic' : ''}`}>
+                                    {les.title}
+                                  </span>
                                 </div>
                               </button>
                             )
@@ -1133,7 +1282,7 @@ export default function PremiumInteractiveSimulator({
                           {activeCourse?.modules?.map((m, mIdx) =>
                             m.lessons?.map((l, lIdx) => (
                               <option key={`${mIdx}-${lIdx}`} value={`${mIdx}-${lIdx}`} className="bg-[#030014]">
-                                {l.title}
+                                {l.title} {l.isPlaceholder ? '(Generating...)' : ''}
                               </option>
                             ))
                           )}
@@ -1142,16 +1291,46 @@ export default function PremiumInteractiveSimulator({
 
                       {/* Reader Tab */}
                       {activeTab === 'content' && currentLesson && (
-                        <div className="space-y-8">
-                          <div className="prose prose-invert max-w-none text-sm text-gray-300 leading-relaxed font-sans">
-                            <h4 className="text-white text-lg font-bold font-display mb-4 pb-2 border-b border-white/5 flex items-center gap-2">
-                              <BookOpen className="w-5 h-5 text-purple-primary" />
-                              {currentLesson.title}
-                            </h4>
-                            <div className="space-y-4">
-                              {renderFormattedContent(currentLesson.content?.[language] || '')}
+                        currentLesson.isPlaceholder ? (
+                          <div className="space-y-8 animate-pulse select-none">
+                            <div className="prose prose-invert max-w-none text-sm text-gray-300 leading-relaxed font-sans">
+                              <h4 className="text-white text-lg font-bold font-display mb-4 pb-2 border-b border-white/5 flex items-center gap-2">
+                                <div className="w-3.5 h-3.5 border-2 border-purple-primary/30 border-t-purple-primary rounded-full animate-spin shrink-0"></div>
+                                <span className="text-gray-400 italic">Generating:</span> {currentLesson.title}
+                              </h4>
+                              <div className="space-y-4 pt-4">
+                                <div className="h-3.5 bg-white/5 rounded-full w-3/4"></div>
+                                <div className="h-3.5 bg-white/5 rounded-full w-5/6"></div>
+                                <div className="h-3.5 bg-white/5 rounded-full w-2/3"></div>
+                                <div className="h-3.5 bg-white/5 rounded-full w-4/5"></div>
+                                
+                                <div className="my-6 p-5 rounded-2xl border border-white/5 bg-white/2 space-y-4">
+                                  <div className="h-3 bg-purple-primary/20 rounded-full w-1/4"></div>
+                                  <div className="h-2.5 bg-white/5 rounded-full w-full"></div>
+                                  <div className="h-2.5 bg-white/5 rounded-full w-5/6"></div>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <div className="pt-8 border-t border-white/5 space-y-4">
+                              <div className="h-4 bg-white/10 rounded w-1/3"></div>
+                              <div className="rounded-2xl aspect-video bg-black/40 border border-white/5 overflow-hidden flex flex-col justify-center items-center p-4">
+                                <Cpu className="w-8 h-8 text-purple-400/30 animate-spin mb-2" />
+                                <span className="text-[10px] text-gray-500 font-mono">Synthesizing Lecture Slides & Voiceover...</span>
+                              </div>
                             </div>
                           </div>
+                        ) : (
+                          <div className="space-y-8">
+                            <div className="prose prose-invert max-w-none text-sm text-gray-300 leading-relaxed font-sans">
+                              <h4 className="text-white text-lg font-bold font-display mb-4 pb-2 border-b border-white/5 flex items-center gap-2">
+                                <BookOpen className="w-5 h-5 text-purple-primary" />
+                                {currentLesson.title}
+                              </h4>
+                              <div className="space-y-4">
+                                {renderFormattedContent(currentLesson.content?.[language] || '')}
+                              </div>
+                            </div>
 
                           {/* AI Video Lecture Section */}
                           <div className="pt-8 border-t border-white/5 space-y-6">
@@ -1279,8 +1458,9 @@ export default function PremiumInteractiveSimulator({
                                 })}
                               </div>
                             </div>
+                            </div>
                           </div>
-                        </div>
+                        )
                       )}
 
                       {/* Practice Quiz Tab */}
@@ -1312,7 +1492,7 @@ export default function PremiumInteractiveSimulator({
                           <div className="space-y-6 max-h-[480px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-white/10">
                             {(!activeCourse.quizzes || activeCourse.quizzes.length === 0) ? (
                               <div className="text-center py-12 text-gray-500 italic">
-                                No quizzes generated for this course.
+                                {isGenerating ? 'Quizzes are being compiled by the AI generator... Please wait.' : 'No quizzes generated for this course.'}
                               </div>
                             ) : (
                               activeCourse.quizzes.map((q, qIdx) => {
@@ -1407,91 +1587,97 @@ export default function PremiumInteractiveSimulator({
                           </div>
 
                           <div className="grid grid-cols-1 gap-3 mt-4">
-                            {(activeCourse?.resources || []).map((res) => {
-                              const progressVal = downloadProgress[res.name]
-                              const isDownloading = progressVal !== undefined && progressVal < 100
-                              const isDownloaded = progressVal === 100
+                            {(!activeCourse?.resources || activeCourse.resources.length === 0) ? (
+                              <div className="text-center py-12 text-gray-500 italic">
+                                {isGenerating ? 'Compiling worksheets and study resources... Please wait.' : 'No resources generated for this course.'}
+                              </div>
+                            ) : (
+                              (activeCourse?.resources || []).map((res) => {
+                                const progressVal = downloadProgress[res.name]
+                                const isDownloading = progressVal !== undefined && progressVal < 100
+                                const isDownloaded = progressVal === 100
 
-                              return (
-                                <div
-                                  key={res.name}
-                                  className={`p-4 rounded-xl transition-all duration-300 border ${isDownloaded
-                                      ? 'bg-emerald-500/5 border-emerald-500/20'
-                                      : isDownloading
-                                        ? 'bg-purple-primary/5 border-purple-primary/20'
-                                        : 'bg-white/2 border-white/5 hover:border-white/10 hover:bg-white/4'
-                                    }`}
-                                >
-                                  <div className="flex items-center justify-between gap-4">
-                                    <div className="flex items-center gap-3 truncate">
-                                      <div className={`p-2.5 rounded-lg border ${isDownloaded
-                                          ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-                                          : isDownloading
-                                            ? 'bg-purple-primary/15 border-purple-primary/20 text-purple-300 animate-pulse'
-                                            : 'bg-white/5 border-white/5 text-gray-400'
-                                        }`}>
-                                        <FileText className="w-5 h-5" />
+                                return (
+                                  <div
+                                    key={res.name}
+                                    className={`p-4 rounded-xl transition-all duration-300 border ${isDownloaded
+                                        ? 'bg-emerald-500/5 border-emerald-500/20'
+                                        : isDownloading
+                                          ? 'bg-purple-primary/5 border-purple-primary/20'
+                                          : 'bg-white/2 border-white/5 hover:border-white/10 hover:bg-white/4'
+                                      }`}
+                                  >
+                                    <div className="flex items-center justify-between gap-4">
+                                      <div className="flex items-center gap-3 truncate">
+                                        <div className={`p-2.5 rounded-lg border ${isDownloaded
+                                            ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                                            : isDownloading
+                                              ? 'bg-purple-primary/15 border-purple-primary/20 text-purple-300 animate-pulse'
+                                              : 'bg-white/5 border-white/5 text-gray-400'
+                                          }`}>
+                                          <FileText className="w-5 h-5" />
+                                        </div>
+                                        <div className="truncate">
+                                          <h5 className="text-sm font-semibold text-white truncate">{res.name}</h5>
+                                          <span className="text-[10px] text-gray-500 font-medium">
+                                            {res.type} • {res.size}
+                                          </span>
+                                        </div>
                                       </div>
-                                      <div className="truncate">
-                                        <h5 className="text-sm font-semibold text-white truncate">{res.name}</h5>
-                                        <span className="text-[10px] text-gray-500 font-medium">
-                                          {res.type} • {res.size}
-                                        </span>
-                                      </div>
+
+                                      <button
+                                        onClick={() => startDownload(res.name)}
+                                        disabled={isDownloading}
+                                        className={`p-2 rounded-lg border transition-all duration-300 cursor-pointer flex items-center justify-center ${isDownloaded
+                                            ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-300'
+                                            : isDownloading
+                                              ? 'bg-purple-primary/10 border-purple-primary/20 text-purple-300 cursor-not-allowed'
+                                              : 'bg-white/5 hover:bg-cyan-primary border-white/10 hover:border-cyan-primary hover:text-black text-gray-300'
+                                          }`}
+                                      >
+                                        {isDownloaded ? (
+                                          <Check className="w-4 h-4" />
+                                        ) : isDownloading ? (
+                                          <div className="w-4 h-4 border-2 border-purple-primary/20 border-t-purple-primary rounded-full animate-spin"></div>
+                                        ) : (
+                                          <Download className="w-4 h-4" />
+                                        )}
+                                      </button>
                                     </div>
 
-                                    <button
-                                      onClick={() => startDownload(res.name)}
-                                      disabled={isDownloading}
-                                      className={`p-2 rounded-lg border transition-all duration-300 cursor-pointer flex items-center justify-center ${isDownloaded
-                                          ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-300'
-                                          : isDownloading
-                                            ? 'bg-purple-primary/10 border-purple-primary/20 text-purple-300 cursor-not-allowed'
-                                            : 'bg-white/5 hover:bg-cyan-primary border-white/10 hover:border-cyan-primary hover:text-black text-gray-300'
-                                        }`}
-                                    >
-                                      {isDownloaded ? (
-                                        <Check className="w-4 h-4" />
-                                      ) : isDownloading ? (
-                                        <div className="w-4 h-4 border-2 border-purple-primary/20 border-t-purple-primary rounded-full animate-spin"></div>
-                                      ) : (
-                                        <Download className="w-4 h-4" />
-                                      )}
-                                    </button>
+                                    {/* Progress Bar inside download card */}
+                                    {isDownloading && (
+                                      <div className="mt-3">
+                                        <div className="flex justify-between text-[9px] text-gray-400 mb-1 font-semibold">
+                                          <span>Downloading package...</span>
+                                          <span>{progressVal}%</span>
+                                        </div>
+                                        <div className="w-full bg-white/5 h-1 rounded-full overflow-hidden">
+                                          <div
+                                            className="bg-gradient-to-r from-purple-primary to-cyan-primary h-full transition-all duration-150"
+                                            style={{ width: `${progressVal}%` }}
+                                          ></div>
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {isDownloaded && (
+                                      <div className="mt-2 text-[9px] text-emerald-400 font-semibold flex items-center gap-1 animate-pulse">
+                                        <CheckCircle className="w-3 h-3" />
+                                        <span>Download completed! File saved to simulated local cache.</span>
+                                      </div>
+                                    )}
                                   </div>
-
-                                  {/* Progress Bar inside download card */}
-                                  {isDownloading && (
-                                    <div className="mt-3">
-                                      <div className="flex justify-between text-[9px] text-gray-400 mb-1 font-semibold">
-                                        <span>Downloading package...</span>
-                                        <span>{progressVal}%</span>
-                                      </div>
-                                      <div className="w-full bg-white/5 h-1 rounded-full overflow-hidden">
-                                        <div
-                                          className="bg-gradient-to-r from-purple-primary to-cyan-primary h-full transition-all duration-150"
-                                          style={{ width: `${progressVal}%` }}
-                                        ></div>
-                                      </div>
-                                    </div>
-                                  )}
-
-                                  {isDownloaded && (
-                                    <div className="mt-2 text-[9px] text-emerald-400 font-semibold flex items-center gap-1 animate-pulse">
-                                      <CheckCircle className="w-3 h-3" />
-                                      <span>Download completed! File saved to simulated local cache.</span>
-                                    </div>
-                                  )}
-                                </div>
-                              )
-                            })}
+                                )
+                              })
+                            )}
                           </div>
                         </div>
                       )}
                     </div>
 
                     {/* Reader Tab mark as complete button */}
-                    {activeTab === 'content' && currentLesson && (
+                    {activeTab === 'content' && currentLesson && !currentLesson.isPlaceholder && (
                       <div className="mt-8 pt-6 border-t border-white/5 flex items-center justify-between">
                         <div className="flex items-center gap-2 text-xs text-gray-500">
                           <CheckCircle className={`w-4 h-4 ${isLessonDone ? 'text-emerald-500' : 'text-gray-600'}`} />

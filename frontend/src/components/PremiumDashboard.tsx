@@ -95,49 +95,6 @@ export default function PremiumDashboard() {
     setTimeout(() => setCopiedKey(false), 2000)
   }
 
-  // Fallback list of mock user courses presets
-  const userCoursesPresets = [
-    {
-      title: 'Intro to React Hooks',
-      progress: 66,
-      lessonsCount: 3,
-      completedCount: 2,
-      category: 'Development',
-      level: 'Intermediate',
-      bannerGradient: 'from-blue-600/20 to-purple-600/20 border-blue-500/20',
-      tagColor: 'bg-blue-500/10 text-blue-300 border-blue-500/20'
-    },
-    {
-      title: 'Basics of Copyright Law',
-      progress: 0,
-      lessonsCount: 3,
-      completedCount: 0,
-      category: 'Legal Studies',
-      level: 'Beginner',
-      bannerGradient: 'from-amber-600/20 to-orange-600/20 border-amber-500/20',
-      tagColor: 'bg-amber-500/10 text-amber-300 border-amber-500/20'
-    },
-    {
-      title: 'Quantum Mechanics for Beginners',
-      progress: 100,
-      lessonsCount: 2,
-      completedCount: 2,
-      category: 'Physics',
-      level: 'Advanced',
-      bannerGradient: 'from-cyan-600/20 to-emerald-600/20 border-cyan-500/20',
-      tagColor: 'bg-cyan-500/10 text-cyan-300 border-cyan-500/20'
-    },
-    {
-      title: 'Acoustic Guitar 101',
-      progress: 50,
-      lessonsCount: 2,
-      completedCount: 1,
-      category: 'Music',
-      level: 'Beginner',
-      bannerGradient: 'from-rose-600/20 to-pink-600/20 border-rose-500/20',
-      tagColor: 'bg-rose-500/10 text-rose-300 border-rose-500/20'
-    }
-  ]
 
   const [courses, setCourses] = useState<any[]>([])
   const [isCoursesLoading, setIsCoursesLoading] = useState(true)
