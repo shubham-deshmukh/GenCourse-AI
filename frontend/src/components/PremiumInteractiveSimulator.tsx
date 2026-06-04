@@ -16,12 +16,11 @@ import {
   Sparkles,
   Check,
 } from 'lucide-react'
+import { useGenerationStore } from '../store/useGenerationStore'
 
 interface PremiumInteractiveSimulatorProps {
   prompt: string
   setPrompt: (val: string) => void
-  isGenerating: boolean
-  setIsGenerating: (val: boolean) => void
   minimal?: boolean
   hideInput?: boolean
   onSimulationComplete?: () => void
@@ -55,7 +54,7 @@ interface QuizQuestion {
   explanation: string
 }
 
-interface CourseData {
+export interface CourseData {
   _id?: string
   title: string
   description: string
@@ -64,7 +63,7 @@ interface CourseData {
   quizzes: QuizQuestion[]
 }
 
-const COURSES_DATABASE: Record<string, CourseData> = {
+export const COURSES_DATABASE: Record<string, CourseData> = {
   'Intro to React Hooks': {
     title: 'Intro to React Hooks',
     description: 'Learn modern React state and lifecycle management using hooks like useState, useEffect, and custom hooks.',
@@ -361,22 +360,30 @@ const QUICK_SUGGESTIONS = [
 export default function PremiumInteractiveSimulator({
   prompt,
   setPrompt,
-  isGenerating,
-  setIsGenerating,
   minimal = false,
   hideInput = false,
   onSimulationComplete
 }: PremiumInteractiveSimulatorProps) {
-  const [activeCourse, setActiveCourse] = useState<CourseData | null>(null)
+  const {
+    isGenerating: globalIsGenerating,
+    progress: globalProgress,
+    logs: globalLogs,
+    currentStepIndex: globalCurrentStepIndex,
+    activeCourse: globalActiveCourse,
+    startGeneration
+  } = useGenerationStore()
+
+  const [localActiveCourse, setLocalActiveCourse] = useState<CourseData | null>(null)
+  const isGenerating = hideInput ? false : globalIsGenerating
+  const progress = hideInput ? 0 : globalProgress
+  const logs = hideInput ? [] : globalLogs
+  const currentStepIndex = hideInput ? -1 : globalCurrentStepIndex
+  const activeCourse = hideInput ? localActiveCourse : globalActiveCourse
+
   const [activeModuleIndex, setActiveModuleIndex] = useState(0)
   const [activeLessonIndex, setActiveLessonIndex] = useState(0)
   const [activeTab, setActiveTab] = useState<'content' | 'quiz' | 'downloads'>('content')
   const [language, setLanguage] = useState<'en' | 'es' | 'fr'>('en')
-
-  // Pipeline Simulation states
-  const [currentStepIndex, setCurrentStepIndex] = useState(-1)
-  const [progress, setProgress] = useState(0)
-  const [logs, setLogs] = useState<string[]>([])
 
   // Video player simulation
   const [isPlayingVideo, setIsPlayingVideo] = useState(false)
@@ -393,7 +400,6 @@ export default function PremiumInteractiveSimulator({
 
   // Telemetry Console Ref
   const logsContainerRef = useRef<HTMLDivElement>(null)
-  const isRunningRef = useRef(false)
 
   const steps = [
     { title: 'Topic Analyzer', desc: 'Analyzing keywords, target audience & goals', icon: Search },
@@ -431,206 +437,9 @@ export default function PremiumInteractiveSimulator({
     }
   }, [isPlayingVideo])
 
-  const runSimulation = (topic: string) => {
-    isRunningRef.current = true
-    setActiveCourse(null)
-    setCurrentStepIndex(0)
-    setProgress(0)
-    setIsGenerating(true)
-    setLogs([])
-
-    setLogs((prev) => [...prev, `[ANALYZE] Ingesting prompt: "${topic}"`])
-    setLogs((prev) => [...prev, `[ANALYZE] Initializing course creation handshake...`])
-
-    axios.post('http://localhost:5000/api/courses', { title: topic })
-      .then((res) => {
-        const courseId = res.data.courseId
-        if (!courseId) {
-          throw new Error('No courseId returned from server')
-        }
-
-        setLogs((prev) => [...prev, `[ANALYZE] Handshake successful. Course ID: ${courseId}`])
-        setCurrentStepIndex(1)
-        setProgress(15)
-
-        // Establish Server-Sent Events stream
-        const eventSource = new EventSource(`http://localhost:5000/api/courses/${courseId}/stream`)
-
-        eventSource.addEventListener('status', (event: any) => {
-          try {
-            const data = JSON.parse(event.data)
-            const msg = data.message || ''
-            
-            // Format log message depending on content
-            let formattedMsg = msg
-            if (!msg.startsWith('[')) {
-              if (msg.includes('Generating lesson') || msg.includes('lessons for module')) {
-                formattedMsg = `[LESSON-GEN] ${msg}`
-              } else if (msg.includes('outline') || msg.includes('Modules')) {
-                formattedMsg = `[PLANNER] ${msg}`
-              } else if (msg.includes('started')) {
-                formattedMsg = `[ANALYZE] ${msg}`
-              } else {
-                formattedMsg = `[SYSTEM] ${msg}`
-              }
-            }
-            setLogs((prev) => [...prev, formattedMsg])
-            
-            setProgress((prev) => {
-              if (prev < 90) return prev + 2
-              return prev
-            })
-          } catch (err) {
-            console.error('Error parsing SSE status:', err)
-          }
-        })
-
-        eventSource.addEventListener('outline', (event: any) => {
-          try {
-            const data = JSON.parse(event.data)
-            setLogs((prev) => [...prev, `[PLANNER] Course curriculum structure generated and saved.`])
-            
-            const outlineCourse = {
-              ...data,
-              modules: (data.modules || []).map((m: any) => ({
-                ...m,
-                lessons: m.lessons || []
-              }))
-            }
-            
-            setActiveCourse(outlineCourse)
-            setCurrentStepIndex(2)
-            setProgress(35)
-          } catch (err) {
-            console.error('Error parsing SSE outline:', err)
-          }
-        })
-
-        eventSource.addEventListener('lesson', (event: any) => {
-          try {
-            const data = JSON.parse(event.data)
-            const { moduleId, lesson } = data
-
-            setLogs((prev) => [...prev, `[LESSON-GEN] Synthesized and saved chapter: "${lesson.title}"`])
-
-            setActiveCourse((prevCourse) => {
-              if (!prevCourse) return null
-              const updatedModules = (prevCourse.modules || []).map((m: any) => {
-                if (m._id === moduleId || m.title === moduleId) {
-                  const lessonExists = (m.lessons || []).some((l: any) => l._id === lesson._id || l.title === lesson.title)
-                  const newLessons = lessonExists
-                    ? m.lessons.map((l: any) => (l._id === lesson._id || l.title === lesson.title) ? lesson : l)
-                    : [...(m.lessons || []), lesson]
-                  return { ...m, lessons: newLessons }
-                }
-                return m
-              })
-              return { ...prevCourse, modules: updatedModules }
-            })
-
-            setCurrentStepIndex(3)
-            setProgress((prev) => {
-              if (prev < 95) return prev + 8
-              return prev
-            })
-          } catch (err) {
-            console.error('Error parsing SSE lesson:', err)
-          }
-        })
-
-        eventSource.addEventListener('complete', (event: any) => {
-          try {
-            const finalCourse = JSON.parse(event.data)
-            setLogs((prev) => [...prev, `[SYSTEM] Generation complete. Launching student workspace portal...`])
-            setActiveCourse(finalCourse)
-            setProgress(100)
-            setCurrentStepIndex(5)
-            eventSource.close()
-
-            isRunningRef.current = false
-            setIsGenerating(false)
-            setActiveModuleIndex(0)
-            setActiveLessonIndex(0)
-            setVideoProgress(0)
-            setIsPlayingVideo(false)
-            setActiveTab('content')
-            setSelectedAnswers({})
-            setShowExplanation({})
-
-            if (onSimulationComplete) {
-              onSimulationComplete()
-            }
-          } catch (err) {
-            console.error('Error parsing SSE complete:', err)
-            eventSource.close()
-            isRunningRef.current = false
-            setIsGenerating(false)
-          }
-        })
-
-        eventSource.addEventListener('error', (event: any) => {
-          try {
-            const data = JSON.parse(event.data)
-            setLogs((prev) => [...prev, `[SYSTEM] Generation error: ${data.message || 'Unknown error'}`])
-          } catch (err) {
-            setLogs((prev) => [...prev, `[SYSTEM] Generation error occurred.`])
-          }
-          eventSource.close()
-          isRunningRef.current = false
-          setIsGenerating(false)
-        })
-
-        eventSource.onerror = (err) => {
-          console.error('SSE connection error:', err)
-          setLogs((prev) => [...prev, `[SYSTEM] Connection closed or timed out.`])
-          eventSource.close()
-          isRunningRef.current = false
-          setIsGenerating(false)
-        }
-      })
-      .catch((err) => {
-        console.error('Error initiating course generation:', err)
-        setLogs((prev) => [...prev, `[SYSTEM] Failed to initiate course generation: ${err.message}`])
-        setLogs((prev) => [...prev, `[SYSTEM] Falling back to local offline preset database...`])
-        
-        setTimeout(() => {
-          const matchingCourse = COURSES_DATABASE[topic] || COURSES_DATABASE['Intro to React Hooks']
-          setActiveCourse({
-            ...matchingCourse,
-            title: topic
-          })
-          setProgress(100)
-          setCurrentStepIndex(5)
-          isRunningRef.current = false
-          setIsGenerating(false)
-          setActiveModuleIndex(0)
-          setActiveLessonIndex(0)
-          setVideoProgress(0)
-          setIsPlayingVideo(false)
-          setActiveTab('content')
-          setSelectedAnswers({})
-          setShowExplanation({})
-          
-          if (onSimulationComplete) {
-            onSimulationComplete()
-          }
-        }, 1500)
-      })
-  }
-
-  // Hook simulator trigger from Hero or elsewhere
-  useEffect(() => {
-    if (isGenerating && !isRunningRef.current) {
-      isRunningRef.current = true
-      runSimulation(prompt || 'Intro to React Hooks')
-    } else if (!isGenerating) {
-      isRunningRef.current = false
-    }
-  }, [isGenerating])
-
   const handleManualTrigger = (e: React.FormEvent) => {
     e.preventDefault()
-    runSimulation(prompt || 'Intro to React Hooks')
+    startGeneration(prompt || 'Intro to React Hooks', onSimulationComplete)
   }
 
   // Load default/selected course matching prompt on page load or when prompt shifts
@@ -648,13 +457,13 @@ export default function PremiumInteractiveSimulator({
 
           if (matchedCourse) {
             if (active) {
-              setActiveCourse(matchedCourse)
+              setLocalActiveCourse(matchedCourse)
             }
           } else {
             console.warn(`Course matching "${prompt}" not found in DB, falling back to local preset.`)
             const matchingCourse = COURSES_DATABASE[prompt] || COURSES_DATABASE['Intro to React Hooks']
             if (active) {
-              setActiveCourse({
+              setLocalActiveCourse({
                 ...matchingCourse,
                 title: prompt
               })
@@ -664,7 +473,7 @@ export default function PremiumInteractiveSimulator({
           console.error('Error loading course from database:', error)
           const matchingCourse = COURSES_DATABASE[prompt] || COURSES_DATABASE['Intro to React Hooks']
           if (active) {
-            setActiveCourse({
+            setLocalActiveCourse({
               ...matchingCourse,
               title: prompt
             })
@@ -676,7 +485,7 @@ export default function PremiumInteractiveSimulator({
     return () => {
       active = false
     }
-  }, [prompt, isGenerating, hideInput])
+  }, [prompt, hideInput])
 
   const currentLesson = activeCourse?.modules?.[activeModuleIndex]?.lessons?.[activeLessonIndex]
   const lessonKey = activeCourse ? `${activeCourse.title}-${activeModuleIndex}-${activeLessonIndex}` : ''
@@ -948,7 +757,7 @@ export default function PremiumInteractiveSimulator({
                     disabled={isGenerating}
                     onClick={() => {
                       setPrompt(sug.topic)
-                      runSimulation(sug.topic)
+                      startGeneration(sug.topic, onSimulationComplete)
                     }}
                     className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all duration-300 flex items-center gap-1.5 border cursor-pointer ${isSelected
                         ? 'bg-purple-primary/20 border-purple-primary/40 text-purple-300 shadow-[0_0_10px_rgba(124,58,237,0.15)]'

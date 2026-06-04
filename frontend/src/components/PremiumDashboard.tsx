@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import axios from 'axios'
 import { useAuth0 } from '@auth0/auth0-react'
 import { useAuthStore } from '../store/useAuthStore'
+import { useGenerationStore } from '../store/useGenerationStore'
 import {
   FolderOpen,
   Plus,
@@ -21,6 +22,7 @@ import PremiumInteractiveSimulator from './PremiumInteractiveSimulator'
 export default function PremiumDashboard() {
   const { logout } = useAuth0()
   const { user } = useAuthStore()
+  const isGenerating = useGenerationStore((state) => state.isGenerating)
 
   const [activeTab, setActiveTab] = useState<'library' | 'generate' | 'settings'>('library')
   const [isAiOpen, setIsAiOpen] = useState(false)
@@ -28,7 +30,6 @@ export default function PremiumDashboard() {
 
   // Quiz and simulator control
   const [simulatorPrompt, setSimulatorPrompt] = useState('')
-  const [simulatorIsGenerating, setSimulatorIsGenerating] = useState(false)
   const [selectedCourseForPlayer, setSelectedCourseForPlayer] = useState<string | null>(null)
 
   // AI tutor chat states
@@ -292,8 +293,24 @@ export default function PremiumDashboard() {
                 }`}
               title={isSidebarCollapsed ? "Create New Course" : undefined}
             >
-              <Plus className="w-4 h-4 shrink-0" />
-              {!isSidebarCollapsed && <span>Create New Course</span>}
+              {isGenerating ? (
+                <div className="w-4 h-4 shrink-0 relative flex items-center justify-center">
+                  <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-purple-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-purple-500"></span>
+                </div>
+              ) : (
+                <Plus className="w-4 h-4 shrink-0" />
+              )}
+              {!isSidebarCollapsed && (
+                <span className="flex-1 flex items-center justify-between">
+                  <span>Create New Course</span>
+                  {isGenerating && (
+                    <span className="text-[10px] text-purple-300 bg-purple-primary/20 px-1.5 py-0.5 rounded-md font-semibold animate-pulse">
+                      Building...
+                    </span>
+                  )}
+                </span>
+              )}
             </button>
 
             <button
@@ -382,8 +399,6 @@ export default function PremiumDashboard() {
               <PremiumInteractiveSimulator
                 prompt={selectedCourseForPlayer}
                 setPrompt={() => { }}
-                isGenerating={false}
-                setIsGenerating={() => { }}
                 minimal={true}
                 hideInput={true}
               />
@@ -504,8 +519,6 @@ export default function PremiumDashboard() {
                     <PremiumInteractiveSimulator
                       prompt={simulatorPrompt}
                       setPrompt={setSimulatorPrompt}
-                      isGenerating={simulatorIsGenerating}
-                      setIsGenerating={setSimulatorIsGenerating}
                       minimal={true}
                       onSimulationComplete={fetchCourses}
                     />
