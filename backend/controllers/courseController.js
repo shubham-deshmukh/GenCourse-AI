@@ -94,8 +94,8 @@ const generateMockCourseData = (title) => {
             videoSearchQuery: `introduction to ${title} tutorial beginner guide`,
             content: {
               en: `${title} represents a major paradigm shift. In this lesson, we cover the core concepts, historical background, and initial foundational setups.\n\n### Key Takeaways:\n- Understand the core principles of ${title}.\n- Study historical case studies and guidelines.\n- Apply initial definitions to basic scenarios.`,
-              es: `${title} representa un cambio de paradigma importante. En esta lección, cubrimos los conceptos básicos, los antecedentes históricos y las configuraciones de instalación iniciales.`,
-              fr: `${title} représente un changement de paradigme majeur. Dans cette leçon, nous couvrons les concepts de base, le contexte historique et les configurations d'installation initiales.`
+              mr: `${title} हा एक महत्त्वाचा बदल दर्शवतो. या पाठात, आपण मूलभूत संकल्पना, ऐतिहासिक पार्श्वभूमी आणि सुरुवातीच्या मूलभूत गोष्टींचा अभ्यास करू.`,
+              hi: `${title} एक महत्वपूर्ण बदलाव का प्रतिनिधित्व करता है। इस पाठ में, हम बुनियादी अवधारणाओं, ऐतिहासिक पृष्ठभूमि और शुरुआती बुनियादी व्यवस्थाओं को कवर करेंगे।`
             },
             script: `Welcome to Lesson 1.1. In this video, we will explore why we study ${title} and how it provides structured, foundational capability.`,
             videoSlide: `Introduction to ${title}: Core Principles & History`
@@ -118,8 +118,8 @@ const generateMockCourseData = (title) => {
               en: isProgramming
                 ? `Let's construct a simple project using ${title}.\n\n\`\`\`javascript\n// Sample configuration\nconst config = {\n  name: "${title}",\n  version: "1.0.0",\n  active: true\n};\nconsole.log("Welcome to " + config.name);\n\`\`\`\nRun this script in your local environment and observe the printed output logs.`
                 : `To successfully apply the concepts of ${title}, start by setting up a dedicated research workspace or journal. Track key dates, primary definitions, and case studies. Documenting your observations systematically will help solidify your understanding of these core principles.`,
-              es: isProgramming ? `Construyamos un proyecto simple usando ${title}.` : `Construyamos un flujo de trabajo práctico usando ${title}.`,
-              fr: isProgramming ? `Construisons un projet simple en utilisant ${title}.` : `Construisons un flux de travail pratique en utilisant ${title}.`
+              mr: isProgramming ? `चला ${title} चा वापर करून एक साधा प्रकल्प तयार करूया.` : `चला ${title} चा वापर करून एक व्यावहारिक कार्यप्रवाह तयार करूया.`,
+              hi: isProgramming ? `आइए ${title} का उपयोग करके एक सरल परियोजना बनाएं।` : `आइए ${title} का उपयोग करके एक व्यावहारिक कार्यप्रवाह बनाएं।`
             },
             script: isProgramming 
               ? `Let's write some code! In this lesson, we will set up our workspace, initialize a configuration file, and execute our first script.`
@@ -149,8 +149,8 @@ const generateMockCourseData = (title) => {
               en: isProgramming
                 ? `Performance optimization in ${title} requires proper memoization, connection pooling, and asset compilation. Avoid common loops and unnecessary re-renders to ensure high speed.`
                 : `Taking a deeper dive into ${title} reveals complex paradigms and future trends. Experts focus on integration standards, global frameworks, and ethical guidelines. Staying up-to-date with emerging methodologies is critical for success in this field.`,
-              es: isProgramming ? `La optimización del rendimiento en ${title} requiere una memorización adecuada.` : `La profundización en ${title} revela tendencias futuras.`,
-              fr: isProgramming ? `L'optimisation des performances dans ${title} nécessite une mémorisation appropriée.` : `L'exploration approfondie de ${title} révèle les tendances futures.`
+              mr: isProgramming ? `${title} मध्ये कामगिरी सुधारण्यासाठी योग्य मेमोइझेशन आवश्यक आहे.` : `${title} चा सखोल अभ्यास भविष्यातील प्रवाह दर्शवतो.`,
+              hi: isProgramming ? `${title} में प्रदर्शन के अनुकूलन के लिए उचित मेमोइजेशन की आवश्यकता होती है।` : `${title} का गहन अध्ययन भविष्य के रुझानों को प्रकट करता है।`
             },
             script: isProgramming 
               ? `Today we discuss optimization. We break down the four critical performance checks to run in your production pipelines.`
@@ -460,8 +460,8 @@ export const streamCourse = async (req, res, next) => {
             objectives: ['Content Unavailable'],
             content: {
               en: `### ❌ Content Unavailable\n\nWe encountered an issue compiling the learning content for **${lessonTitle}**.\n\n*Please try refreshing the page or recreating the course. If the issue persists, please contact support.*`,
-              es: `### ❌ Contenido no disponible\n\nSe produjo un problema al compilar el contenido de aprendizaje para **${lessonTitle}**.\n\n*Intente actualizar la página o volver a crear el curso. Si el problema persiste, póngase en contacto con el soporte.*`,
-              fr: `### ❌ Contenu non disponible\n\nNous avons rencontré un problème lors de la compilation du contenu d'apprentissage pour **${lessonTitle}**.\n\n*Veuillez essayer de rafraîchir la page ou de recréer le cours. Si le problème persiste, veuillez contacter l'assistance.*`
+              mr: `### ❌ सामग्री अनुपलब्ध\n\nआम्हाला **${lessonTitle}** साठी शिकण्याची सामग्री संकलित करण्यात अडचण आली.\n\n*कृपया पृष्ठ रीफ्रेश करण्याचा किंवा कोर्स पुन्हा तयार करण्याचा प्रयत्न करा. समस्या कायम राहिल्यास, कृपया सपोर्टशी संपर्क साधा.*`,
+              hi: `### ❌ सामग्री अनुपलब्ध\n\nहमें **${lessonTitle}** के लिए सीखने की सामग्री संकलित करने में समस्या का सामना करना पड़ा।\n\n*कृपया पृष्ठ को रीफ्रेश करने या पाठ्यक्रम को फिर से बनाने का प्रयास करें। यदि समस्या बनी रहती है, तो कृपया सहायता टीम से संपर्क करें।*`
             }
           };
         }
@@ -471,19 +471,19 @@ export const streamCourse = async (req, res, next) => {
         if (!content || typeof content !== 'object') {
           content = {
             en: `Detailed content for ${lessonTitle} is currently being updated.`,
-            es: `El contenido para ${lessonTitle} se está actualizando.`,
-            fr: `Le contenu pour ${lessonTitle} est en cours de mise à jour.`
+            mr: `${lessonTitle} साठी तपशीलवार सामग्री सध्या अद्यतनित केली जात आहे.`,
+            hi: `${lessonTitle} के लिए विस्तृत सामग्री वर्तमान में अपडेट की जा रही है।`
           };
         } else {
           // Make sure required language keys are present
           if (!content.en) {
             content.en = `Detailed content for ${lessonTitle} is currently being updated.`;
           }
-          if (!content.es) {
-            content.es = `El contenido para ${lessonTitle} se está actualizando.`;
+          if (!content.mr) {
+            content.mr = `${lessonTitle} साठी तपशीलवार सामग्री सध्या अद्यतनित केली जात आहे.`;
           }
-          if (!content.fr) {
-            content.fr = `Le contenu pour ${lessonTitle} est en cours de mise à jour.`;
+          if (!content.hi) {
+            content.hi = `${lessonTitle} के लिए विस्तृत सामग्री वर्तमान में अपडेट की जा रही है।`;
           }
 
           // Clean up duplicate/combined markdown headers (e.g., "## ### Header" -> "## Header")
@@ -492,8 +492,8 @@ export const streamCourse = async (req, res, next) => {
             return text.replace(/^(#+)\s+(#+)\s*/gm, (m, p1) => p1 + ' ');
           };
           content.en = normalizeHeaders(content.en);
-          content.es = normalizeHeaders(content.es);
-          content.fr = normalizeHeaders(content.fr);
+          content.mr = normalizeHeaders(content.mr);
+          content.hi = normalizeHeaders(content.hi);
 
           // If not a programming course, strip any accidentally generated code blocks or placeholders
           const isProgramming = /react|hook|js|javascript|typescript|code|programming|developer|software|coding|python|java|html|css|sql|rust|c\+\+/i.test(course.title);
@@ -508,8 +508,8 @@ export const streamCourse = async (req, res, next) => {
               return cleaned.trim().replace(/\n{3,}/g, '\n\n');
             };
             content.en = stripCodeBlocks(content.en);
-            content.es = stripCodeBlocks(content.es);
-            content.fr = stripCodeBlocks(content.fr);
+            content.mr = stripCodeBlocks(content.mr);
+            content.hi = stripCodeBlocks(content.hi);
           }
         }
 
