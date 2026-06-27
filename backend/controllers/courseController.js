@@ -2,7 +2,7 @@ import Course from '../models/Course.js';
 import Module from '../models/Module.js';
 import Lesson from '../models/Lesson.js';
 import User from '../models/User.js';
-import { generateCourseOutline, generateLessonDetails } from '../services/llmService.js';
+import { generateCourseOutline, generateLessonDetails } from '../services/courseGenerationService.js';
 import mongoose from 'mongoose';
 import fs from 'fs';
 
