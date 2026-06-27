@@ -385,7 +385,7 @@ export default function PremiumInteractiveSimulator({
   const [activeModuleIndex, setActiveModuleIndex] = useState(0)
   const [activeLessonIndex, setActiveLessonIndex] = useState(0)
   const [activeTab, setActiveTab] = useState<'content' | 'quiz' | 'downloads'>('content')
-  const [language, setLanguage] = useState<'en' | 'es' | 'fr'>('en')
+  const [language, setLanguage] = useState<'en' | 'mr' | 'hi'>('en')
 
   // Video player simulation
   const [isPlayingVideo, setIsPlayingVideo] = useState(false)
@@ -908,8 +908,8 @@ export default function PremiumInteractiveSimulator({
                       className="bg-transparent border-none text-xs text-white focus:outline-none cursor-pointer pr-4 font-semibold font-sans"
                     >
                       <option value="en" className="bg-[#030014] text-white">EN (English)</option>
-                      <option value="es" className="bg-[#030014] text-white">ES (Español)</option>
-                      <option value="fr" className="bg-[#030014] text-white">FR (Français)</option>
+                      <option value="mr" className="bg-[#030014] text-white">MR (मराठी)</option>
+                      <option value="hi" className="bg-[#030014] text-white">HI (हिन्दी)</option>
                     </select>
                   </div>
                 </div>
