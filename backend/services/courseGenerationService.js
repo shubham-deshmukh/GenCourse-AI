@@ -134,9 +134,9 @@ Target JSON Schema:
 }
 
 Constraints:
-1. Design exactly 3 logical modules.
+1. Design exactly 2 logical modules.
 2. Each module must contain exactly 2 lessons.
-3. Provide exactly 3 multiple-choice quiz questions covering the entire syllabus.
+3. Provide exactly 1 multiple-choice quiz questions covering the entire syllabus.
 4. All JSON keys and strings must be enclosed in double quotes. Ensure valid JSON format.`;
 
 // Lesson details prompt template
@@ -191,6 +191,7 @@ export const generateCourseOutline = async (topic) => {
   const systemPrompt = 'You are an expert curriculum designer. You must respond with a raw JSON object matching the requested schema. Do not include markdown code block syntax. Be concise.';
 
   const responseText = await generateContent({
+    purpose: 'outline',
     systemPrompt,
     userPrompt: prompt,
     jsonMode: true,
@@ -215,13 +216,15 @@ export const generateLessonDetails = async (course, module, targetLessonTitle) =
   const systemPrompt = 'You are an expert technical writer. You must respond with a raw JSON object matching the requested schema. Do not include markdown code block syntax. Be highly concise and clear.';
 
   const responseText = await generateContent({
+    purpose: 'lesson',
     systemPrompt,
     userPrompt: prompt,
     jsonMode: true,
     temperature: 0.1,
     maxTokens: 2048,
     timeout: 180000, // 180-second timeout for local detailed lesson generation
-    geminiModel: 'gemini-3.1-flash-lite'
+    geminiModel: 'gemini-3.1-flash-lite',
+    reasoningEffort: 'none'
   });
 
   return parseJSONSafely(responseText);

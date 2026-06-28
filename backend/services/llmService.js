@@ -1,77 +1,131 @@
 import { callOllama } from './ollamaService.js';
 import { callGemini } from './geminiService.js';
 
+const providerMap = {
+  ollama: {
+    call: callOllama,
+    hasConfig: () => !!process.env.OLLAMA_BASE_URL,
+    modelEnv: () => process.env.OLLAMA_MODEL || 'qwen2.5:1.5b-instruct',
+    label: '🦙 Local Ollama'
+  },
+  gemini: {
+    call: callGemini,
+    hasConfig: () => !!process.env.GEMINI_API_KEY,
+    modelEnv: () => process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite',
+    label: '🤖 Google Gemini'
+  }
+};
+
 /**
- * General LLM content generation helper with fallback from Ollama to Gemini.
+ * Resolve provider execution order based on purpose override and global default
+ * @param {string} purpose - 'outline' | 'lesson' | 'chat'
+ * @returns {string[]} - Ordered list of configured providers to attempt
+ */
+const resolveProvidersOrder = (purpose) => {
+  const upperPurpose = purpose.toUpperCase();
+  const purposeEnvKey = `${upperPurpose}_LLM_PROVIDER`;
+
+  // Specific override -> Global default -> Fallback 'gemini'
+  const primary = process.env[purposeEnvKey] || process.env.PRIMARY_LLM_PROVIDER || 'gemini';
+
+  const allProviders = ['gemini', 'ollama'];
+  const candidates = [primary, ...allProviders.filter(p => p !== primary)];
+
+  return candidates.filter(providerName => {
+    const config = providerMap[providerName];
+    return config && config.hasConfig();
+  });
+};
+
+/**
+ * Resolve model identifier based on explicit code overrides, purpose overrides, or provider defaults
+ * @param {string} providerName - 'gemini' | 'ollama'
+ * @param {string} purpose - 'outline' | 'lesson' | 'chat'
+ * @param {string} [geminiModel] - Code-level override for Gemini
+ * @param {string} [ollamaModel] - Code-level override for Ollama
+ * @returns {string} - Model name
+ */
+const resolveModel = (providerName, purpose, geminiModel, ollamaModel) => {
+  // 1. Code-level override parameter gets first priority
+  if (providerName === 'gemini' && geminiModel) return geminiModel;
+  if (providerName === 'ollama' && ollamaModel) return ollamaModel;
+
+  // 2. Purpose-specific environment overrides get second priority (e.g. LESSON_LLM_MODEL)
+  const purposeModelEnvKey = `${purpose.toUpperCase()}_LLM_MODEL`;
+  if (process.env[purposeModelEnvKey]) {
+    return process.env[purposeModelEnvKey];
+  }
+
+  // 3. Fall back to provider default configuration
+  return providerMap[providerName].modelEnv();
+};
+
+/**
+ * General LLM content generation helper with dynamic routing and fallback chain.
  * @param {object} params
+ * @param {string} [params.purpose='chat'] - 'outline' | 'lesson' | 'chat'
  * @param {string} params.systemPrompt
  * @param {string} params.userPrompt
  * @param {boolean} [params.jsonMode=false]
  * @param {number} [params.temperature=0.1]
  * @param {number} [params.maxTokens=2048]
  * @param {number} [params.timeout=30000]
- * @param {string} [params.geminiModel='gemini-1.5-flash']
+ * @param {string} [params.geminiModel]
  * @param {string} [params.ollamaModel]
+ * @param {string} [params.reasoningEffort]
  * @returns {Promise<string>}
  */
 export const generateContent = async ({
+  purpose = 'chat',
   systemPrompt,
   userPrompt,
   jsonMode = false,
   temperature = 0.1,
   maxTokens = 2048,
   timeout = 30000,
-  geminiModel = 'gemini-1.5-flash',
-  ollamaModel = process.env.OLLAMA_MODEL
+  geminiModel,
+  ollamaModel,
+  reasoningEffort
 }) => {
-  const hasOllama = !!process.env.OLLAMA_BASE_URL;
-  const hasGemini = !!process.env.GEMINI_API_KEY;
+  const providersOrder = resolveProvidersOrder(purpose);
 
-  if (!hasOllama && !hasGemini) {
-    throw new Error('Neither Ollama nor Gemini is configured. Please configure at least one provider.');
+  if (providersOrder.length === 0) {
+    throw new Error(`No LLM providers are configured for purpose "${purpose}". Please check your environment configuration.`);
   }
 
-  // 1. Try Ollama first if configured
-  if (hasOllama) {
+  let lastError = null;
+
+  for (let i = 0; i < providersOrder.length; i++) {
+    const providerName = providersOrder[i];
+    const providerInfo = providerMap[providerName];
+    const resolvedModel = resolveModel(providerName, purpose, geminiModel, ollamaModel);
+
+    const isFallback = i > 0;
+    const logPrefix = isFallback ? '🔄 Falling back to' : 'Attempting';
+    console.log(`${logPrefix} ${providerInfo.label} using model: "${resolvedModel}" for purpose: "${purpose}"...`);
+
     try {
-      console.log(`🦙 Attempting local Ollama generation using model: "${ollamaModel}" at "${process.env.OLLAMA_BASE_URL}"...`);
-      const responseText = await callOllama({
+      const responseText = await providerInfo.call({
         systemPrompt,
         userPrompt,
         jsonMode,
-        model: ollamaModel,
+        model: resolvedModel,
         temperature,
         maxTokens,
-        timeout
+        timeout,
+        reasoningEffort
       });
-      console.log('✅ Local Ollama generation succeeded.');
+
+      console.log(`✅ ${providerInfo.label} generation succeeded.`);
       return responseText;
-    } catch (ollamaError) {
-      console.warn(`⚠️ Local Ollama generation failed/unavailable: ${ollamaError.message}`);
-      if (!hasGemini) {
-        throw ollamaError;
-      }
+    } catch (err) {
+      console.warn(`⚠️ ${providerInfo.label} generation failed: ${err.message}`);
+      lastError = err;
     }
   }
 
-  // 2. Fall back to Gemini if configured
-  if (hasGemini) {
-    console.log(`🤖 Falling back to secondary provider (Google Gemini) using model: "${geminiModel}"...`);
-    try {
-      const responseText = await callGemini({
-        systemPrompt,
-        userPrompt,
-        jsonMode,
-        model: geminiModel,
-        temperature
-      });
-      console.log('✅ Gemini fallback generation succeeded.');
-      return responseText;
-    } catch (geminiError) {
-      console.error('❌ Gemini fallback also failed:', geminiError.message);
-      throw geminiError;
-    }
-  }
+  console.error(`❌ All configured LLM providers failed for purpose "${purpose}".`);
+  throw lastError || new Error(`Failed to generate content for purpose "${purpose}" using any configured provider.`);
 };
 
 /**
@@ -82,12 +136,11 @@ export const generateContent = async ({
  */
 export const generateTutorChatResponse = async (systemPrompt, userMessage) => {
   return generateContent({
+    purpose: 'chat',
     systemPrompt,
     userPrompt: userMessage,
     temperature: 0.7,
     maxTokens: 512,
-    timeout: 30000,
-    geminiModel: 'gemini-1.5-flash',
-    ollamaModel: process.env.OLLAMA_MODEL || 'qwen2.5:1.5b-instruct'
+    timeout: 30000
   });
 };
