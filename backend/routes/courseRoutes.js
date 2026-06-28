@@ -9,7 +9,7 @@ router.route('/')
   .post(protect, createCourse);
 
 router.route('/:id')
-  .delete(protect, requireRole(['instructor', 'admin']), deleteCourse);
+  .delete(protect, deleteCourse);
 
 router.route('/:id/stream')
   .get(protect, streamCourse);
