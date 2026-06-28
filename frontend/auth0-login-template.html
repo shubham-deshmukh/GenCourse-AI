@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Authentication - GenCourse AI</title>
+  
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            display: ['Outfit', 'sans-serif'],
+          },
+          colors: {
+            'bg-dark': '#030014',
+            'purple-primary': '#7c3aed',
+            'cyan-primary': '#06b6d4',
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #030014;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      overflow: hidden;
+    }
+    .glass-panel {
+      background: rgba(255, 255, 255, 0.02);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .btn-glow {
+      position: relative;
+      overflow: hidden;
+    }
+    .btn-glow::after {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -60%;
+      width: 30%;
+      height: 200%;
+      background: rgba(255, 255, 255, 0.15);
+      transform: rotate(35deg);
+      transition: all 0.5s ease;
+    }
+    .btn-glow:hover::after {
+      left: 150%;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4 relative bg-bg-dark">
+  
+  <!-- Ambient background glow rings -->
+  <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(124,58,237,0.15),transparent_60%)] pointer-events-none"></div>
+  <div class="absolute top-1/4 left-1/4 w-[300px] h-[300px] rounded-full bg-cyan-primary/10 blur-3xl pointer-events-none"></div>
+  <div class="absolute bottom-1/4 right-1/4 w-[300px] h-[300px] rounded-full bg-purple-primary/10 blur-3xl pointer-events-none"></div>
+
+  <!-- Custom Auth Card -->
+  <div class="relative w-full max-w-md rounded-3xl glass-panel p-8 md:p-10 shadow-2xl z-10">
+    
+    <!-- Logo Header -->
+    <div class="text-center mb-6">
+      <div class="inline-flex items-center gap-2 mb-3">
+        <div class="p-2 rounded-xl bg-purple-primary/20 text-cyan-300">
+          <svg class="w-6 h-6 text-cyan-primary animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+        </div>
+        <span class="font-display font-bold text-xl tracking-tight text-white">
+          GenCourse<span class="text-purple-primary">AI</span>
+        </span>
+      </div>
+      <h2 id="header-title" class="font-display font-bold text-2xl text-white">Welcome Back</h2>
+      <p id="header-subtitle" class="text-xs text-gray-400 mt-1">Access your courses and creator suite</p>
+    </div>
+
+    <!-- Tabs Container -->
+    <div class="flex border-b border-white/10 mb-6">
+      <button id="tab-login" type="button" class="flex-1 pb-3 text-sm font-semibold border-b-2 border-purple-primary text-white transition focus:outline-none cursor-pointer">
+        Log In
+      </button>
+      <button id="tab-signup" type="button" class="flex-1 pb-3 text-sm font-semibold border-b-2 border-transparent text-gray-400 hover:text-white transition focus:outline-none cursor-pointer">
+        Sign Up
+      </button>
+    </div>
+
+    <!-- Error Alert Box -->
+    <div id="error-box" class="hidden mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-xs text-center"></div>
+
+    <!-- Social Login Buttons (Reordered to top) -->
+    <div class="flex flex-col gap-3">
+      <!-- Google social connection -->
+      <button
+        id="btn-google"
+        class="w-full flex items-center justify-center py-3 rounded-xl bg-white/5 border border-white/10 text-sm font-semibold text-gray-300 hover:text-white hover:bg-white/10 transition cursor-pointer"
+      >
+        <svg class="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05"/>
+          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" fill="#EA4335"/>
+        </svg>
+        <span id="btn-google-text">Google Workspace</span>
+      </button>
+    </div>
+
+    <!-- Social Sign In Separator -->
+    <div class="flex items-center gap-3 my-6">
+      <div class="flex-1 h-[1px] bg-white/5"></div>
+      <span class="text-[10px] text-gray-500 uppercase font-bold tracking-widest">or connect with</span>
+      <div class="flex-1 h-[1px] bg-white/5"></div>
+    </div>
+
+    <!-- Credentials Form -->
+    <form id="login-form" class="space-y-5">
+      <div>
+        <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Email Address</label>
+        <div class="relative">
+          <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 flex items-center">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+          </span>
+          <input
+            id="email"
+            type="email"
+            name="email"
+            autocomplete="email"
+            placeholder="name@domain.com"
+            class="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-purple-primary/50 focus:ring-1 focus:ring-purple-primary/50 transition text-sm"
+            required
+          />
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Password</label>
+        <div class="relative">
+          <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 flex items-center">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+          </span>
+          <input
+            id="password"
+            type="password"
+            name="password"
+            autocomplete="current-password"
+            placeholder="••••••••"
+            class="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-purple-primary/50 focus:ring-1 focus:ring-purple-primary/50 transition text-sm"
+            required
+          />
+        </div>
+        <!-- Forgot Password Container (Only visible in Log In mode) -->
+        <div id="forgot-password-container" class="text-right mt-2">
+          <button
+            id="btn-forgot"
+            type="button"
+            class="text-[11px] text-gray-400 hover:text-purple-primary transition focus:outline-none cursor-pointer"
+          >
+            Don't remember your password?
+          </button>
+        </div>
+      </div>
+
+      <!-- Terms/Disclaimer Container (Only visible in Sign Up mode) -->
+      <div id="disclaimer-container" class="hidden text-center text-[10px] text-gray-400 leading-relaxed px-2">
+        By signing up, you agree to our <a href="#" class="text-purple-primary hover:underline">Terms of Service</a> and <a href="#" class="text-purple-primary hover:underline">Privacy Policy</a>.
+      </div>
+
+      <button
+        id="btn-submit"
+        type="submit"
+        class="w-full btn-glow py-3.5 rounded-xl bg-gradient-to-r from-purple-primary via-indigo-600 to-cyan-primary text-white font-semibold text-sm shadow-[0_0_15px_rgba(124,58,237,0.4)] hover:scale-[1.01] active:scale-[0.99] transition cursor-pointer"
+      >
+        Sign In
+      </button>
+    </form>
+  </div>
+
+  <!-- Auth0 JS SDK -->
+  <script src="https://cdn.auth0.com/js/auth0/9.18/auth0.min.js"></script>
+  
+  <script>
+    var config = {};
+    try {
+      config = JSON.parse(decodeURIComponent(escape(window.atob('@@config@@'))));
+    } catch (e) {
+      console.warn("Auth0 config placeholder '@@config@@' not yet replaced. Using mock config for local preview.");
+      config = {
+        auth0Domain: "mock.auth0.com",
+        clientID: "mock_client_id",
+        callbackURL: window.location.href,
+        connection: "Username-Password-Authentication",
+        internalOptions: {
+          scope: "openid profile email",
+          state: "mock_state",
+          _csrf: "mock_csrf"
+        }
+      };
+    }
+    
+    var leeway = config.internalOptions && config.internalOptions.leeway;
+    if (leeway) {
+      var convertedLeeway = parseInt(leeway, 10);
+      if (!isNaN(convertedLeeway)) {
+        config.internalOptions.leeway = convertedLeeway;
+      }
+    }
+
+    var internalOptions = config.internalOptions || {};
+    
+    // Map internalOptions to match WebAuth constructor camelCase properties
+    var responseType = internalOptions.response_type || 
+      (config.callbackOnLocationHash ? 'token id_token' : 'code');
+    if (responseType === 'token') {
+      responseType = 'token id_token';
+    }
+    
+    var redirectUri = internalOptions.redirect_uri || config.callbackURL;
+    var state = internalOptions.state || config.internalState;
+
+    var params = Object.assign({
+      domain: config.auth0Domain,
+      clientID: config.clientID,
+      redirectUri: redirectUri,
+      responseType: responseType,
+      state: state,
+      _csrf: config._csrf,
+      _sendTelemetry: false
+    }, internalOptions);
+
+    // Explicitly set camelCase keys for SDK compatibility
+    params.responseType = responseType;
+    params.redirectUri = redirectUri;
+    params.state = state;
+
+    var webAuth = new auth0.WebAuth(params);
+
+    var errorBox = document.getElementById('error-box');
+    var activeTab = 'login';
+
+    var tabLogin = document.getElementById('tab-login');
+    var tabSignup = document.getElementById('tab-signup');
+    var headerTitle = document.getElementById('header-title');
+    var headerSubtitle = document.getElementById('header-subtitle');
+    var btnGoogleText = document.getElementById('btn-google-text');
+    var btnSubmit = document.getElementById('btn-submit');
+    var forgotPasswordContainer = document.getElementById('forgot-password-container');
+    var disclaimerContainer = document.getElementById('disclaimer-container');
+
+    // Helper functions to show success/error inside the error box
+    function displayError(msg) {
+      errorBox.innerText = msg;
+      errorBox.classList.remove('hidden');
+      errorBox.classList.remove('bg-green-500/10', 'border-green-500/20', 'text-green-300');
+      errorBox.classList.add('bg-red-500/10', 'border-red-500/20', 'text-red-300');
+    }
+
+    function displaySuccess(msg) {
+      errorBox.innerText = msg;
+      errorBox.classList.remove('hidden');
+      errorBox.classList.remove('bg-red-500/10', 'border-red-500/20', 'text-red-300');
+      errorBox.classList.add('bg-green-500/10', 'border-green-500/20', 'text-green-300');
+    }
+
+    // Toggle tab active/inactive states and layout styling
+    function setTab(tab) {
+      activeTab = tab;
+      
+      // Clear alert box
+      errorBox.classList.add('hidden');
+      errorBox.innerText = '';
+
+      if (tab === 'login') {
+        tabLogin.classList.remove('text-gray-400', 'border-transparent');
+        tabLogin.classList.add('text-white', 'border-purple-primary');
+
+        tabSignup.classList.remove('text-white', 'border-purple-primary');
+        tabSignup.classList.add('text-gray-400', 'border-transparent');
+
+        headerTitle.innerText = 'Welcome Back';
+        headerSubtitle.innerText = 'Access your courses and creator suite';
+        btnGoogleText.innerText = 'Google Workspace';
+        btnSubmit.innerText = 'Sign In';
+
+        forgotPasswordContainer.classList.remove('hidden');
+        disclaimerContainer.classList.add('hidden');
+      } else {
+        tabSignup.classList.remove('text-gray-400', 'border-transparent');
+        tabSignup.classList.add('text-white', 'border-purple-primary');
+
+        tabLogin.classList.remove('text-white', 'border-purple-primary');
+        tabLogin.classList.add('text-gray-400', 'border-transparent');
+
+        headerTitle.innerText = 'Create Account';
+        headerSubtitle.innerText = 'Start your learning and content creation journey';
+        btnGoogleText.innerText = 'Sign up with Google Workspace';
+        btnSubmit.innerText = 'Sign Up';
+
+        forgotPasswordContainer.classList.add('hidden');
+        disclaimerContainer.classList.remove('hidden');
+      }
+    }
+
+    tabLogin.addEventListener('click', function() { setTab('login'); });
+    tabSignup.addEventListener('click', function() { setTab('signup'); });
+
+    // Handle Credentials Submission (Log In or Sign Up)
+    document.getElementById('login-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      var email = document.getElementById('email').value;
+      var password = document.getElementById('password').value;
+      
+      errorBox.classList.add('hidden');
+
+      if (activeTab === 'login') {
+        webAuth.login({
+          realm: config.connection || 'Username-Password-Authentication',
+          username: email,
+          password: password
+        }, function(err) {
+          if (err) {
+            displayError(err.description || err.code || 'An authentication error occurred.');
+          }
+        });
+      } else {
+        webAuth.signup({
+          connection: config.connection || 'Username-Password-Authentication',
+          email: email,
+          password: password
+        }, function(err) {
+          if (err) {
+            displayError(err.description || err.code || 'An error occurred during sign up.');
+          } else {
+            // Automatically log in user after successful registration
+            webAuth.login({
+              realm: config.connection || 'Username-Password-Authentication',
+              username: email,
+              password: password
+            }, function(loginErr) {
+              if (loginErr) {
+                displayError(loginErr.description || loginErr.code || 'Registration successful, but auto-login failed.');
+              }
+            });
+          }
+        });
+      }
+    });
+
+    // Handle Direct Google SSO
+    document.getElementById('btn-google').addEventListener('click', function() {
+      webAuth.authorize({
+        connection: 'google-oauth2'
+      });
+    });
+
+    // Handle Forgot Password reset email dispatch
+    document.getElementById('btn-forgot').addEventListener('click', function() {
+      var email = document.getElementById('email').value;
+      
+      errorBox.classList.add('hidden');
+
+      if (!email) {
+        displayError('Please enter your email address first.');
+        return;
+      }
+
+      webAuth.changePassword({
+        connection: config.connection || 'Username-Password-Authentication',
+        email: email
+      }, function(err, resp) {
+        if (err) {
+          displayError(err.description || err.code || 'Failed to request password reset.');
+        } else {
+          displaySuccess('Password reset email sent! Check your inbox.');
+        }
+      });
+    });
+  </script>
+</body>
+</html>
