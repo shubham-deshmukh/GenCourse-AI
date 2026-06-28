@@ -1,61 +1,25 @@
-import { callOllama } from './ollamaService.js';
 import { callGemini } from './geminiService.js';
 
-const providerMap = {
-  ollama: {
-    call: callOllama,
-    hasConfig: () => !!process.env.OLLAMA_BASE_URL,
-    modelEnv: () => process.env.OLLAMA_MODEL || 'qwen2.5:1.5b-instruct',
-    label: '🦙 Local Ollama'
-  },
-  gemini: {
-    call: callGemini,
-    hasConfig: () => !!process.env.GEMINI_API_KEY,
-    modelEnv: () => process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite',
-    label: '🤖 Google Gemini'
-  }
-};
-
 /**
- * Resolve provider execution order based on purpose override and global default
+ * Resolve model identifier based on purpose overrides or provider default from .env
  * @param {string} purpose - 'outline' | 'lesson' | 'chat'
- * @returns {string[]} - Ordered list of configured providers to attempt
- */
-const resolveProvidersOrder = (purpose) => {
-  // Only allow Google Gemini for all executions
-  const candidates = ['gemini'];
-
-  return candidates.filter(providerName => {
-    const config = providerMap[providerName];
-    return config && config.hasConfig();
-  });
-};
-
-/**
- * Resolve model identifier based on explicit code overrides, purpose overrides, or provider defaults
- * @param {string} providerName - 'gemini' | 'ollama'
- * @param {string} purpose - 'outline' | 'lesson' | 'chat'
- * @param {string} [geminiModel] - Code-level override for Gemini
- * @param {string} [ollamaModel] - Code-level override for Ollama
  * @returns {string} - Model name
  */
-const resolveModel = (providerName, purpose, geminiModel, ollamaModel) => {
-  // 1. Code-level override parameter gets first priority
-  if (providerName === 'gemini' && geminiModel) return geminiModel;
-  if (providerName === 'ollama' && ollamaModel) return ollamaModel;
-
-  // 2. Purpose-specific environment overrides get second priority (e.g. LESSON_LLM_MODEL)
+const resolveModel = (purpose) => {
   const purposeModelEnvKey = `${purpose.toUpperCase()}_LLM_MODEL`;
-  if (process.env[purposeModelEnvKey]) {
-    return process.env[purposeModelEnvKey];
+  const resolvedModel = process.env[purposeModelEnvKey] || process.env.GEMINI_MODEL;
+  
+  if (!resolvedModel) {
+    throw new Error(`No model configuration found for purpose "${purpose}". Please set ${purposeModelEnvKey} or GEMINI_MODEL in your environment.`);
   }
-
-  // 3. Fall back to provider default configuration
-  return providerMap[providerName].modelEnv();
+  
+  return resolvedModel;
 };
 
 /**
- * General LLM content generation helper with dynamic routing and fallback chain.
+ * General LLM content generation helper using Google Gemini.
+ * Model configuration is strictly loaded from the environment based on the purpose.
+ * 
  * @param {object} params
  * @param {string} [params.purpose='chat'] - 'outline' | 'lesson' | 'chat'
  * @param {string} params.systemPrompt
@@ -64,8 +28,6 @@ const resolveModel = (providerName, purpose, geminiModel, ollamaModel) => {
  * @param {number} [params.temperature=0.1]
  * @param {number} [params.maxTokens=2048]
  * @param {number} [params.timeout=30000]
- * @param {string} [params.geminiModel]
- * @param {string} [params.ollamaModel]
  * @param {string} [params.reasoningEffort]
  * @returns {Promise<string>}
  */
@@ -77,49 +39,33 @@ export const generateContent = async ({
   temperature = 0.1,
   maxTokens = 2048,
   timeout = 30000,
-  geminiModel,
-  ollamaModel,
   reasoningEffort
 }) => {
-  const providersOrder = resolveProvidersOrder(purpose);
-
-  if (providersOrder.length === 0) {
-    throw new Error(`No LLM providers are configured for purpose "${purpose}". Please check your environment configuration.`);
+  if (!process.env.GEMINI_API_KEY) {
+    throw new Error('Gemini API key is not configured (GEMINI_API_KEY).');
   }
 
-  let lastError = null;
+  const model = resolveModel(purpose);
+  console.log(`Attempting Google Gemini using model: "${model}" for purpose: "${purpose}"...`);
 
-  for (let i = 0; i < providersOrder.length; i++) {
-    const providerName = providersOrder[i];
-    const providerInfo = providerMap[providerName];
-    const resolvedModel = resolveModel(providerName, purpose, geminiModel, ollamaModel);
+  try {
+    const responseText = await callGemini({
+      systemPrompt,
+      userPrompt,
+      jsonMode,
+      model,
+      temperature,
+      maxTokens,
+      timeout,
+      reasoningEffort
+    });
 
-    const isFallback = i > 0;
-    const logPrefix = isFallback ? '🔄 Falling back to' : 'Attempting';
-    console.log(`${logPrefix} ${providerInfo.label} using model: "${resolvedModel}" for purpose: "${purpose}"...`);
-
-    try {
-      const responseText = await providerInfo.call({
-        systemPrompt,
-        userPrompt,
-        jsonMode,
-        model: resolvedModel,
-        temperature,
-        maxTokens,
-        timeout,
-        reasoningEffort
-      });
-
-      console.log(`✅ ${providerInfo.label} generation succeeded.`);
-      return responseText;
-    } catch (err) {
-      console.warn(`⚠️ ${providerInfo.label} generation failed: ${err.message}`);
-      lastError = err;
-    }
+    console.log(`✅ Google Gemini generation succeeded.`);
+    return responseText;
+  } catch (err) {
+    console.error(`❌ Google Gemini generation failed: ${err.message}`);
+    throw err;
   }
-
-  console.error(`❌ All configured LLM providers failed for purpose "${purpose}".`);
-  throw lastError || new Error(`Failed to generate content for purpose "${purpose}" using any configured provider.`);
 };
 
 /**

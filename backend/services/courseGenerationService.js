@@ -96,8 +96,7 @@ export const generateCourseOutline = async (topic) => {
     jsonMode: true,
     temperature: 0.1,
     maxTokens: 2048,
-    timeout: 120000, // 120-second timeout for local outline generation
-    geminiModel: 'gemini-3.1-flash-lite'
+    timeout: 120000 // 120-second timeout for local outline generation
   });
 
   return parseJSONSafely(responseText);
@@ -122,7 +121,6 @@ export const generateLessonDetails = async (course, module, targetLessonTitle) =
     temperature: 0.1,
     maxTokens: 2048,
     timeout: 180000, // 180-second timeout for local detailed lesson generation
-    geminiModel: 'gemini-3.1-flash-lite',
     reasoningEffort: 'none'
   });
 
