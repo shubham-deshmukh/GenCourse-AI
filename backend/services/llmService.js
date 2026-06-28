@@ -22,14 +22,8 @@ const providerMap = {
  * @returns {string[]} - Ordered list of configured providers to attempt
  */
 const resolveProvidersOrder = (purpose) => {
-  const upperPurpose = purpose.toUpperCase();
-  const purposeEnvKey = `${upperPurpose}_LLM_PROVIDER`;
-
-  // Specific override -> Global default -> Fallback 'gemini'
-  const primary = process.env[purposeEnvKey] || process.env.PRIMARY_LLM_PROVIDER || 'gemini';
-
-  const allProviders = ['gemini', 'ollama'];
-  const candidates = [primary, ...allProviders.filter(p => p !== primary)];
+  // Only allow Google Gemini for all executions
+  const candidates = ['gemini'];
 
   return candidates.filter(providerName => {
     const config = providerMap[providerName];

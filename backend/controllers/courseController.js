@@ -272,25 +272,19 @@ export const streamCourse = async (req, res, next) => {
     console.log(`🔗 Established SSE stream for course: "${course.title}" (${course._id})`);
     sendEvent('status', { message: 'Generation started' });
 
-    let isRealAI = false;
-    let cOutline;
-
-    if (process.env.OLLAMA_BASE_URL || process.env.GEMINI_API_KEY) {
-      try {
-        console.log(`🤖 Compiling outline for "${course.title}" via LLM...`);
-        sendEvent('status', { message: 'Compiling curriculum outline via LLM...' });
-        cOutline = await generateCourseOutline(course.title);
-        isRealAI = true;
-      } catch (err) {
-        console.error('❌ LLM outline generation failed, falling back to mock:', err.message);
-        sendEvent('status', { message: 'LLM outline generation failed, falling back to mock...' });
-      }
+    if (!process.env.GEMINI_API_KEY) {
+      throw new Error('Gemini API key is not configured (GEMINI_API_KEY).');
     }
 
-    if (!isRealAI) {
-      console.log(`🤖 Generating mock outline fallback for "${course.title}"...`);
-      sendEvent('status', { message: 'Generating mock outline fallback...' });
-      cOutline = generateMockCourseData(course.title);
+    console.log(`🤖 Compiling outline for "${course.title}" via LLM...`);
+    sendEvent('status', { message: 'Compiling curriculum outline via LLM...' });
+
+    let cOutline;
+    try {
+      cOutline = await generateCourseOutline(course.title);
+    } catch (err) {
+      console.error('❌ LLM outline generation failed:', err.message);
+      throw new Error(`LLM outline generation failed: ${err.message}`);
     }
 
     // Stage 2: Save Course Outline / Modules to DB & Stream
@@ -446,35 +440,15 @@ export const streamCourse = async (req, res, next) => {
       console.log(`  📖 Generating lesson ${mIdx + 1}.${lIdx + 1}: "${lessonTitle}"...`);
       sendEvent('status', { message: `Generating lesson: "${lessonTitle}"...` });
 
-      let lessonDetails;
-      if (isRealAI) {
-        try {
-          const cleanCourse = { title: course.title, description: course.description };
-          const cleanModule = { title: moduleDoc.title, lessonTitles: lessonTitles };
-          lessonDetails = await generateLessonDetails(cleanCourse, cleanModule, lessonTitle);
-        } catch (err) {
-          console.error(`  ❌ Failed to generate lesson details for "${lessonTitle}":`, err.message);
-        }
-      } else {
-        // Find the corresponding lesson object in the mock modules
-        const mockModule = cOutline.modules?.[mIdx];
-        const mockLesson = mockModule?.lessons?.[lIdx];
-        if (mockLesson) {
-          lessonDetails = mockLesson;
-        }
-      }
+      const cleanCourse = { title: course.title, description: course.description };
+      const cleanModule = { title: moduleDoc.title, lessonTitles: lessonTitles };
 
-      // Save error placeholder if generation failed
-      if (!lessonDetails) {
-        lessonDetails = {
-          title: lessonTitle,
-          objectives: ['Content Unavailable'],
-          content: {
-            en: `### ❌ Content Unavailable\n\nWe encountered an issue compiling the learning content for **${lessonTitle}**.\n\n*Please try refreshing the page or recreating the course. If the issue persists, please contact support.*`,
-            mr: `### ❌ सामग्री अनुपलब्ध\n\nआम्हाला **${lessonTitle}** साठी शिकण्याची सामग्री संकलित करण्यात अडचण आली.\n\n*कृपया पृष्ठ रीफ्रेश करण्याचा किंवा कोर्स पुन्हा तयार करण्याचा प्रयत्न करा. समस्या कायम राहिल्यास, कृपया सपोर्टशी संपर्क साधा.*`,
-            hi: `### ❌ सामग्री अनुपलब्ध\n\nहमें **${lessonTitle}** के लिए सीखने की सामग्री संकलित करने में समस्या का सामना करना पड़ा।\n\n*कृपया पृष्ठ को रीफ्रेश करने या पाठ्यक्रम को फिर से बनाने का प्रयास करें। यदि समस्या बनी रहती है, तो कृपया सहायता टीम से संपर्क करें।*`
-          }
-        };
+      let lessonDetails;
+      try {
+        lessonDetails = await generateLessonDetails(cleanCourse, cleanModule, lessonTitle);
+      } catch (err) {
+        console.error(`  ❌ Failed to generate lesson details for "${lessonTitle}":`, err.message);
+        throw new Error(`Failed to generate lesson details for "${lessonTitle}": ${err.message}`);
       }
 
       // Save Lesson to DB
