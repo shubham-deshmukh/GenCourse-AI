@@ -33,8 +33,8 @@ Target JSON Schema:
 }
 
 Constraints:
-1. Design exactly 2 logical modules.
-2. Each module must contain exactly 2 lessons.
+1. Design exactly 3 logical modules.
+2. Each module must contain exactly 3 lessons.
 3. Provide exactly 1 multiple-choice quiz questions covering the entire syllabus.
 4. All JSON keys and strings must be enclosed in double quotes. Ensure valid JSON format.`;
 

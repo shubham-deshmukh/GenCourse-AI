@@ -3,6 +3,7 @@ import Module from '../models/Module.js';
 import Lesson from '../models/Lesson.js';
 import User from '../models/User.js';
 import { generateCourseOutline, generateLessonDetails } from '../services/courseGenerationService.js';
+import { mapLimit } from '../utils/promiseUtils.js';
 import mongoose from 'mongoose';
 import fs from 'fs';
 
@@ -421,122 +422,144 @@ export const streamCourse = async (req, res, next) => {
 
     sendEvent('outline', outlineData);
 
-    // Stage 3: Generate detailed lesson content for each chapter one by one
+    // Stage 3: Generate detailed lesson content for each chapter in parallel with a concurrency limit
+    const lessonTasks = [];
     for (let mIdx = 0; mIdx < savedModules.length; mIdx++) {
       const { doc: moduleDoc, lessonTitles } = savedModules[mIdx];
-
-      console.log(`📦 Generating lessons for module: "${moduleDoc.title}"...`);
-      sendEvent('status', { message: `Generating lessons for module: "${moduleDoc.title}"...` });
-
-      const lessonIds = [];
-
       for (let lIdx = 0; lIdx < lessonTitles.length; lIdx++) {
-        const lessonTitle = lessonTitles[lIdx];
-        console.log(`  📖 Generating lesson ${mIdx + 1}.${lIdx + 1}: "${lessonTitle}"...`);
-        sendEvent('status', { message: `Generating lesson: "${lessonTitle}"...` });
-
-        let lessonDetails;
-        if (isRealAI) {
-          try {
-            const cleanCourse = { title: course.title, description: course.description };
-            const cleanModule = { title: moduleDoc.title, lessonTitles: lessonTitles };
-            lessonDetails = await generateLessonDetails(cleanCourse, cleanModule, lessonTitle);
-          } catch (err) {
-            console.error(`  ❌ Failed to generate lesson details for "${lessonTitle}":`, err.message);
-          }
-        } else {
-          // Find the corresponding lesson object in the mock modules
-          const mockModule = cOutline.modules?.[mIdx];
-          const mockLesson = mockModule?.lessons?.[lIdx];
-          if (mockLesson) {
-            lessonDetails = mockLesson;
-          }
-        }
-
-        // Save error placeholder if generation failed
-        if (!lessonDetails) {
-          lessonDetails = {
-            title: lessonTitle,
-            objectives: ['Content Unavailable'],
-            content: {
-              en: `### ❌ Content Unavailable\n\nWe encountered an issue compiling the learning content for **${lessonTitle}**.\n\n*Please try refreshing the page or recreating the course. If the issue persists, please contact support.*`,
-              mr: `### ❌ सामग्री अनुपलब्ध\n\nआम्हाला **${lessonTitle}** साठी शिकण्याची सामग्री संकलित करण्यात अडचण आली.\n\n*कृपया पृष्ठ रीफ्रेश करण्याचा किंवा कोर्स पुन्हा तयार करण्याचा प्रयत्न करा. समस्या कायम राहिल्यास, कृपया सपोर्टशी संपर्क साधा.*`,
-              hi: `### ❌ सामग्री अनुपलब्ध\n\nहमें **${lessonTitle}** के लिए सीखने की सामग्री संकलित करने में समस्या का सामना करना पड़ा।\n\n*कृपया पृष्ठ को रीफ्रेश करने या पाठ्यक्रम को फिर से बनाने का प्रयास करें। यदि समस्या बनी रहती है, तो कृपया सहायता टीम से संपर्क करें।*`
-            }
-          };
-        }
-
-        // Save Lesson to DB
-        let content = lessonDetails?.content;
-        if (!content || typeof content !== 'object') {
-          content = {
-            en: `Detailed content for ${lessonTitle} is currently being updated.`,
-            mr: `${lessonTitle} साठी तपशीलवार सामग्री सध्या अद्यतनित केली जात आहे.`,
-            hi: `${lessonTitle} के लिए विस्तृत सामग्री वर्तमान में अपडेट की जा रही है।`
-          };
-        } else {
-          // Make sure required language keys are present
-          if (!content.en) {
-            content.en = `Detailed content for ${lessonTitle} is currently being updated.`;
-          }
-          if (!content.mr) {
-            content.mr = `${lessonTitle} साठी तपशीलवार सामग्री सध्या अद्यतनित केली जात आहे.`;
-          }
-          if (!content.hi) {
-            content.hi = `${lessonTitle} के लिए विस्तृत सामग्री वर्तमान में अपडेट की जा रही है।`;
-          }
-
-          // Clean up duplicate/combined markdown headers (e.g., "## ### Header" -> "## Header")
-          const normalizeHeaders = (text) => {
-            if (typeof text !== 'string') return text;
-            return text.replace(/^(#+)\s+(#+)\s*/gm, (m, p1) => p1 + ' ');
-          };
-          content.en = normalizeHeaders(content.en);
-          content.mr = normalizeHeaders(content.mr);
-          content.hi = normalizeHeaders(content.hi);
-
-          // If not a programming course, strip any accidentally generated code blocks or placeholders
-          const isProgramming = /react|hook|js|javascript|typescript|code|programming|developer|software|coding|python|java|html|css|sql|rust|c\+\+/i.test(course.title);
-          if (!isProgramming) {
-            const stripCodeBlocks = (text) => {
-              if (typeof text !== 'string') return text;
-              let cleaned = text.replace(/```[a-z]*[\s\S]*?```/g, '');
-              cleaned = cleaned.replace(/###?\s*Code\s*Block\s*\(Optional\):?/gi, '');
-              cleaned = cleaned.replace(/###?\s*Code\s*Block:?/gi, '');
-              cleaned = cleaned.replace(/Code\s*Block\s*\(Optional\):?/gi, '');
-              cleaned = cleaned.replace(/Code\s*Block:?/gi, '');
-              return cleaned.trim().replace(/\n{3,}/g, '\n\n');
-            };
-            content.en = stripCodeBlocks(content.en);
-            content.mr = stripCodeBlocks(content.mr);
-            content.hi = stripCodeBlocks(content.hi);
-          }
-        }
-
-        const lessonDoc = new Lesson({
-          moduleId: moduleDoc._id,
-          title: lessonDetails?.title || lessonTitle,
-          content: content,
-          objectives: lessonDetails?.objectives || [],
-          videoSearchQuery: lessonDetails?.videoSearchQuery || '',
-          script: lessonDetails?.script || '',
-          videoSlide: lessonDetails?.videoSlide || '',
-          order: lIdx
-        });
-
-        await lessonDoc.save();
-        lessonIds.push(lessonDoc._id);
-
-        // Update module lessons list in DB
-        moduleDoc.lessons.push(lessonDoc._id);
-        await moduleDoc.save();
-
-        // Stream this generated lesson directly to the client
-        sendEvent('lesson', {
-          moduleId: moduleDoc._id,
-          lesson: lessonDoc
+        lessonTasks.push({
+          moduleDoc,
+          lessonTitle: lessonTitles[lIdx],
+          lIdx,
+          mIdx,
+          lessonTitles
         });
       }
+    }
+
+    const concurrencyLimit = parseInt(process.env.CONCURRENT_GENERATION_LIMIT, 10) || 2;
+    console.log(`🚀 Processing ${lessonTasks.length} lessons in parallel with concurrency limit of ${concurrencyLimit}...`);
+    sendEvent('status', { message: `Generating all module lessons concurrently...` });
+
+    const generatedResults = await mapLimit(lessonTasks, concurrencyLimit, async (task) => {
+      const { moduleDoc, lessonTitle, lIdx, mIdx, lessonTitles } = task;
+      console.log(`  📖 Generating lesson ${mIdx + 1}.${lIdx + 1}: "${lessonTitle}"...`);
+      sendEvent('status', { message: `Generating lesson: "${lessonTitle}"...` });
+
+      let lessonDetails;
+      if (isRealAI) {
+        try {
+          const cleanCourse = { title: course.title, description: course.description };
+          const cleanModule = { title: moduleDoc.title, lessonTitles: lessonTitles };
+          lessonDetails = await generateLessonDetails(cleanCourse, cleanModule, lessonTitle);
+        } catch (err) {
+          console.error(`  ❌ Failed to generate lesson details for "${lessonTitle}":`, err.message);
+        }
+      } else {
+        // Find the corresponding lesson object in the mock modules
+        const mockModule = cOutline.modules?.[mIdx];
+        const mockLesson = mockModule?.lessons?.[lIdx];
+        if (mockLesson) {
+          lessonDetails = mockLesson;
+        }
+      }
+
+      // Save error placeholder if generation failed
+      if (!lessonDetails) {
+        lessonDetails = {
+          title: lessonTitle,
+          objectives: ['Content Unavailable'],
+          content: {
+            en: `### ❌ Content Unavailable\n\nWe encountered an issue compiling the learning content for **${lessonTitle}**.\n\n*Please try refreshing the page or recreating the course. If the issue persists, please contact support.*`,
+            mr: `### ❌ सामग्री अनुपलब्ध\n\nआम्हाला **${lessonTitle}** साठी शिकण्याची सामग्री संकलित करण्यात अडचण आली.\n\n*कृपया पृष्ठ रीफ्रेश करण्याचा किंवा कोर्स पुन्हा तयार करण्याचा प्रयत्न करा. समस्या कायम राहिल्यास, कृपया सपोर्टशी संपर्क साधा.*`,
+            hi: `### ❌ सामग्री अनुपलब्ध\n\nहमें **${lessonTitle}** के लिए सीखने की सामग्री संकलित करने में समस्या का सामना करना पड़ा।\n\n*कृपया पृष्ठ को रीफ्रेश करने या पाठ्यक्रम को फिर से बनाने का प्रयास करें। यदि समस्या बनी रहती है, तो कृपया सहायता टीम से संपर्क करें।*`
+          }
+        };
+      }
+
+      // Save Lesson to DB
+      let content = lessonDetails?.content;
+      if (!content || typeof content !== 'object') {
+        content = {
+          en: `Detailed content for ${lessonTitle} is currently being updated.`,
+          mr: `${lessonTitle} साठी तपशीलवार सामग्री सध्या अद्यतनित केली जात आहे.`,
+          hi: `${lessonTitle} के लिए विस्तृत सामग्री वर्तमान में अपडेट की जा रही है।`
+        };
+      } else {
+        // Make sure required language keys are present
+        if (!content.en) {
+          content.en = `Detailed content for ${lessonTitle} is currently being updated.`;
+        }
+        if (!content.mr) {
+          content.mr = `${lessonTitle} साठी तपशीलवार सामग्री सध्या अद्यतनित केली जात आहे.`;
+        }
+        if (!content.hi) {
+          content.hi = `${lessonTitle} के लिए विस्तृत सामग्री वर्तमान में अपडेट की जा रही है।`;
+        }
+
+        // Clean up duplicate/combined markdown headers (e.g., "## ### Header" -> "## Header")
+        const normalizeHeaders = (text) => {
+          if (typeof text !== 'string') return text;
+          return text.replace(/^(#+)\s+(#+)\s*/gm, (m, p1) => p1 + ' ');
+        };
+        content.en = normalizeHeaders(content.en);
+        content.mr = normalizeHeaders(content.mr);
+        content.hi = normalizeHeaders(content.hi);
+
+        // If not a programming course, strip any accidentally generated code blocks or placeholders
+        const isProgramming = /react|hook|js|javascript|typescript|code|programming|developer|software|coding|python|java|html|css|sql|rust|c\+\+/i.test(course.title);
+        if (!isProgramming) {
+          const stripCodeBlocks = (text) => {
+            if (typeof text !== 'string') return text;
+            let cleaned = text.replace(/```[a-z]*[\s\S]*?```/g, '');
+            cleaned = cleaned.replace(/###?\s*Code\s*Block\s*\(Optional\):?/gi, '');
+            cleaned = cleaned.replace(/###?\s*Code\s*Block:?/gi, '');
+            cleaned = cleaned.replace(/Code\s*Block\s*\(Optional\):?/gi, '');
+            cleaned = cleaned.replace(/Code\s*Block:?/gi, '');
+            return cleaned.trim().replace(/\n{3,}/g, '\n\n');
+          };
+          content.en = stripCodeBlocks(content.en);
+          content.mr = stripCodeBlocks(content.mr);
+          content.hi = stripCodeBlocks(content.hi);
+        }
+      }
+
+      const lessonDoc = new Lesson({
+        moduleId: moduleDoc._id,
+        title: lessonDetails?.title || lessonTitle,
+        content: content,
+        objectives: lessonDetails?.objectives || [],
+        videoSearchQuery: lessonDetails?.videoSearchQuery || '',
+        script: lessonDetails?.script || '',
+        videoSlide: lessonDetails?.videoSlide || '',
+        order: lIdx
+      });
+
+      await lessonDoc.save();
+
+      // Stream this generated lesson directly to the client immediately
+      sendEvent('lesson', {
+        moduleId: moduleDoc._id,
+        lesson: lessonDoc
+      });
+
+      return {
+        moduleId: moduleDoc._id,
+        lessonId: lessonDoc._id,
+        order: lIdx
+      };
+    });
+
+    // Update modules lessons list in DB after all parallel generation tasks complete
+    // to prevent mongoose concurrent update VersionError
+    for (const { doc: moduleDoc } of savedModules) {
+      const moduleLessons = generatedResults
+        .filter((res) => res.moduleId.toString() === moduleDoc._id.toString())
+        .sort((a, b) => a.order - b.order)
+        .map((res) => res.lessonId);
+
+      moduleDoc.lessons = moduleLessons;
+      await moduleDoc.save();
     }
 
     // Final populated course to finalize SSE connection
