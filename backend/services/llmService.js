@@ -1,4 +1,5 @@
 import { callGemini } from './geminiService.js';
+import { getEnv } from '../config/env.js';
 
 /**
  * Resolve model identifier based on purpose overrides or provider default from .env
@@ -7,13 +8,7 @@ import { callGemini } from './geminiService.js';
  */
 const resolveModel = (purpose) => {
   const purposeModelEnvKey = `${purpose.toUpperCase()}_LLM_MODEL`;
-  const resolvedModel = process.env[purposeModelEnvKey] || process.env.GEMINI_MODEL;
-  
-  if (!resolvedModel) {
-    throw new Error(`No model configuration found for purpose "${purpose}". Please set ${purposeModelEnvKey} or GEMINI_MODEL in your environment.`);
-  }
-  
-  return resolvedModel;
+  return getEnv(purposeModelEnvKey, getEnv('GEMINI_MODEL'));
 };
 
 /**
@@ -41,11 +36,8 @@ export const generateContent = async ({
   timeout = 30000,
   reasoningEffort
 }) => {
-  if (!process.env.GEMINI_API_KEY) {
-    throw new Error('Gemini API key is not configured (GEMINI_API_KEY).');
-  }
-
   const model = resolveModel(purpose);
+
   console.log(`Attempting Google Gemini using model: "${model}" for purpose: "${purpose}"...`);
 
   try {

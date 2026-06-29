@@ -10,12 +10,18 @@ import CTA from './components/CTA'
 import Footer from './components/Footer'
 import PremiumDashboard from './components/PremiumDashboard'
 
-// Configure Axios request interceptor to append the X-Mock-User header when mock mode is active
+// Configure Axios request interceptor to append headers for auth
 axios.interceptors.request.use((config) => {
   const isMock = localStorage.getItem('gencourse_mock_mode') === 'true';
   if (isMock) {
     config.headers['X-Mock-User'] = 'true';
   }
+
+  const token = localStorage.getItem('gencourse_token');
+  if (token) {
+    config.headers['Authorization'] = `Bearer ${token}`;
+  }
+
   return config;
 }, (error) => {
   return Promise.reject(error);
@@ -28,12 +34,30 @@ export default function App() {
   const { isAuthenticated, setAuthState } = useAuthStore()
 
   useEffect(() => {
+    // Check for token or error in URL hash
+    const hash = window.location.hash;
+    if (hash) {
+      if (hash.startsWith('#token=')) {
+        const token = hash.split('#token=')[1];
+        localStorage.setItem('gencourse_token', token);
+        // Clear mock mode if switching to real token auth
+        localStorage.removeItem('gencourse_mock_mode');
+      } else if (hash.startsWith('#error=')) {
+        const errorMsg = decodeURIComponent(hash.split('#error=')[1]);
+        console.error('Authentication error:', errorMsg);
+        alert(`Authentication failed: ${errorMsg}`);
+      }
+      // Remove hash from URL without page reload
+      window.history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
+
     const params = new URLSearchParams(window.location.search);
     const isMockUrl = params.get('mockUser') === 'true';
 
     // Store mock mode setting in localStorage to persist across reloads
     if (isMockUrl) {
       localStorage.setItem('gencourse_mock_mode', 'true');
+      localStorage.removeItem('gencourse_token'); // Clear token if explicitly entering mock mode
     }
 
     const checkAuth = async () => {
@@ -42,7 +66,8 @@ export default function App() {
         const user = response.data;
         setAuthState(user, true, false);
       } catch (err) {
-        // If unauthenticated or token expires, reset store state
+        // If unauthenticated or token expires, clean up storage and state
+        localStorage.removeItem('gencourse_token');
         setAuthState(null, false, false);
       }
     };

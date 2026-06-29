@@ -90,6 +90,7 @@ export default function Navbar() {
                     <button
                       onClick={() => {
                         localStorage.removeItem('gencourse_mock_mode');
+                        localStorage.removeItem('gencourse_token');
                         window.location.href = '/auth/logout';
                       }}
                       className="w-full text-left px-4 py-2.5 text-sm text-red-400 hover:bg-white/5 hover:text-red-300 transition cursor-pointer"
@@ -172,6 +173,7 @@ export default function Navbar() {
                 <button
                   onClick={() => {
                     localStorage.removeItem('gencourse_mock_mode');
+                    localStorage.removeItem('gencourse_token');
                     window.location.href = '/auth/logout';
                   }}
                   className="w-full py-3 text-center text-red-400 font-semibold border border-red-500/20 rounded-xl hover:bg-red-500/10 transition cursor-pointer"

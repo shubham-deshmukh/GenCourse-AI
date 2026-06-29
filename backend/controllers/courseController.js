@@ -6,6 +6,7 @@ import { generateCourseOutline, generateLessonDetails } from '../services/course
 import { mapLimit } from '../utils/promiseUtils.js';
 import mongoose from 'mongoose';
 import fs from 'fs';
+import { getEnv } from '../config/env.js';
 
 // Track in-progress course generations to prevent concurrent duplicate generation runs
 const activeGenerations = new Set();
@@ -272,9 +273,7 @@ export const streamCourse = async (req, res, next) => {
     console.log(`🔗 Established SSE stream for course: "${course.title}" (${course._id})`);
     sendEvent('status', { message: 'Generation started' });
 
-    if (!process.env.GEMINI_API_KEY) {
-      throw new Error('Gemini API key is not configured (GEMINI_API_KEY).');
-    }
+    getEnv('GEMINI_API_KEY');
 
     console.log(`🤖 Compiling outline for "${course.title}" via LLM...`);
     sendEvent('status', { message: 'Compiling curriculum outline via LLM...' });
@@ -431,7 +430,7 @@ export const streamCourse = async (req, res, next) => {
       }
     }
 
-    const concurrencyLimit = parseInt(process.env.CONCURRENT_GENERATION_LIMIT, 10) || 2;
+    const concurrencyLimit = parseInt(getEnv('CONCURRENT_GENERATION_LIMIT', 2), 10);
     console.log(`🚀 Processing ${lessonTasks.length} lessons in parallel with concurrency limit of ${concurrencyLimit}...`);
     sendEvent('status', { message: `Generating all module lessons concurrently...` });
 

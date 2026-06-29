@@ -91,18 +91,42 @@ npm run seed
 
 ## Running the Server
 
-### Development Mode (with hot-reloading)
+### Option A: Local Execution
+
+#### Development Mode (with hot-reloading)
 Runs nodemon to watch file changes:
 ```bash
 npm run dev
 ```
 
-### Production Mode
+#### Production Mode
 Starts the server normally:
 ```bash
 npm run start
 ```
 The server will bind to the configured port (default: `5000`).
+
+### Option B: Docker Containerization
+
+You can run the backend and database inside Docker containers.
+
+#### 1. Setup Environment
+Ensure your `.env` contains the required keys (e.g., `GEMINI_API_KEY`, Auth0 configurations). These will be injected into the container by Docker Compose.
+
+#### 2. Start Services
+From the **root workspace directory**, run:
+```bash
+docker compose up --build
+```
+This spins up:
+- A MongoDB instance at `localhost:27017`
+- The backend API service at `localhost:5000`
+
+#### 3. Database Seeding (Optional)
+To seed the database inside the container with developer/mock data:
+```bash
+docker exec -it gencourse-backend npm run seed
+```
 
 ---
 

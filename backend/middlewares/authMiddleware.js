@@ -1,12 +1,15 @@
 import User from '../models/User.js';
+import { getEnv } from '../config/env.js';
+import { verifyToken } from '../utils/jwt.js';
 
 /**
  * Middleware to protect routes, perform Just-in-Time user provisioning,
  * and support mock user authentication during local development.
  */
 export const protect = async (req, res, next) => {
-  const isMockMode = process.env.NODE_ENV === 'development' && 
+  const isMockMode = getEnv('NODE_ENV', 'development') === 'development' && 
     (req.headers['x-mock-user'] === 'true' || req.query.mockUser === 'true');
+
 
   if (isMockMode) {
     try {
@@ -30,37 +33,41 @@ export const protect = async (req, res, next) => {
     }
   }
 
-  // Use Auth0 session details
-  if (!req.oidc || !req.oidc.isAuthenticated()) {
-    return res.status(401).json({ message: 'Not authorized, please log in' });
+  // Use JWT token validation
+  let token;
+
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith('Bearer')
+  ) {
+    token = req.headers.authorization.split(' ')[1];
+  } else if (req.query.token) {
+    token = req.query.token;
   }
 
-  try {
-    const auth0User = req.oidc.user;
-    if (!auth0User || !auth0User.sub) {
-      return res.status(401).json({ message: 'Invalid session profile' });
-    }
+  if (token) {
+    try {
+      // Decode and verify token
+      const decoded = verifyToken(token);
 
-    // Find or create user document (Just-in-Time Provisioning)
-    let user = await User.findOne({ auth0Sub: auth0User.sub });
-    if (!user) {
-      user = await User.create({
-        name: auth0User.name || auth0User.nickname || 'Authenticated User',
-        email: auth0User.email || '',
-        picture: auth0User.picture || '',
-        auth0Sub: auth0User.sub,
-        role: 'student' // Default role for standard provisioned users
-      });
-      console.log(`👤 JIT Provisioned new user profile: ${user.email} (${user._id})`);
-    }
+      // Fetch user profile from database
+      req.user = await User.findById(decoded.id);
+      if (!req.user) {
+        return res.status(401).json({ message: 'Not authorized, user profile not found' });
+      }
 
-    req.user = user;
-    next();
-  } catch (error) {
-    console.error('Error in protect middleware:', error);
-    res.status(500).json({ message: 'Authentication verification failed' });
+      return next();
+    } catch (error) {
+      console.error('❌ Token verification failed:', error.message);
+      return res.status(401).json({ message: 'Not authorized, invalid or expired token' });
+    }
+  }
+
+  if (!token) {
+    return res.status(401).json({ message: 'Not authorized, authorization token is missing' });
   }
 };
+
 
 /**
  * Middleware to restrict route access to specific roles.

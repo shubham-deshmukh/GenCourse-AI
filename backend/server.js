@@ -1,41 +1,24 @@
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import morgan from 'morgan';
-import { auth } from 'express-openid-connect';
 import connectDB from './config/db.js';
+import { getEnv } from './config/env.js';
+import authRoutes from './routes/authRoutes.js';
 import courseRoutes from './routes/courseRoutes.js';
 import tutorRoutes from './routes/tutorRoutes.js';
 import { protect } from './middlewares/authMiddleware.js';
-
-// Load environment variables
-dotenv.config();
 
 // Connect to database
 connectDB();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
-const NODE_ENV = process.env.NODE_ENV || 'development';
+const PORT = getEnv('PORT', 5000);
+const NODE_ENV = getEnv('NODE_ENV', 'development');
 
-// Auth0 OIDC session configurations
-const oidcConfig = {
-  authRequired: false,
-  auth0Logout: true,
-  secret: process.env.SESSION_SECRET || 'a-long-random-string-at-least-32-characters-long',
-  baseURL: process.env.BASE_URL || 'http://localhost:5174',
-  clientID: process.env.AUTH0_CLIENT_ID || '22dA63hPklbjnhB97sNTYv5nFZlAGY50',
-  issuerBaseURL: process.env.AUTH0_ISSUER_BASE_URL || 'https://dev-1ppds1up31cu6c8y.jp.auth0.com',
-  routes: {
-    login: '/auth/login',
-    logout: '/auth/logout',
-    callback: '/auth/callback'
-  }
-};
 
 // Middleware
 app.use(cors({
-  origin: 'http://localhost:5174',
+  origin: getEnv('FRONTEND_URL'),
   credentials: true
 }));
 app.use(express.json());
@@ -46,8 +29,8 @@ if (NODE_ENV !== 'test') {
   app.use(morgan('dev'));
 }
 
-// Mount OIDC Session Auth handler
-app.use(auth(oidcConfig));
+// Mount Auth Routes (login, callback, logout)
+app.use('/auth', authRoutes);
 
 // Welcome / Root Endpoint
 app.get('/', (req, res) => {

@@ -55,7 +55,16 @@ export const useGenerationStore = create<GenerationState>((set, get) => ({
 
         // Establish Server-Sent Events stream
         const isMock = localStorage.getItem('gencourse_mock_mode') === 'true';
-        const streamUrl = `/api/courses/${courseId}/stream` + (isMock ? '?mockUser=true' : '');
+        const token = localStorage.getItem('gencourse_token');
+        const queryParams = [];
+        if (isMock) {
+          queryParams.push('mockUser=true');
+        }
+        if (token) {
+          queryParams.push(`token=${token}`);
+        }
+        const streamUrl = `/api/courses/${courseId}/stream` + 
+          (queryParams.length > 0 ? `?${queryParams.join('&')}` : '');
         const eventSource = new EventSource(streamUrl)
         set({ eventSource })
 

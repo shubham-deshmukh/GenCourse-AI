@@ -1,16 +1,15 @@
 import { GoogleGenAI } from '@google/genai';
+import { getEnv } from '../config/env.js';
 
 let aiInstance;
 const getAI = () => {
   if (!aiInstance) {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      throw new Error('Gemini API key is not configured (GEMINI_API_KEY).');
-    }
+    const apiKey = getEnv('GEMINI_API_KEY');
     aiInstance = new GoogleGenAI({ apiKey });
   }
   return aiInstance;
 };
+
 
 /**
  * Call Gemini model to generate content

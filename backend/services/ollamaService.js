@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getEnv } from '../config/env.js';
 
 /**
  * Call local Ollama model to generate content
@@ -21,15 +22,9 @@ export const callOllama = async ({
   maxTokens = 2048,
   timeout = 30000
 }) => {
-  const ollamaBaseUrl = process.env.OLLAMA_BASE_URL;
-  const ollamaModel = model || process.env.OLLAMA_MODEL;
+  const ollamaBaseUrl = getEnv('OLLAMA_BASE_URL');
+  const ollamaModel = model || getEnv('OLLAMA_MODEL');
 
-  if (!ollamaBaseUrl) {
-    throw new Error('Ollama base URL is not configured (OLLAMA_BASE_URL).');
-  }
-  if (!ollamaModel) {
-    throw new Error('Ollama model is not configured (OLLAMA_MODEL).');
-  }
 
   const messages = [];
   if (systemPrompt) {
