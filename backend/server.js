@@ -1,3 +1,11 @@
+import { setGlobalDispatcher, Agent } from 'undici';
+
+// Configure global undici dispatcher to prevent connection/header timeout issues with long-running LLM API requests
+setGlobalDispatcher(new Agent({
+  headersTimeout: 300000, // 5 minutes in milliseconds
+  bodyTimeout: 300000    // 5 minutes in milliseconds
+}));
+
 import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';

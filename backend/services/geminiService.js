@@ -5,7 +5,12 @@ let aiInstance;
 const getAI = () => {
   if (!aiInstance) {
     const apiKey = getEnv('GEMINI_API_KEY');
-    aiInstance = new GoogleGenAI({ apiKey });
+    aiInstance = new GoogleGenAI({ 
+      apiKey,
+      httpOptions: {
+        timeout: 300000 // 5 minutes in milliseconds
+      }
+    });
   }
   return aiInstance;
 };

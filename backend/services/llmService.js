@@ -56,6 +56,9 @@ export const generateContent = async ({
     return responseText;
   } catch (err) {
     console.error(`❌ Google Gemini generation failed: ${err.message}`);
+    if (err.cause) {
+      console.error(`🔍 Underlying cause:`, err.cause);
+    }
     throw err;
   }
 };
