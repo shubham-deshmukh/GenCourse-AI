@@ -446,7 +446,8 @@ export default function PremiumDashboard() {
             onClick={() => {
               localStorage.removeItem('gencourse_mock_mode');
               localStorage.removeItem('gencourse_token');
-              window.location.href = '/auth/logout';
+              const apiBase = import.meta.env.VITE_API_BASE_URL || '';
+              window.location.href = `${apiBase}/auth/logout`;
             }}
             className={`border border-red-500/20 hover:bg-red-500/5 text-red-400 hover:text-red-300 text-xs font-semibold transition cursor-pointer flex items-center justify-center ${isSidebarCollapsed ? 'p-2 rounded-xl w-9 h-9' : 'w-full py-2 rounded-lg gap-1.5'
               }`}

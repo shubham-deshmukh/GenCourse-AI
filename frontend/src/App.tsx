@@ -10,6 +10,9 @@ import CTA from './components/CTA'
 import Footer from './components/Footer'
 import PremiumDashboard from './components/PremiumDashboard'
 
+// Set Axios baseURL from environment variables (direct backend connection)
+axios.defaults.baseURL = import.meta.env.VITE_API_BASE_URL || '';
+
 // Configure Axios request interceptor to append headers for auth
 axios.interceptors.request.use((config) => {
   const isMock = localStorage.getItem('gencourse_mock_mode') === 'true';

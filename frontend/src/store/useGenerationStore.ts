@@ -63,7 +63,8 @@ export const useGenerationStore = create<GenerationState>((set, get) => ({
         if (token) {
           queryParams.push(`token=${token}`);
         }
-        const streamUrl = `/api/courses/${courseId}/stream` + 
+        const apiBase = import.meta.env.VITE_API_BASE_URL || '';
+        const streamUrl = `${apiBase}/api/courses/${courseId}/stream` + 
           (queryParams.length > 0 ? `?${queryParams.join('&')}` : '');
         const eventSource = new EventSource(streamUrl)
         set({ eventSource })
