@@ -76,7 +76,6 @@ OLLAMA_MODEL=qwen2.5:1.5b-instruct
 
 # Auth0 & Session Session Configuration
 SESSION_SECRET=your_32_character_long_session_secret_key
-BASE_URL=http://localhost:5174
 AUTH0_CLIENT_ID=your_auth0_client_id_here
 AUTH0_ISSUER_BASE_URL=https://your-auth0-domain.auth0.com
 ```

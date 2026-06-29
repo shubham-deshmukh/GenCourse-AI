@@ -27,7 +27,6 @@ export const getEnv = (key, defaultValue = undefined) => {
 const REQUIRED_ENV_VARS = [
   'MONGO_URI',
   'JWT_SECRET',
-  'BASE_URL',
   'FRONTEND_URL',
   'AUTH0_CLIENT_ID',
   'AUTH0_ISSUER_BASE_URL',
