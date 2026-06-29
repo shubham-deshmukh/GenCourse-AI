@@ -1067,7 +1067,7 @@ export default function InteractiveSimulator({
                               {currentLesson.title}
                             </h4>
                             <div className="space-y-4">
-                              {renderFormattedContent(currentLesson.content?.[language] || '')}
+                              {renderFormattedContent((currentLesson.content as any)?.[language] || '')}
                             </div>
                           </div>
                         </div>
