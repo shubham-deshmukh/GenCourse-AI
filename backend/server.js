@@ -20,6 +20,7 @@ import { protect } from './middlewares/authMiddleware.js';
 connectDB();
 
 const app = express();
+app.set('trust proxy', true);
 const PORT = getEnv('PORT', 5000);
 const NODE_ENV = getEnv('NODE_ENV', 'development');
 
