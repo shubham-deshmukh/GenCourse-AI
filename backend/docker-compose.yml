@@ -41,6 +41,9 @@ services:
       - mongodb
     networks:
       - gencourse-network
+      # Note: The 'proxy' network is for production behind a global reverse proxy (Caddy).
+      # For local development, you can comment this line out.
+      - proxy
 
 volumes:
   mongo-data:
@@ -48,4 +51,8 @@ volumes:
 networks:
   gencourse-network:
     driver: bridge
+  # Note: The 'proxy' network is for production deployment.
+  # For local development, you can comment this out unless you run `docker network create proxy` first.
+  proxy:
+    external: true
 
