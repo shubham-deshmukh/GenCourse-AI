@@ -507,7 +507,7 @@ export default function PremiumDashboard() {
                         setActiveTab('generate')
                         setSimulatorPrompt('')
                       }}
-                      className="px-5 py-2.5 rounded-full bg-gradient-to-r from-purple-primary to-cyan-primary text-white text-xs font-bold transition hover:opacity-95 shadow-[0_4px_12px_rgba(124,58,237,0.2)] hover:scale-[1.02] cursor-pointer flex items-center gap-1.5"
+                      className="hidden sm:flex px-5 py-2.5 rounded-full bg-gradient-to-r from-purple-primary to-cyan-primary text-white text-xs font-bold transition hover:opacity-95 shadow-[0_4px_12px_rgba(124,58,237,0.2)] hover:scale-[1.02] cursor-pointer items-center gap-1.5"
                     >
                       <Plus className="w-4 h-4" />
                       <span>Generate Course</span>
