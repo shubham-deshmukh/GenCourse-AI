@@ -66,7 +66,7 @@ export default function PremiumDashboard() {
 
   // Helper to parse block-level markdown (headers, lists, code blocks)
   const renderMessageText = (text: string) => {
-    if (!text) return null;
+    if (!text) {return null;}
     const parts = text.split(/(```[a-z]*[\s\S]*?```)/g);
     return parts.map((part, index) => {
       if (part.startsWith('```')) {
@@ -90,8 +90,8 @@ export default function PremiumDashboard() {
       return (
         <div key={index} className="space-y-1.5">
           {lines.map((line, lIdx) => {
-            let cleanLine = line.trim();
-            if (!cleanLine) return <div key={lIdx} className="h-2" />;
+            const cleanLine = line.trim();
+            if (!cleanLine) {return <div key={lIdx} className="h-2" />;}
             if (cleanLine.startsWith('###')) {
               return <h4 key={lIdx} className="text-sm font-bold text-white mt-2 mb-1">{cleanLine.replace(/^###\s*/, '')}</h4>;
             }
@@ -114,7 +114,7 @@ export default function PremiumDashboard() {
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!chatInput.trim() || isTutorLoading) return
+    if (!chatInput.trim() || isTutorLoading) {return}
 
     const timeString = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     const userMsg = { sender: 'user' as const, text: chatInput, time: timeString }
@@ -189,7 +189,7 @@ export default function PremiumDashboard() {
     }
 
     const confirmDelete = window.confirm("Are you sure you want to delete this course and all its progress?")
-    if (!confirmDelete) return
+    if (!confirmDelete) {return}
 
     try {
       await axios.delete(`/api/courses/${courseId}`)

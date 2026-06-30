@@ -184,7 +184,7 @@ export const useGenerationStore = create<GenerationState>((set, get) => ({
           try {
             const data = JSON.parse(event.data)
             errMsg = data.message || 'Unknown error'
-          } catch (err) {}
+          } catch (_err) {}
           
           eventSource.close()
           set((state) => ({

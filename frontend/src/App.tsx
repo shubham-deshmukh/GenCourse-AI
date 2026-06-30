@@ -68,7 +68,7 @@ export default function App() {
         const response = await axios.get('/api/auth/me');
         const user = response.data;
         setAuthState(user, true, false);
-      } catch (err) {
+      } catch (_err) {
         // If unauthenticated or token expires, clean up storage and state
         localStorage.removeItem('gencourse_token');
         setAuthState(null, false, false);
