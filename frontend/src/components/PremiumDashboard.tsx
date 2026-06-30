@@ -460,7 +460,7 @@ export default function PremiumDashboard() {
       </aside>
 
       {/* Pane 2: Central Workspace Content */}
-      <main className="flex-1 overflow-y-auto p-6 md:p-8 scrollbar-thin scrollbar-thumb-white/10 flex flex-col justify-between">
+      <main className="flex-1 overflow-y-auto p-6 md:p-8 pb-24 md:pb-8 scrollbar-thin scrollbar-thumb-white/10 flex flex-col justify-between">
         <div className="w-full max-w-6xl mx-auto flex-1">
           {/* Active Course Player Integration */}
           {selectedCourseForPlayer ? (
@@ -754,11 +754,84 @@ export default function PremiumDashboard() {
       {!isAiOpen && (
         <button
           onClick={() => setIsAiOpen(true)}
-          className="fixed bottom-6 right-6 p-3 rounded-full bg-gradient-to-r from-purple-primary to-cyan-primary text-white hover:scale-110 transition shadow-2xl z-40 cursor-pointer flex items-center justify-center"
+          className="fixed bottom-20 md:bottom-6 right-6 p-3 rounded-full bg-gradient-to-r from-purple-primary to-cyan-primary text-white hover:scale-110 transition shadow-2xl z-30 cursor-pointer flex items-center justify-center"
         >
           <MessageSquare className="w-5 h-5" />
         </button>
       )}
+
+      {/* Pane 4: Mobile Bottom Navigation Bar */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-[#030014]/90 backdrop-blur-md border-t border-white/10 z-40 flex items-center justify-around px-2 shadow-lg">
+        <button
+          onClick={() => {
+            setActiveTab('library')
+            setSelectedCourseForPlayer(null)
+            setTutorCourseId(null)
+            setTutorLessonId(null)
+          }}
+          className={`flex flex-col items-center justify-center gap-1 flex-1 py-1 transition-all duration-200 cursor-pointer ${
+            activeTab === 'library' && !selectedCourseForPlayer
+              ? 'text-cyan-primary'
+              : 'text-gray-400 hover:text-white'
+          }`}
+        >
+          <FolderOpen className="w-5 h-5" />
+          <span className="text-[10px] font-bold tracking-wider">Library</span>
+        </button>
+
+        <button
+          onClick={() => {
+            setActiveTab('generate')
+            setSimulatorPrompt('')
+            setSelectedCourseForPlayer(null)
+            setTutorCourseId(null)
+            setTutorLessonId(null)
+          }}
+          className={`flex flex-col items-center justify-center gap-1 flex-1 py-1 transition-all duration-200 cursor-pointer relative ${
+            activeTab === 'generate' ? 'text-cyan-primary' : 'text-gray-400 hover:text-white'
+          }`}
+        >
+          {isGenerating ? (
+            <div className="w-5 h-5 relative flex items-center justify-center">
+              <span className="animate-ping absolute inline-flex h-3.5 w-3.5 rounded-full bg-purple-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-purple-500"></span>
+            </div>
+          ) : (
+            <Plus className="w-5 h-5" />
+          )}
+          <span className="text-[10px] font-bold tracking-wider">
+            {isGenerating ? 'Building' : 'Create'}
+          </span>
+        </button>
+
+        <button
+          onClick={() => {
+            setActiveTab('settings')
+            setSelectedCourseForPlayer(null)
+            setTutorCourseId(null)
+            setTutorLessonId(null)
+          }}
+          className={`flex flex-col items-center justify-center gap-1 flex-1 py-1 transition-all duration-200 cursor-pointer ${
+            activeTab === 'settings' ? 'text-cyan-primary' : 'text-gray-400 hover:text-white'
+          }`}
+        >
+          <Settings className="w-5 h-5" />
+          <span className="text-[10px] font-bold tracking-wider">Settings</span>
+        </button>
+
+        <button
+          onClick={() => {
+            localStorage.removeItem('gencourse_mock_mode');
+            localStorage.removeItem('gencourse_token');
+            const apiBase = import.meta.env.VITE_API_BASE_URL || '';
+            window.location.href = `${apiBase}/auth/logout`;
+          }}
+          className="flex flex-col items-center justify-center gap-1 flex-1 py-1 text-red-400 hover:text-red-300 transition-all duration-200 cursor-pointer"
+        >
+          <LogOut className="w-5 h-5" />
+          <span className="text-[10px] font-bold tracking-wider">Logout</span>
+        </button>
+      </nav>
     </div>
   )
 }
