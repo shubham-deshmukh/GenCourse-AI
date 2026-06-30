@@ -31,7 +31,9 @@ export default function Navbar() {
   return (
     <nav
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        isScrolled
+        isMobileMenuOpen
+          ? 'py-4 bg-[#030014] border-b border-white/10 shadow-lg'
+          : isScrolled
           ? 'py-4 bg-[#030014]/80 backdrop-blur-md border-b border-white/10 shadow-lg'
           : 'py-6 bg-transparent'
       }`}
@@ -53,10 +55,19 @@ export default function Navbar() {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-8">
-            <a href="#features" className="text-sm text-gray-300 hover:text-white transition-colors duration-200">Features</a>
-            <a href="#workflow" className="text-sm text-gray-300 hover:text-white transition-colors duration-200">How it Works</a>
-            <a href="#demo" className="text-sm text-gray-300 hover:text-white transition-colors duration-200">Interactive Demo</a>
-            <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition">
+            <a href="#features" className="text-sm text-gray-300 hover:text-white transition-colors duration-200 relative group py-1">
+              Features
+              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-purple-primary to-cyan-primary transition-all duration-300 group-hover:w-full"></span>
+            </a>
+            <a href="#workflow" className="text-sm text-gray-300 hover:text-white transition-colors duration-200 relative group py-1">
+              How it Works
+              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-purple-primary to-cyan-primary transition-all duration-300 group-hover:w-full"></span>
+            </a>
+            <a href="#demo" className="text-sm text-gray-300 hover:text-white transition-colors duration-200 relative group py-1">
+              Interactive Demo
+              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-purple-primary to-cyan-primary transition-all duration-300 group-hover:w-full"></span>
+            </a>
+            <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition hover:scale-110 duration-200">
               <GithubIcon className="w-5 h-5" />
             </a>
           </div>
@@ -136,25 +147,25 @@ export default function Navbar() {
 
       {/* Mobile Menu */}
       {isMobileMenuOpen && (
-        <div className="md:hidden glass-panel absolute top-full left-0 right-0 py-6 border-b border-white/10 flex flex-col items-center gap-5 shadow-2xl animate-fade-in">
+        <div className="md:hidden absolute top-full left-0 right-0 py-6 bg-[#030014] border-b border-white/10 flex flex-col items-center gap-5 shadow-2xl animate-fade-in">
           <a
             href="#features"
             onClick={() => setIsMobileMenuOpen(false)}
-            className="text-lg text-gray-300 hover:text-white transition"
+            className="w-[90%] py-3 text-center text-lg text-gray-300 hover:text-cyan-primary hover:bg-white/10 active:bg-white/15 rounded-xl transition duration-200"
           >
             Features
           </a>
           <a
             href="#workflow"
             onClick={() => setIsMobileMenuOpen(false)}
-            className="text-lg text-gray-300 hover:text-white transition"
+            className="w-[90%] py-3 text-center text-lg text-gray-300 hover:text-cyan-primary hover:bg-white/10 active:bg-white/15 rounded-xl transition duration-200"
           >
             How it Works
           </a>
           <a
             href="#demo"
             onClick={() => setIsMobileMenuOpen(false)}
-            className="text-lg text-gray-300 hover:text-white transition"
+            className="w-[90%] py-3 text-center text-lg text-gray-300 hover:text-cyan-primary hover:bg-white/10 active:bg-white/15 rounded-xl transition duration-200"
           >
             Interactive Demo
           </a>
@@ -181,7 +192,7 @@ export default function Navbar() {
                     const apiBase = import.meta.env.VITE_API_BASE_URL || '';
                     window.location.href = `${apiBase}/auth/logout`;
                   }}
-                  className="w-full py-3 text-center text-red-400 font-semibold border border-red-500/20 rounded-xl hover:bg-red-500/10 transition cursor-pointer"
+                  className="w-full py-3 text-center text-red-400 font-semibold border border-red-500/20 rounded-xl hover:bg-red-500/10 active:bg-red-500/20 transition cursor-pointer"
                 >
                   Sign Out
                 </button>
@@ -192,7 +203,7 @@ export default function Navbar() {
                   const apiBase = import.meta.env.VITE_API_BASE_URL || '';
                   window.location.href = `${apiBase}/auth/login`;
                 }}
-                className="w-full py-3 text-center text-gray-300 hover:text-white font-semibold border border-white/10 rounded-xl hover:bg-white/5 transition cursor-pointer"
+                className="w-full py-3 text-center text-gray-300 hover:text-cyan-primary font-semibold border border-white/10 rounded-xl hover:bg-white/10 active:bg-white/15 transition cursor-pointer"
               >
                 Sign In
               </button>
@@ -201,7 +212,7 @@ export default function Navbar() {
             <a
               href="#demo"
               onClick={() => setIsMobileMenuOpen(false)}
-              className="w-full py-3 text-center bg-gradient-to-r from-purple-primary to-cyan-primary rounded-xl text-white font-semibold hover:opacity-90 transition shadow-lg flex items-center justify-center gap-2"
+              className="w-full py-3 text-center bg-gradient-to-r from-purple-primary to-cyan-primary rounded-xl text-white font-semibold hover:opacity-90 active:scale-[0.98] transition shadow-lg flex items-center justify-center gap-2"
             >
               Generate Free Course
               <ArrowRight className="w-4 h-4" />
