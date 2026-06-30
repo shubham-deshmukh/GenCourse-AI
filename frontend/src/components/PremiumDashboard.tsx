@@ -677,10 +677,10 @@ export default function PremiumDashboard() {
       </main>
 
       {/* Pane 3: Right Collapsible AI Tutor Panel */}
-      <aside
-        className={`border-l border-white/5 bg-[#030014]/65 backdrop-blur-xl shrink-0 transition-all duration-300 relative flex flex-col justify-between ${isAiOpen ? 'w-80 opacity-100' : 'w-0 opacity-0 pointer-events-none'
-          }`}
-      >
+      {isAiOpen && (
+        <aside
+          className="fixed md:absolute right-0 top-0 h-full z-45 w-full md:w-80 bg-[#030014]/98 md:bg-[#030014]/90 backdrop-blur-xl flex flex-col justify-between shadow-2xl border-l border-white/5"
+        >
         {/* Header */}
         <div className="p-4 border-b border-white/5 flex justify-between items-center shrink-0">
           <div className="flex items-center gap-2">
@@ -749,6 +749,7 @@ export default function PremiumDashboard() {
           </button>
         </form>
       </aside>
+      )}
 
       {/* Floating Toggle Button for AI Panel when closed */}
       {!isAiOpen && (
