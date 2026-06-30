@@ -1,3 +1,5 @@
+version: '3.3'
+
 services:
   mongodb:
     image: mongo:latest
@@ -10,12 +12,13 @@ services:
     networks:
       - gencourse-network
 
-  backend:
+  gencourse-backend:
     build:
       context: .
       dockerfile: Dockerfile
       args:
         NODE_ENV: development
+    restart: always
     container_name: gencourse-backend
     ports:
       - "5000:5000"
@@ -55,4 +58,3 @@ networks:
   # For local development, you can comment this out unless you run `docker network create proxy` first.
   proxy:
     external: true
-
