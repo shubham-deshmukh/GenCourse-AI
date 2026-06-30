@@ -283,7 +283,7 @@ export const streamCourse = async (req, res, next) => {
       cOutline = await generateCourseOutline(course.title);
     } catch (err) {
       console.error('❌ LLM outline generation failed:', err.message);
-      throw new Error(`LLM outline generation failed: ${err.message}`);
+      throw new Error(`LLM outline generation failed: ${err.message}`, { cause: err });
     }
 
     // Stage 2: Save Course Outline / Modules to DB & Stream
@@ -447,7 +447,7 @@ export const streamCourse = async (req, res, next) => {
         lessonDetails = await generateLessonDetails(cleanCourse, cleanModule, lessonTitle);
       } catch (err) {
         console.error(`  ❌ Failed to generate lesson details for "${lessonTitle}":`, err.message);
-        throw new Error(`Failed to generate lesson details for "${lessonTitle}": ${err.message}`);
+        throw new Error(`Failed to generate lesson details for "${lessonTitle}": ${err.message}`, { cause: err });
       }
 
       // Save Lesson to DB

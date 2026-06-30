@@ -418,11 +418,11 @@ export default function InteractiveSimulator({
         })
       }, 150)
     } else {
-      if (videoTimerRef.current) clearInterval(videoTimerRef.current)
+      if (videoTimerRef.current) {clearInterval(videoTimerRef.current)}
     }
 
     return () => {
-      if (videoTimerRef.current) clearInterval(videoTimerRef.current)
+      if (videoTimerRef.current) {clearInterval(videoTimerRef.current)}
     }
   }, [isPlayingVideo])
 
@@ -462,10 +462,10 @@ export default function InteractiveSimulator({
       }
 
       // Advance core workflow steps
-      if (progressVal === 20) setCurrentStepIndex(1)
-      if (progressVal === 40) setCurrentStepIndex(2)
-      if (progressVal === 60) setCurrentStepIndex(3)
-      if (progressVal === 80) setCurrentStepIndex(4)
+      if (progressVal === 20) {setCurrentStepIndex(1)}
+      if (progressVal === 40) {setCurrentStepIndex(2)}
+      if (progressVal === 60) {setCurrentStepIndex(3)}
+      if (progressVal === 80) {setCurrentStepIndex(4)}
 
       if (progressVal >= 100) {
         clearInterval(interval)
@@ -524,7 +524,7 @@ export default function InteractiveSimulator({
   const isLessonDone = completedLessons[lessonKey]
 
   const formatLogLine = (line: string) => {
-    if (!line || typeof line !== 'string') return <span className="text-gray-400">Processing...</span>
+    if (!line || typeof line !== 'string') {return <span className="text-gray-400">Processing...</span>}
     if (line.startsWith('[ANALYZE]')) {
       return (
         <span className="text-gray-400">
@@ -612,10 +612,10 @@ export default function InteractiveSimulator({
                   const styledLine = line.replace(
                     /('[^']*'|`[^`]*`|"[^"]*")|\b(const|let|var|import|from|return)\b|\b(useState|useEffect|useRef|setCount|useCallback|useMemo)\b|\b(\d+)\b/g,
                     (match, pStr, pKey, pHook, pNum) => {
-                      if (pStr) return `<span class="text-cyan-400">${pStr}</span>`;
-                      if (pKey) return `<span class="text-purple-400 font-semibold">${pKey}</span>`;
-                      if (pHook) return `<span class="text-yellow-400 font-medium">${pHook}</span>`;
-                      if (pNum) return `<span class="text-pink-400">${pNum}</span>`;
+                      if (pStr) {return `<span class="text-cyan-400">${pStr}</span>`;}
+                      if (pKey) {return `<span class="text-purple-400 font-semibold">${pKey}</span>`;}
+                      if (pHook) {return `<span class="text-yellow-400 font-medium">${pHook}</span>`;}
+                      if (pNum) {return `<span class="text-pink-400">${pNum}</span>`;}
                       return match;
                     }
                   )
@@ -679,7 +679,7 @@ export default function InteractiveSimulator({
       }
 
       // Normal text paragraphs
-      if (part.trim() === '') return null
+      if (part.trim() === '') {return null}
       return (
         <p key={index} className="my-2.5 text-gray-300 leading-relaxed font-sans text-xs" dangerouslySetInnerHTML={{ __html: parseInlineMarkdown(part) }} />
       )
@@ -689,7 +689,7 @@ export default function InteractiveSimulator({
 
 
   const startDownload = (name: string) => {
-    if (downloadProgress[name] !== undefined) return
+    if (downloadProgress[name] !== undefined) {return}
 
     setDownloadProgress(prev => ({ ...prev, [name]: 0 }))
 
