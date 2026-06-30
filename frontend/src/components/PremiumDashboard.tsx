@@ -21,6 +21,7 @@ import PremiumInteractiveSimulator from './PremiumInteractiveSimulator'
 export default function PremiumDashboard() {
   const { user } = useAuthStore()
   const isGenerating = useGenerationStore((state) => state.isGenerating)
+  const resetGeneration = useGenerationStore((state) => state.resetGeneration)
 
   const [activeTab, setActiveTab] = useState<'library' | 'generate' | 'settings'>('library')
   const [isAiOpen, setIsAiOpen] = useState(false)
@@ -359,6 +360,9 @@ export default function PremiumDashboard() {
                 setSelectedCourseForPlayer(null)
                 setTutorCourseId(null)
                 setTutorLessonId(null)
+                if (!isGenerating) {
+                  resetGeneration()
+                }
               }}
               className={`w-full flex items-center rounded-xl text-xs font-semibold transition-all duration-300 border cursor-pointer ${isSidebarCollapsed ? 'justify-center p-3' : 'gap-3 px-4 py-3'
                 } ${activeTab === 'generate'
@@ -506,6 +510,9 @@ export default function PremiumDashboard() {
                       onClick={() => {
                         setActiveTab('generate')
                         setSimulatorPrompt('')
+                        if (!isGenerating) {
+                          resetGeneration()
+                        }
                       }}
                       className="hidden sm:flex px-5 py-2.5 rounded-full bg-gradient-to-r from-purple-primary to-cyan-primary text-white text-xs font-bold transition hover:opacity-95 shadow-[0_4px_12px_rgba(124,58,237,0.2)] hover:scale-[1.02] cursor-pointer items-center gap-1.5"
                     >
@@ -787,6 +794,9 @@ export default function PremiumDashboard() {
             setSelectedCourseForPlayer(null)
             setTutorCourseId(null)
             setTutorLessonId(null)
+            if (!isGenerating) {
+              resetGeneration()
+            }
           }}
           className={`flex flex-col items-center justify-center gap-1 flex-1 py-1 transition-all duration-200 cursor-pointer relative ${
             activeTab === 'generate' ? 'text-cyan-primary' : 'text-gray-400 hover:text-white'
