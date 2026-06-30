@@ -13,11 +13,14 @@ services:
       - gencourse-network
 
   gencourse-backend:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        NODE_ENV: development
+    # For production deployment via CI/CD, use the pre-built image:
+    image: ghcr.io/shubham-deshmukh/gencourse-backend:latest
+    # To build locally instead, uncomment the lines below:
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile
+    #   args:
+    #     NODE_ENV: development
     restart: always
     container_name: gencourse-backend
     ports:
