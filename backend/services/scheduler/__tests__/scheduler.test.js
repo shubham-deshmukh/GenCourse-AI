@@ -5,6 +5,7 @@ import Course from '../../../models/Course.js';
 import Module from '../../../models/Module.js';
 import Lesson from '../../../models/Lesson.js';
 import Job from '../Job.js';
+import generationEvents from '../eventEmitter.js';
 
 // Prevent actual scheduler interval from ticking during test imports
 clearInterval(scheduler.intervalId);
@@ -545,6 +546,117 @@ test('LessonScheduler - Concurrent Module Linking Protection', async () => {
   Module.findByIdAndUpdate = originalModuleFindByIdAndUpdate;
   Course.findByIdAndUpdate = originalCourseFindByIdAndUpdate;
   Course.findById = originalCourseFindById;
+  scheduler.queue = [];
+});
+
+test('LessonScheduler - Worker Selection Bias (Primary provider priority)', async () => {
+  const executionLog = [];
+  
+  // 3 workers available, each with maxConcurrency = 1
+  const geminiWorkerA = new MockWorker({ name: 'GeminiWorkerA', provider: 'gemini', maxConcurrency: 1, executionLog, delay: 10 });
+  const geminiWorkerB = new MockWorker({ name: 'GeminiWorkerB', provider: 'gemini', maxConcurrency: 1, executionLog, delay: 10 });
+  const ollamaWorkerA = new MockWorker({ name: 'OllamaWorkerA', provider: 'ollama', maxConcurrency: 1, executionLog, delay: 10 });
+
+  scheduler.queue = [];
+  // Register Gemini first and second, Ollama third
+  scheduler.workers = [ollamaWorkerA, geminiWorkerB, geminiWorkerA];
+
+  // Enqueue 2 outline jobs (Priority 1)
+  scheduler.queue.push(new Job({ id: 'outline-1', courseId: 'c1', type: 'outline', priority: 1 }));
+  scheduler.queue.push(new Job({ id: 'outline-2', courseId: 'c1', type: 'outline', priority: 1 }));
+
+  // Trigger tick - should dispatch 2 outline jobs to the 2 primary providers (GeminiWorkers) first
+  scheduler.tick();
+
+  // Wait 5ms for async dispatch to reach execute
+  await new Promise(r => setTimeout(r, 5));
+
+  // Assert that both dispatches targeted Gemini workers, ignoring Ollama since slots are available on Gemini
+  assert.ok(executionLog.includes('GeminiWorkerA:outline-1') || executionLog.includes('GeminiWorkerA:outline-2'));
+  assert.ok(executionLog.includes('GeminiWorkerB:outline-1') || executionLog.includes('GeminiWorkerB:outline-2'));
+  assert.strictEqual(executionLog.includes('OllamaWorkerA:outline-1'), false);
+  assert.strictEqual(executionLog.includes('OllamaWorkerA:outline-2'), false);
+
+  // Wait for completion to clean queue
+  await new Promise(r => setTimeout(r, 15));
+  scheduler.queue = [];
+});
+
+test('LessonScheduler - Event Stream Namespace Safety (No cross-talk)', () => {
+  const course1Received = [];
+  const course2Received = [];
+
+  // Register namespace event listeners
+  const listener1 = (packet) => course1Received.push(packet);
+  const listener2 = (packet) => course2Received.push(packet);
+
+  generationEvents.on('course:course-1', listener1);
+  generationEvents.on('course:course-2', listener2);
+
+  // Emit event packet on course-1 namespace
+  scheduler.emitEvent('course-1', 'status', { message: 'hello c1' });
+  // Emit event packet on course-2 namespace
+  scheduler.emitEvent('course-2', 'status', { message: 'hello c2' });
+
+  // Assert that c1 listener only received c1 events and c2 listener only received c2 events
+  assert.strictEqual(course1Received.length, 1);
+  assert.strictEqual(course1Received[0].type, 'status');
+  assert.strictEqual(course1Received[0].data.message, 'hello c1');
+
+  assert.strictEqual(course2Received.length, 1);
+  assert.strictEqual(course2Received[0].type, 'status');
+  assert.strictEqual(course2Received[0].data.message, 'hello c2');
+
+  // Remove listeners to clean up
+  generationEvents.off('course:course-1', listener1);
+  generationEvents.off('course:course-2', listener2);
+});
+
+test('LessonScheduler - Malformed Outline Sanitization Fallbacks', async () => {
+  let savedCourse = null;
+
+  // Mock Course findById to return course document shell
+  const originalCourseFindById = Course.findById;
+  Course.findById = async (id) => {
+    return {
+      _id: id,
+      title: 'Untouchable Course',
+      description: 'A mock description',
+      toObject: function() { return this; },
+      save: async function() {
+        savedCourse = this;
+      }
+    };
+  };
+
+  // Mock Module save
+  const originalModuleSave = Module.prototype.save;
+  Module.prototype.save = async function() {
+    this._id = 'mock-mod-shell';
+    return this;
+  };
+
+  // Call persistOutline with a sparse outline (lacking modules, quizzes, resources)
+  const malformedOutline = {
+    title: 'Sanitized React JS'
+  };
+
+  await scheduler.persistOutline('c-sanitize', malformedOutline);
+
+  // Assertions: Verify title was updated, and default fallback resources/quizzes/modules were generated
+  assert.strictEqual(savedCourse.title, 'Sanitized React JS');
+  
+  // Default resources list populated
+  assert.ok(Array.isArray(savedCourse.resources));
+  assert.strictEqual(savedCourse.resources[0].name, 'Sanitized_React_JS_Guide.pdf');
+  assert.strictEqual(savedCourse.resources[0].type, 'PDF');
+
+  // Default quiz array populated clean
+  assert.deepStrictEqual(savedCourse.quizzes, []);
+
+  // Restore mocks
+  Course.findById = originalCourseFindById;
+  Module.prototype.save = originalModuleSave;
   scheduler.queue = [];
 });
 
