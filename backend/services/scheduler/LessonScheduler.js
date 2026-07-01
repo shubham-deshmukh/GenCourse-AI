@@ -496,7 +496,7 @@ class LessonScheduler {
         $inc: { 'progress.completedLessons': 1 },
         'progress.currentStatusMessage': `Generated lesson: "${lessonDoc.title}"`
       },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     console.log(`[LessonScheduler] Course progress for ${courseId}: ${updatedCourse.progress.completedLessons}/${updatedCourse.progress.totalLessons}`);
