@@ -13,12 +13,13 @@ env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository_owner }}/gencourse-backend
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
 
     steps:
       - name: Checkout repository
@@ -70,8 +71,8 @@ jobs:
             # Pull latest image
             docker compose pull gencourse-backend
             
-            # Recreate containers with new image
-            docker compose up -d
+            # Recreate containers with new image (forcing recreate to bypass Docker caching)
+            docker compose up -d --force-recreate
             
             # Clean up older unused docker images
             docker image prune -f
