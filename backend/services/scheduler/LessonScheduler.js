@@ -33,7 +33,7 @@ class LessonScheduler {
    */
   async addCourse(courseId, topic) {
     console.log(`[LessonScheduler] Enqueuing outline generation for course "${topic}" (${courseId})`);
-    
+
     // Set initial course state in DB
     await Course.findByIdAndUpdate(courseId, {
       status: 'outline_generating',
@@ -59,7 +59,7 @@ class LessonScheduler {
 
     this.queue.push(job);
     this.emitEvent(courseId, 'status', { message: 'Outline generation queued...' });
-    
+
     // Trigger immediate scheduling check
     this.tick();
   }
@@ -107,7 +107,7 @@ class LessonScheduler {
     while (executionOrder.length > 0 && availableSlots.length > 0) {
       const job = executionOrder.shift();
       const worker = availableSlots.shift();
-      
+
       // Update job status synchronously inside the loop to prevent concurrent re-selection
       job.status = 'processing';
       this.dispatch(job, worker);
@@ -123,12 +123,12 @@ class LessonScheduler {
     const grouped = this.groupByCourse(jobs);
     const courseIds = Object.keys(grouped);
     const interleaved = [];
-    
+
     let maxJobs = 0;
     courseIds.forEach(id => {
       maxJobs = Math.max(maxJobs, grouped[id].length);
     });
-    
+
     for (let i = 0; i < maxJobs; i++) {
       for (const courseId of courseIds) {
         if (grouped[courseId][i]) {
@@ -136,7 +136,7 @@ class LessonScheduler {
         }
       }
     }
-    
+
     return interleaved;
   }
 
@@ -162,7 +162,7 @@ class LessonScheduler {
    */
   async dispatch(job, worker) {
     console.log(`[LessonScheduler] Dispatching job "${job.id}" to worker "${worker.name}"`);
-    
+
     // Update DB status to reflect active LLM requests
     if (job.type === 'outline') {
       await Course.findByIdAndUpdate(job.courseId, {
@@ -195,7 +195,7 @@ class LessonScheduler {
    */
   async handleJobSuccess(job, resultText) {
     const parsedData = parseJSONSafely(resultText);
-    
+
     try {
       if (job.type === 'outline') {
         await this.persistOutline(job.courseId, parsedData);
@@ -218,10 +218,10 @@ class LessonScheduler {
    */
   async handleJobFailure(job, error) {
     const isFatal = job.status === 'failed'; // Checked after worker registers failure retry increments
-    
+
     if (isFatal) {
       console.error(`[LessonScheduler] Job "${job.id}" permanently failed. Retries exhausted.`);
-      
+
       // Update course DB state to failed
       await Course.findByIdAndUpdate(job.courseId, {
         status: 'failed',
@@ -229,13 +229,13 @@ class LessonScheduler {
       });
 
       this.emitEvent(job.courseId, 'error', { message: `Generation failed: ${error.message}` });
-      
+
       // Cancel and prune all remaining jobs for this specific course from the queue
       this.queue = this.queue.filter(j => j.courseId !== job.courseId);
     } else {
       console.log(`[LessonScheduler] Job "${job.id}" failed, will retry. Attempt: ${job.retries}/${job.maxRetries}`);
-      this.emitEvent(job.courseId, 'status', { 
-        message: `Warning: Failed to process task. Retrying (attempt ${job.retries}/${job.maxRetries})...` 
+      this.emitEvent(job.courseId, 'status', {
+        message: `Warning: Failed to process task. Retrying (attempt ${job.retries}/${job.maxRetries})...`
       });
     }
   }
@@ -257,13 +257,13 @@ class LessonScheduler {
    */
   async persistOutline(courseId, outline) {
     console.log(`[LessonScheduler] Saving course outline to DB for ID: ${courseId}`);
-    
+
     const course = await Course.findById(courseId);
     if (!course) throw new Error(`Course document not found: ${courseId}`);
 
     course.title = outline.title || course.title;
     course.description = outline.description || `A comprehensive course on ${course.title}.`;
-    
+
     // Sanitize outline resource list
     let resources = outline.resources;
     if (Array.isArray(resources)) {
@@ -313,7 +313,7 @@ class LessonScheduler {
     const moduleIds = [];
     const savedModules = [];
     let modulesList = outline.modules;
-    
+
     if (!modulesList || !Array.isArray(modulesList) || modulesList.length === 0) {
       modulesList = [
         {
@@ -355,7 +355,7 @@ class LessonScheduler {
     // Update Course model outline reference
     course.modules = moduleIds;
     course.status = 'lessons_generating';
-    
+
     // Calculate progress tracking values
     const totalLessons = savedModules.reduce((acc, sm) => acc + sm.lessonTitles.length, 0);
     course.progress = {
@@ -363,7 +363,7 @@ class LessonScheduler {
       completedLessons: 0,
       currentStatusMessage: 'Curriculum outline saved. Compiling lesson details...'
     };
-    
+
     await course.save();
 
     // Stream outline to SSE client immediately so interface unlocks
@@ -378,7 +378,7 @@ class LessonScheduler {
         isPlaceholder: true
       }))
     }));
-    
+
     this.emitEvent(courseId, 'outline', outlineData);
 
     // Enqueue normal priority lesson jobs
@@ -402,7 +402,7 @@ class LessonScheduler {
             mIdx
           }
         });
-        
+
         // Compile system and user prompts
         job.payload.systemPrompt = 'You are an expert technical writer. You must respond with a raw JSON object matching the requested schema. Do not include markdown code block syntax. Be highly concise and clear.';
         job.payload.userPrompt = getLessonDetailsPrompt(
@@ -491,7 +491,7 @@ class LessonScheduler {
     // Update completed lesson count in DB
     const updatedCourse = await Course.findByIdAndUpdate(
       courseId,
-      { 
+      {
         $inc: { 'progress.completedLessons': 1 },
         'progress.currentStatusMessage': `Generated lesson: "${lessonDoc.title}"`
       },
@@ -503,7 +503,7 @@ class LessonScheduler {
     // If all lessons generated, tie lesson array references to modules in DB
     if (updatedCourse.progress.completedLessons >= updatedCourse.progress.totalLessons) {
       console.log(`[LessonScheduler] All lessons completed for course ${courseId}. Finalizing module linkages...`);
-      
+
       for (const mId of updatedCourse.modules) {
         const moduleLessons = await Lesson.find({ moduleId: mId }).sort({ order: 1 });
         await Module.findByIdAndUpdate(mId, {
