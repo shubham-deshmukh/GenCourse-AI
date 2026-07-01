@@ -1,12 +1,12 @@
 import { GoogleGenAI } from '@google/genai';
+import { getEnvJSON } from '../config/env.js';
 
 let aiInstance;
 const getAI = () => {
   if (!aiInstance) {
     let apiKey = '';
     try {
-      const configString = process.env.LLM_WORKERS_CONFIG || '[]';
-      const configs = JSON.parse(configString);
+      const configs = getEnvJSON('LLM_WORKERS_CONFIG');
       const geminiConfig = configs.find(c => c.provider === 'gemini');
       if (geminiConfig) {
         apiKey = geminiConfig.apiKey;

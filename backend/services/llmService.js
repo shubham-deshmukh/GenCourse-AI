@@ -1,5 +1,5 @@
 import { callGemini } from './geminiService.js';
-import { getEnv } from '../config/env.js';
+import { getEnv, getEnvJSON } from '../config/env.js';
 
 /**
  * Resolve model identifier based on purpose overrides or provider default from .env
@@ -11,8 +11,7 @@ const resolveModel = (purpose) => {
 
   let fallbackModel = 'gemini-1.5-flash';
   try {
-    const configString = process.env.LLM_WORKERS_CONFIG || '[]';
-    const configs = JSON.parse(configString);
+    const configs = getEnvJSON('LLM_WORKERS_CONFIG');
     const geminiConfig = configs.find(c => c.provider === 'gemini');
     if (geminiConfig && geminiConfig.model) {
       fallbackModel = geminiConfig.model;
