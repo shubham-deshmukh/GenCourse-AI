@@ -1,5 +1,5 @@
 import Job from './Job.js';
-import { createWorker } from './WorkerFactory.js';
+import { createWorker } from './workers/WorkerFactory.js';
 import generationEvents from './eventEmitter.js';
 import Course from '../../models/Course.js';
 import Module from '../../models/Module.js';

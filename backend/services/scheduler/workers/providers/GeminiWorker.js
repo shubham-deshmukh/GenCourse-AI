@@ -1,5 +1,5 @@
 import { GoogleGenAI } from '@google/genai';
-import Worker from './Worker.js';
+import Worker from '../Worker.js';
 
 /**
  * Concrete Worker implementation for Google Gemini LLM API.

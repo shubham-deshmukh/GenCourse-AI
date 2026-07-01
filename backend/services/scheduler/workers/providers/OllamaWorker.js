@@ -1,6 +1,5 @@
-import Worker from './Worker.js';
-import { callOllama } from '../ollamaService.js';
-import { getEnv } from '../../config/env.js';
+import Worker from '../Worker.js';
+import { callOllama } from '../../../ollamaService.js';
 
 /**
  * Concrete Worker implementation for local Ollama LLM execution.

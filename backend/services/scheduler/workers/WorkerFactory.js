@@ -1,5 +1,5 @@
-import GeminiWorker from './GeminiWorker.js';
-import OllamaWorker from './OllamaWorker.js';
+import GeminiWorker from './providers/GeminiWorker.js';
+import OllamaWorker from './providers/OllamaWorker.js';
 
 const WORKER_REGISTRY = {
   gemini: GeminiWorker,
