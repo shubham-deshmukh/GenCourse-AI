@@ -1,10 +1,24 @@
 import { GoogleGenAI } from '@google/genai';
-import { getEnv } from '../config/env.js';
 
 let aiInstance;
 const getAI = () => {
   if (!aiInstance) {
-    const apiKey = getEnv('GEMINI_API_KEY');
+    let apiKey = '';
+    try {
+      const configString = process.env.LLM_WORKERS_CONFIG || '[]';
+      const configs = JSON.parse(configString);
+      const geminiConfig = configs.find(c => c.provider === 'gemini');
+      if (geminiConfig) {
+        apiKey = geminiConfig.apiKey;
+      }
+    } catch (err) {
+      console.error('[geminiService] Failed to parse LLM_WORKERS_CONFIG:', err.message);
+    }
+
+    if (!apiKey) {
+      apiKey = process.env.GEMINI_API_KEY || '';
+    }
+
     aiInstance = new GoogleGenAI({ 
       apiKey,
       httpOptions: {

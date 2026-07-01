@@ -2,14 +2,12 @@ import Course from '../models/Course.js';
 import Module from '../models/Module.js';
 import Lesson from '../models/Lesson.js';
 import User from '../models/User.js';
-import { generateCourseOutline, generateLessonDetails } from '../services/courseGenerationService.js';
-import { mapLimit } from '../utils/promiseUtils.js';
+import scheduler from '../services/scheduler/LessonScheduler.js';
+import generationEvents from '../services/scheduler/eventEmitter.js';
 import mongoose from 'mongoose';
 import fs from 'fs';
 import { getEnv } from '../config/env.js';
 
-// Track in-progress course generations to prevent concurrent duplicate generation runs
-const activeGenerations = new Set();
 
 // Pre-seeded template lookup list for fallback matching
 const COURSE_PRESETS = {
@@ -221,7 +219,10 @@ export const createCourse = async (req, res, next) => {
     req.user.enrolledCourses.push(course._id);
     await req.user.save();
 
-    console.log(`🆕 Created new course shell for "${trimmedTitle}": ${course._id}`);
+    // Trigger decoupled background course generation scheduling (non-blocking)
+    scheduler.addCourse(course._id.toString(), trimmedTitle);
+
+    console.log(`🆕 Created new course shell and enqueued generation for "${trimmedTitle}": ${course._id}`);
     res.status(202).json({
       message: 'Course creation initiated',
       courseId: course._id,
@@ -240,27 +241,22 @@ export const createCourse = async (req, res, next) => {
 export const streamCourse = async (req, res, next) => {
   const { id } = req.params;
 
-  if (activeGenerations.has(id)) {
-    console.log(`⚠️ Generation already in progress for course ${id}. Skipping duplicate request.`);
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
-    res.flushHeaders();
-    res.write(`event: status\ndata: ${JSON.stringify({ message: 'Generation already in progress...' })}\n\n`);
-    res.end();
-    return;
-  }
-
-  activeGenerations.add(id);
-
   try {
-    const course = await Course.findById(id);
+    // 1. Query the course document with populated modules and lessons
+    const course = await Course.findById(id).populate({
+      path: 'modules',
+      options: { sort: { order: 1 } },
+      populate: {
+        path: 'lessons',
+        options: { sort: { order: 1 } }
+      }
+    });
+
     if (!course) {
-      activeGenerations.delete(id);
       return res.status(404).json({ message: 'Course not found' });
     }
 
-    // Set headers for Server-Sent Events (SSE)
+    // 2. Establish Server-Sent Events (SSE) connection
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
@@ -270,295 +266,105 @@ export const streamCourse = async (req, res, next) => {
       res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
     };
 
-    console.log(`🔗 Established SSE stream for course: "${course.title}" (${course._id})`);
-    sendEvent('status', { message: 'Generation started' });
+    console.log(`🔗 Established SSE stream connection for course: "${course.title}" (${course._id})`);
+    sendEvent('status', { message: 'Connected to course generation pipeline...' });
 
-    getEnv('GEMINI_API_KEY');
+    // 3. Catch-Up Phase: Send historical outline and completed lessons if already generated
+    if (course.status !== 'outline_generating') {
+      const outlineData = course.toObject();
+      const populatedModules = [];
 
-    console.log(`🤖 Compiling outline for "${course.title}" via LLM...`);
-    sendEvent('status', { message: 'Compiling curriculum outline via LLM...' });
+      for (const mod of course.modules) {
+        const modObj = mod.toObject ? mod.toObject() : mod;
 
-    let cOutline;
-    try {
-      cOutline = await generateCourseOutline(course.title);
-    } catch (err) {
-      console.error('❌ LLM outline generation failed:', err.message);
-      throw new Error(`LLM outline generation failed: ${err.message}`, { cause: err });
-    }
+        // Retrieve completed lessons from MongoDB
+        const completedLessons = await Lesson.find({ moduleId: mod._id }).sort({ order: 1 });
 
-    // Stage 2: Save Course Outline / Modules to DB & Stream
-    console.log(`💾 Saving generated course outline to DB...`);
-    course.title = cOutline.title || course.title;
-    course.description = cOutline.description || `A comprehensive course on ${course.title}.`;
-    
-    // Sanitize resources to avoid validation errors due to missing fields from weaker LLMs
-    let resources = cOutline.resources;
-    if (Array.isArray(resources)) {
-      resources = resources.map((r, idx) => {
-        const name = r.name || `Study_Helper_${idx + 1}.pdf`;
-        const type = r.type || (name.toLowerCase().endsWith('.zip') ? 'ZIP' : 'PDF');
-        const size = r.size || '1.5 MB';
-        return { name, size, type, url: r.url || '' };
-      });
-    } else {
-      resources = [
-        { name: `${course.title.replace(/\s+/g, '_')}_Guide.pdf`, size: '2.5 MB', type: 'PDF' }
-      ];
-    }
-    course.resources = resources;
+        // Retrieve pending/processing lesson jobs from scheduler queue to build placeholder list
+        const pendingJobs = scheduler.queue.filter(
+          j => j.courseId === id &&
+               j.type === 'lesson' &&
+               j.payload.moduleId.toString() === mod._id.toString()
+        );
 
-    // Sanitize quizzes to avoid validation errors
-    let quizzes = cOutline.quizzes;
-    if (Array.isArray(quizzes)) {
-      quizzes = quizzes.map((q, idx) => {
-        const id = q.id || `quiz-${Date.now()}-${idx + 1}`;
-        const question = q.question || `What is a key concept of ${course.title}?`;
-        let options = q.options;
-        if (!Array.isArray(options) || options.length < 2) {
-          options = ['Option A', 'Option B', 'Option C', 'Option D'];
-        } else {
-          options = options.map(opt => typeof opt === 'string' ? opt : String(opt));
+        const lessonsList = [];
+
+        // Add already generated lessons
+        for (const l of completedLessons) {
+          lessonsList.push(l.toObject());
         }
-        let correctIndex = typeof q.correctIndex === 'number' ? q.correctIndex : 0;
-        if (correctIndex < 0 || correctIndex >= options.length) {
-          correctIndex = 0;
+
+        // Add pending lessons as placeholders for the frontend outline
+        for (const job of pendingJobs) {
+          lessonsList.push({
+            title: job.payload.targetLessonTitle,
+            order: job.payload.lIdx,
+            isPlaceholder: true
+          });
         }
-        return {
-          id,
-          question,
-          options,
-          correctIndex,
-          explanation: q.explanation || 'Detailed explanation is not provided.'
-        };
-      });
-    } else {
-      quizzes = [];
-    }
-    course.quizzes = quizzes;
 
-    const moduleIds = [];
-    const savedModules = [];
-
-    // Ensure modules list is valid
-    if (!cOutline.modules || !Array.isArray(cOutline.modules) || cOutline.modules.length === 0) {
-      cOutline.modules = [
-        {
-          title: 'Module 1: Introduction to ' + course.title,
-          lessonTitles: ['1.1 Getting Started', '1.2 Core Concepts']
-        }
-      ];
-    }
-
-    for (let mIdx = 0; mIdx < cOutline.modules.length; mIdx++) {
-      const mData = cOutline.modules[mIdx];
-      const mTitle = mData.title || `Module ${mIdx + 1}: Overview of ${course.title}`;
-      const moduleDoc = new Module({
-        courseId: course._id,
-        title: mTitle,
-        order: mIdx,
-        lessons: []
-      });
-
-      await moduleDoc.save();
-      moduleIds.push(moduleDoc._id);
-
-      let lessonTitles = mData.lessonTitles || mData.lessons?.map(l => l.title) || [];
-      if (!Array.isArray(lessonTitles)) {
-        lessonTitles = [];
-      }
-      lessonTitles = lessonTitles
-        .map(t => typeof t === 'string' ? t.trim() : '')
-        .filter(t => t.length > 0);
-
-      if (lessonTitles.length === 0) {
-        lessonTitles = [`${mIdx + 1}.1 Core Foundations`];
+        // Sort by their sequential order index
+        lessonsList.sort((a, b) => a.order - b.order);
+        modObj.lessons = lessonsList;
+        populatedModules.push(modObj);
       }
 
-      savedModules.push({
-        doc: moduleDoc,
-        lessonTitles: lessonTitles
-      });
+      outlineData.modules = populatedModules;
+
+      // Stream curriculum outline structure to frontend
+      sendEvent('outline', outlineData);
+
+      // Stream individual completed lessons to frontend
+      for (const mod of populatedModules) {
+        for (const lesson of mod.lessons) {
+          if (!lesson.isPlaceholder) {
+            sendEvent('lesson', {
+              moduleId: mod._id,
+              lesson
+            });
+          }
+        }
+      }
     }
 
-    // Retrieve the most up-to-date course document to prevent version mismatch/VersionError
-    const freshCourse = await Course.findById(course._id);
-    if (!freshCourse) {
-      throw new Error(`Course document not found for ID: ${course._id}`);
+    // 4. Handle Terminal Course States
+    if (course.status === 'completed') {
+      sendEvent('complete', course);
+      res.end();
+      return;
     }
 
-    freshCourse.title = course.title;
-    freshCourse.description = course.description;
-    freshCourse.resources = course.resources;
-    freshCourse.quizzes = course.quizzes;
-    freshCourse.modules = moduleIds;
+    if (course.status === 'failed') {
+      sendEvent('error', { message: course.progress.currentStatusMessage || 'Course generation failed.' });
+      res.end();
+      return;
+    }
 
-    await freshCourse.save();
+    // 5. Subscription Phase: Listen for live updates from global scheduler singleton
+    const listener = (event) => {
+      sendEvent(event.type, event.data);
+      if (event.type === 'complete' || event.type === 'error') {
+        res.end();
+        generationEvents.off(`course:${id}`, listener);
+      }
+    };
 
-    // Populate modules for the initial structure
-    const populatedCourse = await Course.findById(course._id).populate({
-      path: 'modules',
-      options: { sort: { order: 1 } }
+    generationEvents.on(`course:${id}`, listener);
+
+    // Safely unsubscribe to prevent memory leaks when client closes/drops the socket
+    req.on('close', () => {
+      console.log(`🔌 SSE stream connection closed for course: ${id}`);
+      generationEvents.off(`course:${id}`, listener);
     });
-
-    const outlineData = populatedCourse.toObject();
-    for (let mIdx = 0; mIdx < outlineData.modules.length; mIdx++) {
-      const mod = outlineData.modules[mIdx];
-      const savedMod = savedModules.find(sm => sm.doc._id.toString() === mod._id.toString());
-      if (savedMod) {
-        mod.lessons = savedMod.lessonTitles.map((title, lIdx) => ({
-          title: title,
-          order: lIdx,
-          isPlaceholder: true
-        }));
-      }
-    }
-
-    sendEvent('outline', outlineData);
-
-    // Stage 3: Generate detailed lesson content for each chapter in parallel with a concurrency limit
-    const lessonTasks = [];
-    for (let mIdx = 0; mIdx < savedModules.length; mIdx++) {
-      const { doc: moduleDoc, lessonTitles } = savedModules[mIdx];
-      for (let lIdx = 0; lIdx < lessonTitles.length; lIdx++) {
-        lessonTasks.push({
-          moduleDoc,
-          lessonTitle: lessonTitles[lIdx],
-          lIdx,
-          mIdx,
-          lessonTitles
-        });
-      }
-    }
-
-    const concurrencyLimit = parseInt(getEnv('CONCURRENT_GENERATION_LIMIT', 2), 10);
-    console.log(`🚀 Processing ${lessonTasks.length} lessons in parallel with concurrency limit of ${concurrencyLimit}...`);
-    sendEvent('status', { message: `Generating all module lessons concurrently...` });
-
-    const generatedResults = await mapLimit(lessonTasks, concurrencyLimit, async (task) => {
-      const { moduleDoc, lessonTitle, lIdx, mIdx, lessonTitles } = task;
-      console.log(`  📖 Generating lesson ${mIdx + 1}.${lIdx + 1}: "${lessonTitle}"...`);
-      sendEvent('status', { message: `Generating lesson: "${lessonTitle}"...` });
-
-      const cleanCourse = { title: course.title, description: course.description };
-      const cleanModule = { title: moduleDoc.title, lessonTitles: lessonTitles };
-
-      let lessonDetails;
-      try {
-        lessonDetails = await generateLessonDetails(cleanCourse, cleanModule, lessonTitle);
-      } catch (err) {
-        console.error(`  ❌ Failed to generate lesson details for "${lessonTitle}":`, err.message);
-        throw new Error(`Failed to generate lesson details for "${lessonTitle}": ${err.message}`, { cause: err });
-      }
-
-      // Save Lesson to DB
-      let content = lessonDetails?.content;
-      if (!content || typeof content !== 'object') {
-        content = {
-          en: `Detailed content for ${lessonTitle} is currently being updated.`,
-          mr: `${lessonTitle} साठी तपशीलवार सामग्री सध्या अद्यतनित केली जात आहे.`,
-          hi: `${lessonTitle} के लिए विस्तृत सामग्री वर्तमान में अपडेट की जा रही है।`
-        };
-      } else {
-        // Make sure required language keys are present
-        if (!content.en) {
-          content.en = `Detailed content for ${lessonTitle} is currently being updated.`;
-        }
-        if (!content.mr) {
-          content.mr = `${lessonTitle} साठी तपशीलवार सामग्री सध्या अद्यतनित केली जात आहे.`;
-        }
-        if (!content.hi) {
-          content.hi = `${lessonTitle} के लिए विस्तृत सामग्री वर्तमान में अपडेट की जा रही है।`;
-        }
-
-        // Clean up duplicate/combined markdown headers (e.g., "## ### Header" -> "## Header")
-        const normalizeHeaders = (text) => {
-          if (typeof text !== 'string') return text;
-          return text.replace(/^(#+)\s+(#+)\s*/gm, (m, p1) => p1 + ' ');
-        };
-        content.en = normalizeHeaders(content.en);
-        content.mr = normalizeHeaders(content.mr);
-        content.hi = normalizeHeaders(content.hi);
-
-        // If not a programming course, strip any accidentally generated code blocks or placeholders
-        const isProgramming = /react|hook|js|javascript|typescript|code|programming|developer|software|coding|python|java|html|css|sql|rust|c\+\+/i.test(course.title);
-        if (!isProgramming) {
-          const stripCodeBlocks = (text) => {
-            if (typeof text !== 'string') return text;
-            let cleaned = text.replace(/```[a-z]*[\s\S]*?```/g, '');
-            cleaned = cleaned.replace(/###?\s*Code\s*Block\s*\(Optional\):?/gi, '');
-            cleaned = cleaned.replace(/###?\s*Code\s*Block:?/gi, '');
-            cleaned = cleaned.replace(/Code\s*Block\s*\(Optional\):?/gi, '');
-            cleaned = cleaned.replace(/Code\s*Block:?/gi, '');
-            return cleaned.trim().replace(/\n{3,}/g, '\n\n');
-          };
-          content.en = stripCodeBlocks(content.en);
-          content.mr = stripCodeBlocks(content.mr);
-          content.hi = stripCodeBlocks(content.hi);
-        }
-      }
-
-      const lessonDoc = new Lesson({
-        moduleId: moduleDoc._id,
-        title: lessonDetails?.title || lessonTitle,
-        content: content,
-        objectives: lessonDetails?.objectives || [],
-        videoSearchQuery: lessonDetails?.videoSearchQuery || '',
-        script: lessonDetails?.script || '',
-        videoSlide: lessonDetails?.videoSlide || '',
-        order: lIdx
-      });
-
-      await lessonDoc.save();
-
-      // Stream this generated lesson directly to the client immediately
-      sendEvent('lesson', {
-        moduleId: moduleDoc._id,
-        lesson: lessonDoc
-      });
-
-      return {
-        moduleId: moduleDoc._id,
-        lessonId: lessonDoc._id,
-        order: lIdx
-      };
-    });
-
-    // Update modules lessons list in DB after all parallel generation tasks complete
-    // to prevent mongoose concurrent update VersionError
-    for (const { doc: moduleDoc } of savedModules) {
-      const moduleLessons = generatedResults
-        .filter((res) => res.moduleId.toString() === moduleDoc._id.toString())
-        .sort((a, b) => a.order - b.order)
-        .map((res) => res.lessonId);
-
-      moduleDoc.lessons = moduleLessons;
-      await moduleDoc.save();
-    }
-
-    // Final populated course to finalize SSE connection
-    const finalCourse = await Course.findById(course._id).populate({
-      path: 'modules',
-      options: { sort: { order: 1 } },
-      populate: {
-        path: 'lessons',
-        options: { sort: { order: 1 } }
-      }
-    });
-
-    console.log(`✅ Fully generated course "${course.title}" and saved to DB.`);
-    sendEvent('complete', finalCourse);
-    res.end();
 
   } catch (error) {
-    console.error('❌ SSE Course Generation Error:', error);
+    console.error('❌ SSE Course Stream Connection Error:', error);
     if (res.headersSent) {
       res.write(`event: error\ndata: ${JSON.stringify({ message: error.message })}\n\n`);
       res.end();
     } else {
       next(error);
     }
-  } finally {
-    activeGenerations.delete(id);
   }
 };
 

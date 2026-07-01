@@ -2,7 +2,7 @@ import { generateContent } from './llmService.js';
 import { parseJSONSafely } from '../utils/jsonUtils.js';
 
 // Course outline prompt template
-const getCourseOutlinePrompt = (topic) => `You are an expert curriculum designer and educator.
+export const getCourseOutlinePrompt = (topic) => `You are an expert curriculum designer and educator.
 Your task is to design a comprehensive introductory course syllabus on the topic: "${topic}".
 
 Generate the output in strict JSON format matching the schema below.
@@ -39,7 +39,7 @@ Constraints:
 4. All JSON keys and strings must be enclosed in double quotes. Ensure valid JSON format.`;
 
 // Lesson details prompt template
-const getLessonDetailsPrompt = (course, module, targetLessonTitle) => `You are an expert technical writer and online instructor.
+export const getLessonDetailsPrompt = (course, module, targetLessonTitle) => `You are an expert technical writer and online instructor.
 Your task is to write detailed educational content for a specific lesson within an existing course.
 
 Context of the Course:

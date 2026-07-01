@@ -8,7 +8,20 @@ import { getEnv } from '../config/env.js';
  */
 const resolveModel = (purpose) => {
   const purposeModelEnvKey = `${purpose.toUpperCase()}_LLM_MODEL`;
-  return getEnv(purposeModelEnvKey, getEnv('GEMINI_MODEL'));
+
+  let fallbackModel = 'gemini-1.5-flash';
+  try {
+    const configString = process.env.LLM_WORKERS_CONFIG || '[]';
+    const configs = JSON.parse(configString);
+    const geminiConfig = configs.find(c => c.provider === 'gemini');
+    if (geminiConfig && geminiConfig.model) {
+      fallbackModel = geminiConfig.model;
+    }
+  } catch {
+    // Ignore parsing issues
+  }
+
+  return getEnv(purposeModelEnvKey, process.env.GEMINI_MODEL || fallbackModel);
 };
 
 /**

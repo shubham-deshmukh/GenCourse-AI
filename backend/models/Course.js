@@ -65,7 +65,26 @@ const courseSchema = new mongoose.Schema(
       }
     ],
     resources: [resourceSchema],
-    quizzes: [quizQuestionSchema]
+    quizzes: [quizQuestionSchema],
+    status: {
+      type: String,
+      enum: ['outline_generating', 'lessons_generating', 'completed', 'failed'],
+      default: 'outline_generating'
+    },
+    progress: {
+      totalLessons: {
+        type: Number,
+        default: 0
+      },
+      completedLessons: {
+        type: Number,
+        default: 0
+      },
+      currentStatusMessage: {
+        type: String,
+        default: ''
+      }
+    }
   },
   {
     timestamps: true
