@@ -1,9 +1,11 @@
 import GeminiWorker from './providers/GeminiWorker.js';
 import OllamaWorker from './providers/OllamaWorker.js';
+import CerebrasWorker from './providers/CerebrasWorker.js';
 
 const WORKER_REGISTRY = {
   gemini: GeminiWorker,
-  ollama: OllamaWorker
+  ollama: OllamaWorker,
+  cerebras: CerebrasWorker
 };
 
 /**

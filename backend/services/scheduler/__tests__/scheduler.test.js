@@ -769,7 +769,7 @@ function primaryWorkerCooldownPruningHelper(worker) {
 test('LessonScheduler - Dynamic Worker Instantiation from LLM_WORKERS_CONFIG', () => {
   const originalConfig = process.env.LLM_WORKERS_CONFIG;
 
-  // Set mock configuration with one Gemini worker and one Ollama worker
+  // Set mock configuration with Gemini, Ollama, and Cerebras workers
   process.env.LLM_WORKERS_CONFIG = JSON.stringify([
     {
       provider: 'gemini',
@@ -784,6 +784,13 @@ test('LessonScheduler - Dynamic Worker Instantiation from LLM_WORKERS_CONFIG', (
       baseUrl: 'http://127.0.0.1:11434',
       model: 'llama3',
       maxConcurrency: 3
+    },
+    {
+      provider: 'cerebras',
+      name: 'TestCerebrasWorker',
+      apiKey: 'cerebras-key-456',
+      model: 'gpt-oss-120b',
+      maxConcurrency: 2
     }
   ]);
 
@@ -791,7 +798,7 @@ test('LessonScheduler - Dynamic Worker Instantiation from LLM_WORKERS_CONFIG', (
   const tempScheduler = new TempSchedulerClass();
 
   // Verify workers loaded correctly
-  assert.strictEqual(tempScheduler.workers.length, 2);
+  assert.strictEqual(tempScheduler.workers.length, 3);
 
   const geminiWorker = tempScheduler.workers[0];
   assert.strictEqual(geminiWorker.name, 'TestGeminiWorker');
@@ -806,6 +813,13 @@ test('LessonScheduler - Dynamic Worker Instantiation from LLM_WORKERS_CONFIG', (
   assert.strictEqual(ollamaWorker.maxConcurrency, 3);
   assert.strictEqual(ollamaWorker.baseUrl, 'http://127.0.0.1:11434');
   assert.strictEqual(ollamaWorker.model, 'llama3');
+
+  const cerebrasWorker = tempScheduler.workers[2];
+  assert.strictEqual(cerebrasWorker.name, 'TestCerebrasWorker');
+  assert.strictEqual(cerebrasWorker.provider, 'cerebras');
+  assert.strictEqual(cerebrasWorker.maxConcurrency, 2);
+  assert.strictEqual(cerebrasWorker.apiKey, 'cerebras-key-456');
+  assert.strictEqual(cerebrasWorker.model, 'gpt-oss-120b');
 
   // Clean up
   clearInterval(tempScheduler.intervalId);
