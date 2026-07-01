@@ -58,7 +58,9 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           script: |
-            cd /opt/gencourse-ai/backend
+            cd /opt/gencourse-ai
+            git pull origin main
+            cd backend
             
             # Login to GitHub Container Registry on VPS
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
