@@ -6,6 +6,8 @@ on:
       - main
     paths:
       - 'backend/**'
+      - '.github/workflows/docker-deploy.yml'
+  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
