@@ -22,8 +22,8 @@ export const callOllama = async ({
   maxTokens = 2048,
   timeout = 30000
 }) => {
-  const ollamaBaseUrl = getEnv('OLLAMA_BASE_URL');
-  const ollamaModel = model || getEnv('OLLAMA_MODEL');
+  const ollamaBaseUrl = getEnv('OLLAMA_BASE_URL', 'http://localhost:11434');
+  const ollamaModel = model || getEnv('OLLAMA_MODEL', 'qwen2.5:1.5b-instruct');
 
 
   const messages = [];
