@@ -1,5 +1,4 @@
 import { GoogleGenAI } from '@google/genai';
-import { getEnv } from '../config/env.js';
 
 let aiInstance;
 const getAI = () => {

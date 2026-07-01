@@ -60,7 +60,7 @@ export default class CerebrasWorker extends Worker {
       return contentText;
     } catch (error) {
       const errorMsg = error.response?.data?.error?.message || error.message;
-      throw new Error(`Cerebras API error: ${errorMsg}`);
+      throw new Error(`Cerebras API error: ${errorMsg}`, { cause: error });
     }
   }
 

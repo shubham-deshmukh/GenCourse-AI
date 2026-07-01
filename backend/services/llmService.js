@@ -17,7 +17,7 @@ const resolveModel = (purpose) => {
     if (geminiConfig && geminiConfig.model) {
       fallbackModel = geminiConfig.model;
     }
-  } catch (err) {
+  } catch {
     // Ignore parsing issues
   }
 
