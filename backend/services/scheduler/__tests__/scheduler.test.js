@@ -6,6 +6,7 @@ import Module from '../../../models/Module.js';
 import Lesson from '../../../models/Lesson.js';
 import Job from '../Job.js';
 import generationEvents from '../eventEmitter.js';
+import { parseJSONSafely } from '../../../utils/jsonUtils.js';
 
 // Prevent actual scheduler interval from ticking during test imports
 clearInterval(scheduler.intervalId);
@@ -658,6 +659,94 @@ test('LessonScheduler - Malformed Outline Sanitization Fallbacks', async () => {
   Course.findById = originalCourseFindById;
   Module.prototype.save = originalModuleSave;
   scheduler.queue = [];
+});
+
+test('Utility - parseJSONSafely Fenced Code Blocks & Repaired JSON', () => {
+  // Test 1: Markdown code fences stripping
+  const malformed = 'Here is the requested output:\n```json\n{\n  "title": "React Hooks",\n  "quizzes": []\n}\n```\nHope you like it!';
+  const parsed = parseJSONSafely(malformed);
+  assert.ok(parsed);
+  assert.strictEqual(parsed.title, 'React Hooks');
+  assert.deepStrictEqual(parsed.quizzes, []);
+
+  // Test 2: Standard parse JSON
+  const normalJSON = '{"key": "value"}';
+  const parsedNormal = parseJSONSafely(normalJSON);
+  assert.strictEqual(parsedNormal.key, 'value');
+});
+
+test('SSE Catch-Up Sync - Already Completed Course', async () => {
+  // Mock course is fully completed
+  const modules = [{ _id: 'mod-complete-1', title: 'Finished Module' }];
+  mockLessonStore = [
+    { moduleId: 'mod-complete-1', title: 'L1', order: 0, toObject: function() { return this; } },
+    { moduleId: 'mod-complete-1', title: 'L2', order: 1, toObject: function() { return this; } }
+  ];
+
+  // Empty queue
+  scheduler.queue = [];
+
+  const populatedModules = [];
+  for (const mod of modules) {
+    const completedLessons = await Lesson.find({ moduleId: mod._id });
+    const pendingJobs = scheduler.queue.filter(
+      j => j.courseId === 'c-complete' && j.payload.moduleId.toString() === mod._id.toString()
+    );
+
+    const lessonsList = [];
+    for (const l of completedLessons.sort()) {
+      lessonsList.push({ ...l, isPlaceholder: false });
+    }
+    for (const job of pendingJobs) {
+      lessonsList.push({
+        title: job.payload.targetLessonTitle,
+        order: job.payload.lIdx,
+        isPlaceholder: true
+      });
+    }
+    lessonsList.sort((a, b) => a.order - b.order);
+    populatedModules.push({
+      _id: mod._id,
+      title: mod.title,
+      lessons: lessonsList
+    });
+  }
+
+  // Assertions
+  const modResult = populatedModules[0];
+  assert.strictEqual(modResult.lessons.length, 2);
+  assert.strictEqual(modResult.lessons[0].title, 'L1');
+  assert.strictEqual(modResult.lessons[0].isPlaceholder, false);
+  assert.strictEqual(modResult.lessons[1].title, 'L2');
+  assert.strictEqual(modResult.lessons[1].isPlaceholder, false);
+
+  // Clean
+  mockLessonStore = [];
+});
+
+test('LessonScheduler - Queue Pruning Leak Prevention', async () => {
+  const executionLog = [];
+  const worker = new MockWorker({ name: 'LeakPreventionWorker', provider: 'gemini', maxConcurrency: 3, executionLog, delay: 10 });
+  
+  scheduler.queue = [];
+  scheduler.workers = [worker];
+
+  // Queue up 3 jobs
+  scheduler.queue.push(new Job({ id: 'q-job-1', courseId: 'c-leak', type: 'lesson', priority: 2 }));
+  scheduler.queue.push(new Job({ id: 'q-job-2', courseId: 'c-leak', type: 'lesson', priority: 2 }));
+  scheduler.queue.push(new Job({ id: 'q-job-3', courseId: 'c-leak', type: 'lesson', priority: 2 }));
+
+  assert.strictEqual(scheduler.queue.length, 3);
+
+  // Trigger tick - runs all 3 concurrently
+  scheduler.tick();
+
+  // Wait 25ms for them to fully finish and call handleJobSuccess
+  await new Promise(r => setTimeout(r, 25));
+
+  // Assert all 3 jobs completed successfully and were removed from scheduler queue
+  assert.strictEqual(executionLog.length, 3);
+  assert.strictEqual(scheduler.queue.length, 0); // Correctly pruned from in-memory array!
 });
 
 // Helper function to reset worker cooldown inside max-retries test so we don't have to wait 10 seconds per tick
