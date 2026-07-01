@@ -20,6 +20,23 @@ Course.findByIdAndUpdate = async (id, update) => {
   };
 };
 
+// We create a global memory store for Mock Lessons to support the Catch-Up Sync Mapper test
+let mockLessonStore = [];
+
+Lesson.find = async (query) => {
+  if (query && query.moduleId) {
+    const moduleIdStr = query.moduleId.$in 
+      ? query.moduleId.$in.map(id => id.toString()) 
+      : [query.moduleId.toString()];
+    
+    const results = mockLessonStore.filter(l => moduleIdStr.includes(l.moduleId.toString()));
+    return {
+      sort: () => results.sort((a, b) => a.order - b.order)
+    };
+  }
+  return { sort: () => [] };
+};
+
 Course.findById = async (id) => {
   return {
     _id: id,
@@ -27,7 +44,7 @@ Course.findById = async (id) => {
     description: 'A mock course description',
     status: 'outline_generating',
     progress: { completedLessons: 0, totalLessons: 0 },
-    modules: [],
+    modules: [{ _id: 'mod-1', title: 'Mock Module 1' }],
     toObject: function() { return this; },
     save: async () => {}
   };
@@ -46,7 +63,7 @@ Lesson.prototype.save = async function() {
 
 // 2. Define Mock Worker class
 class MockWorker {
-  constructor({ name, provider, maxConcurrency = 1, delay = 10, executionLog }) {
+  constructor({ name, provider, maxConcurrency = 1, delay = 10, executionLog, shouldFail = false }) {
     this.name = name;
     this.provider = provider;
     this.maxConcurrency = maxConcurrency;
@@ -54,6 +71,7 @@ class MockWorker {
     this.coolDownUntil = null;
     this.delay = delay;
     this.executionLog = executionLog;
+    this.shouldFail = shouldFail;
   }
 
   isAvailable() {
@@ -68,7 +86,14 @@ class MockWorker {
   async execute(job) {
     this.activeJobsCount++;
     job.start();
-    this.executionLog.push(job.id);
+    this.executionLog.push(`${this.name}:${job.id}`);
+
+    if (this.shouldFail) {
+      this.activeJobsCount--;
+      job.fail(new Error('Rate limit exceeded'));
+      this.coolDown(10000); // 10 seconds cooldown
+      throw new Error('Rate limit exceeded');
+    }
 
     return new Promise((resolve) => {
       setTimeout(() => {
@@ -83,7 +108,6 @@ class MockWorker {
 // 3. Test Cases
 test('LessonScheduler - Priority Sorting (Outlines first)', async () => {
   const executionLog = [];
-  // Use a longer delay of 50ms so the outline job doesn't finish and trigger next ticks before we assert
   const worker = new MockWorker({ name: 'TestWorker', provider: 'gemini', maxConcurrency: 1, executionLog, delay: 50 });
   
   // Reset scheduler state
@@ -104,7 +128,7 @@ test('LessonScheduler - Priority Sorting (Outlines first)', async () => {
   await new Promise(r => setTimeout(r, 5));
 
   // Assert outline-C was run first
-  assert.strictEqual(executionLog[0], 'outline-C');
+  assert.strictEqual(executionLog[0], 'TestWorker:outline-C');
   assert.strictEqual(executionLog.length, 1); // Only 1 job runs since worker concurrency is 1
 
   // Wait for the job to complete fully to avoid leaking state into next tests
@@ -135,7 +159,13 @@ test('LessonScheduler - Round-Robin Fair-Share by Course', async () => {
   await new Promise(r => setTimeout(r, 5));
 
   // The order should alternate between Course A and Course B (A1 -> B1 -> A2 -> B2 -> A3)
-  assert.deepStrictEqual(executionLog, ['A1', 'B1', 'A2', 'B2', 'A3']);
+  assert.deepStrictEqual(executionLog, [
+    'ParallelWorker:A1', 
+    'ParallelWorker:B1', 
+    'ParallelWorker:A2', 
+    'ParallelWorker:B2', 
+    'ParallelWorker:A3'
+  ]);
 
   // Wait for completion to clean queue
   await new Promise(r => setTimeout(r, 15));
@@ -144,7 +174,6 @@ test('LessonScheduler - Round-Robin Fair-Share by Course', async () => {
 
 test('LessonScheduler - Global Concurrency Limits', async () => {
   const executionLog = [];
-  // Concurrency limit = 2
   const worker = new MockWorker({ name: 'ThrottledWorker', provider: 'gemini', maxConcurrency: 2, executionLog, delay: 50 });
   
   scheduler.queue = [];
@@ -184,3 +213,150 @@ test('LessonScheduler - Global Concurrency Limits', async () => {
   // Clean queue
   scheduler.queue = [];
 });
+
+test('LessonScheduler - Worker Cooldown and Provider Failover', async () => {
+  const executionLog = [];
+  
+  // Primary worker shouldFail = true, triggering cooldown
+  const primaryWorker = new MockWorker({ name: 'GeminiWorker', provider: 'gemini', maxConcurrency: 1, executionLog, shouldFail: true });
+  // Fallback worker shouldFail = false, will succeed
+  const fallbackWorker = new MockWorker({ name: 'OllamaWorker', provider: 'ollama', maxConcurrency: 1, executionLog, shouldFail: false });
+  
+  scheduler.queue = [];
+  scheduler.workers = [primaryWorker, fallbackWorker];
+
+  // Enqueue a job and keep a direct reference in our test scope to assert status
+  const job = new Job({ id: 'failover-job', courseId: 'c1', type: 'lesson', priority: 2 });
+  scheduler.queue.push(job);
+
+  // Run tick. This will:
+  // 1. Dispatch job to GeminiWorker (primary).
+  // 2. GeminiWorker fails, increments job.retries to 1, sets job.status to 'pending', and goes into cooldown.
+  // 3. The dispatch's finally block immediately calls tick() again.
+  // 4. Gemini is in cooldown, so it dispatches the job to OllamaWorker.
+  scheduler.tick();
+
+  // Wait for both sequential dispatch pipelines to fully execute (approx 15ms)
+  await new Promise(r => setTimeout(r, 15));
+
+  // Assert that GeminiWorker was targeted first and entered cooldown
+  assert.strictEqual(executionLog[0], 'GeminiWorker:failover-job');
+  assert.notStrictEqual(primaryWorker.coolDownUntil, null);
+
+  // Assert that OllamaWorker was targeted second and completed the job
+  assert.strictEqual(executionLog[1], 'OllamaWorker:failover-job');
+  
+  // Assert the final status of our job reference shows successful completion with exactly 1 retry
+  assert.strictEqual(job.status, 'completed');
+  assert.strictEqual(job.retries, 1);
+  
+  // Clean queue
+  scheduler.queue = [];
+});
+
+test('LessonScheduler - Max Retries Exhaustion and Queue Pruning', async () => {
+  const executionLog = [];
+  const failingWorker = new MockWorker({ name: 'FailedWorker', provider: 'gemini', maxConcurrency: 1, executionLog, shouldFail: true });
+  
+  scheduler.queue = [];
+  scheduler.workers = [failingWorker];
+
+  // Enqueue 2 jobs for the same course to test pruning of remaining course tasks upon fatal failure
+  scheduler.queue.push(new Job({ id: 'fatal-job', courseId: 'c-failed', type: 'lesson', priority: 2, maxRetries: 3 }));
+  scheduler.queue.push(new Job({ id: 'pruned-job', courseId: 'c-failed', type: 'lesson', priority: 2 }));
+
+  // Trigger tick 1 -> Fail (Retry 1)
+  scheduler.tick();
+  await new Promise(r => setTimeout(r, 5));
+  primaryWorkerCooldownPruningHelper(failingWorker);
+
+  // Trigger tick 2 -> Fail (Retry 2)
+  scheduler.tick();
+  await new Promise(r => setTimeout(r, 5));
+  primaryWorkerCooldownPruningHelper(failingWorker);
+
+  // Trigger tick 3 -> Fail (Retry 3 -> Fatal failure)
+  scheduler.tick();
+  await new Promise(r => setTimeout(r, 5));
+
+  // Assert that all jobs for this course were pruned from the queue
+  assert.strictEqual(scheduler.queue.length, 0);
+
+  // Assert the job failed 3 times
+  assert.deepStrictEqual(executionLog, [
+    'FailedWorker:fatal-job',
+    'FailedWorker:fatal-job',
+    'FailedWorker:fatal-job'
+  ]);
+});
+
+test('SSE Catch-Up Sync Mapper (Reconnection mapping logic)', async () => {
+  // Populate mock database lessons
+  mockLessonStore = [
+    { moduleId: 'mod-1', title: 'Lesson 1', order: 0, toObject: function() { return this; } }
+  ];
+
+  scheduler.queue = [];
+  
+  // Enqueue a pending job in scheduler queue to act as a placeholder
+  scheduler.queue.push(new Job({
+    id: 'lesson-c1-mod-1-1',
+    courseId: 'c1',
+    type: 'lesson',
+    priority: 2,
+    payload: { moduleId: 'mod-1', targetLessonTitle: 'Lesson 2', lIdx: 1 }
+  }));
+
+  // Replicate course catch-up mapping logic
+  const modules = [{ _id: 'mod-1', title: 'Mock Module 1' }];
+  const populatedModules = [];
+
+  for (const mod of modules) {
+    const completedLessons = await Lesson.find({ moduleId: mod._id });
+    const pendingJobs = scheduler.queue.filter(
+      j => j.courseId === 'c1' &&
+           j.type === 'lesson' &&
+           j.payload.moduleId.toString() === mod._id.toString()
+    );
+
+    const lessonsList = [];
+    for (const l of completedLessons.sort()) { // completing lessons
+      lessonsList.push({ ...l, isPlaceholder: false });
+    }
+    for (const job of pendingJobs) {
+      lessonsList.push({
+        title: job.payload.targetLessonTitle,
+        order: job.payload.lIdx,
+        isPlaceholder: true
+      });
+    }
+
+    lessonsList.sort((a, b) => a.order - b.order);
+    populatedModules.push({
+      _id: mod._id,
+      title: mod.title,
+      lessons: lessonsList
+    });
+  }
+
+  // Assertions
+  const moduleResult = populatedModules[0];
+  assert.strictEqual(moduleResult.lessons.length, 2);
+  
+  // Assert completed lesson is not a placeholder
+  assert.strictEqual(moduleResult.lessons[0].title, 'Lesson 1');
+  assert.strictEqual(moduleResult.lessons[0].isPlaceholder, false);
+  
+  // Assert pending job is represented as a placeholder in correct sequential order
+  assert.strictEqual(moduleResult.lessons[1].title, 'Lesson 2');
+  assert.strictEqual(moduleResult.lessons[1].isPlaceholder, true);
+
+  // Clean queue and mock DB
+  scheduler.queue = [];
+  mockLessonStore = [];
+});
+
+// Helper function to reset worker cooldown inside max-retries test so we don't have to wait 10 seconds per tick
+function primaryWorkerCooldownPruningHelper(worker) {
+  worker.coolDownUntil = null;
+}
