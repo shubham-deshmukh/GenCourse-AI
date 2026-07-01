@@ -30,19 +30,12 @@ services:
       - NODE_ENV=${NODE_ENV:-development}
       - MONGO_URI=mongodb://${MONGO_ROOT_USER}:${MONGO_ROOT_PASSWORD}@mongodb:27017/gencourse_ai?authSource=admin
       # External dependencies loaded from host .env file
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - GEMINI_MODEL=${GEMINI_MODEL}
+      - LLM_WORKERS_CONFIG=${LLM_WORKERS_CONFIG}
       - JWT_SECRET=${JWT_SECRET}
       - FRONTEND_URL=${FRONTEND_URL}
       - AUTH0_CLIENT_ID=${AUTH0_CLIENT_ID}
       - AUTH0_CLIENT_SECRET=${AUTH0_CLIENT_SECRET}
       - AUTH0_ISSUER_BASE_URL=${AUTH0_ISSUER_BASE_URL}
-      - CONCURRENT_GENERATION_LIMIT=${CONCURRENT_GENERATION_LIMIT}
-      - OUTLINE_LLM_MODEL=${OUTLINE_LLM_MODEL}
-      - LESSON_LLM_MODEL=${LESSON_LLM_MODEL}
-      - CHAT_LLM_MODEL=${CHAT_LLM_MODEL}
-      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL}
-      - OLLAMA_MODEL=${OLLAMA_MODEL}
     depends_on:
       - mongodb
     networks:
