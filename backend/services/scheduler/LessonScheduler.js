@@ -68,13 +68,22 @@ class LessonScheduler {
    * Core scheduling execution loop
    */
   tick() {
-    // 1. Identify active available workers
-    const availableWorkers = this.workers.filter(w => w.isAvailable());
-    if (availableWorkers.length === 0) return;
+    // 1. Identify all available execution slots
+    const availableSlots = [];
+    for (const worker of this.workers) {
+      const freeSlots = worker.maxConcurrency - worker.activeJobsCount;
+      if (freeSlots > 0 && worker.isAvailable()) {
+        for (let i = 0; i < freeSlots; i++) {
+          availableSlots.push(worker);
+        }
+      }
+    }
 
-    // Sort available workers to ensure primary provider is chosen first
+    if (availableSlots.length === 0) return;
+
+    // Sort available slots to ensure primary provider is chosen first
     const primaryProvider = getEnv('PRIMARY_LLM_PROVIDER', 'gemini');
-    availableWorkers.sort((a, b) => {
+    availableSlots.sort((a, b) => {
       if (a.provider === primaryProvider && b.provider !== primaryProvider) return -1;
       if (a.provider !== primaryProvider && b.provider === primaryProvider) return 1;
       return 0;
@@ -84,37 +93,51 @@ class LessonScheduler {
     const pendingJobs = this.queue.filter(j => j.status === 'pending');
     if (pendingJobs.length === 0) return;
 
-    // 3. Process High Priority Jobs (Outlines) first in FIFO order
+    // 3. Separate high (Priority 1) and normal (Priority 2) jobs
     const highPriorityJobs = pendingJobs.filter(j => j.priority === 1);
-    while (highPriorityJobs.length > 0 && availableWorkers.length > 0) {
-      const job = highPriorityJobs.shift();
-      const worker = availableWorkers.shift();
+    const normalPriorityJobs = pendingJobs.filter(j => j.priority === 2);
+
+    // 4. Interleave normal-priority jobs to ensure fair-share round-robin across courses
+    const interleavedNormalJobs = this.interleaveJobs(normalPriorityJobs);
+
+    // Combine them: High priority first, followed by interleaved normal priority
+    const executionOrder = [...highPriorityJobs, ...interleavedNormalJobs];
+
+    // 5. Dispatch jobs to available slots
+    while (executionOrder.length > 0 && availableSlots.length > 0) {
+      const job = executionOrder.shift();
+      const worker = availableSlots.shift();
+      
+      // Update job status synchronously inside the loop to prevent concurrent re-selection
+      job.status = 'processing';
       this.dispatch(job, worker);
     }
+  }
 
-    // 4. Process Normal Priority Jobs (Lessons) using Round-Robin by Course
-    const normalPriorityJobs = pendingJobs.filter(j => j.priority === 2);
-    if (normalPriorityJobs.length > 0 && availableWorkers.length > 0) {
-      const groupedJobs = this.groupByCourse(normalPriorityJobs);
-      const courseIds = Object.keys(groupedJobs);
-
-      let courseIdx = 0;
-      while (availableWorkers.length > 0 && courseIds.length > 0) {
-        const activeCourseId = courseIds[courseIdx % courseIds.length];
-        const courseJobs = groupedJobs[activeCourseId];
-
-        if (courseJobs.length > 0) {
-          const job = courseJobs.shift();
-          const worker = availableWorkers.shift();
-          this.dispatch(job, worker);
-        } else {
-          // Remove course from active queue list if no jobs remain
-          courseIds.splice(courseIdx % courseIds.length, 1);
-          continue;
+  /**
+   * Interleaves jobs from different courses to implement Round-Robin scheduling
+   * @param {Job[]} jobs 
+   * @returns {Job[]}
+   */
+  interleaveJobs(jobs) {
+    const grouped = this.groupByCourse(jobs);
+    const courseIds = Object.keys(grouped);
+    const interleaved = [];
+    
+    let maxJobs = 0;
+    courseIds.forEach(id => {
+      maxJobs = Math.max(maxJobs, grouped[id].length);
+    });
+    
+    for (let i = 0; i < maxJobs; i++) {
+      for (const courseId of courseIds) {
+        if (grouped[courseId][i]) {
+          interleaved.push(grouped[courseId][i]);
         }
-        courseIdx++;
       }
     }
+    
+    return interleaved;
   }
 
   /**
