@@ -6,7 +6,7 @@ import Module from '../../models/Module.js';
 import Lesson from '../../models/Lesson.js';
 import { getCourseOutlinePrompt, getLessonDetailsPrompt } from '../courseGenerationService.js';
 import { parseJSONSafely } from '../../utils/jsonUtils.js';
-import { getEnv } from '../../config/env.js';
+import { getEnvJSON } from '../../config/env.js';
 
 /**
  * Singleton Coordinator managing course generation job orchestration,
@@ -16,10 +16,9 @@ class LessonScheduler {
   constructor() {
     this.queue = [];
 
-    const configString = getEnv('LLM_WORKERS_CONFIG', '[]');
     let configs = [];
     try {
-      configs = JSON.parse(configString);
+      configs = getEnvJSON('LLM_WORKERS_CONFIG');
     } catch (err) {
       console.error('[LessonScheduler] Failed to parse LLM_WORKERS_CONFIG:', err.message);
     }

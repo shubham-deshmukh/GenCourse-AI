@@ -23,6 +23,25 @@ export const getEnv = (key, defaultValue = undefined) => {
   return value;
 };
 
+/**
+ * Safely parses a JSON string from environment variables, stripping outer quotes if present.
+ * 
+ * @param {string} key - The environment variable name.
+ * @param {string} [defaultJSON='[]'] - Default JSON string if missing.
+ * @returns {any} The parsed JSON object/array.
+ */
+export const getEnvJSON = (key, defaultJSON = '[]') => {
+  let value = process.env[key] || defaultJSON;
+  value = value.trim();
+  if (
+    (value.startsWith("'") && value.endsWith("'")) ||
+    (value.startsWith('"') && value.endsWith('"'))
+  ) {
+    value = value.slice(1, -1).trim();
+  }
+  return JSON.parse(value);
+};
+
 // Validate required environment variables immediately on load
 const REQUIRED_ENV_VARS = [
   'MONGO_URI',

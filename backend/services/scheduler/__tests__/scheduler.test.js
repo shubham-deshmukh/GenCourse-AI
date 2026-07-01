@@ -7,6 +7,7 @@ import Lesson from '../../../models/Lesson.js';
 import Job from '../Job.js';
 import generationEvents from '../eventEmitter.js';
 import { parseJSONSafely } from '../../../utils/jsonUtils.js';
+import { getEnvJSON } from '../../../config/env.js';
 
 // Prevent actual scheduler interval from ticking during test imports
 clearInterval(scheduler.intervalId);
@@ -823,5 +824,27 @@ test('LessonScheduler - Dynamic Worker Instantiation from LLM_WORKERS_CONFIG', (
 
   // Clean up
   clearInterval(tempScheduler.intervalId);
+  process.env.LLM_WORKERS_CONFIG = originalConfig;
+});
+
+test('Utility - getEnvJSON Safe Quote Stripping', () => {
+  const originalConfig = process.env.LLM_WORKERS_CONFIG;
+
+  // Test 1: Single quotes wrapping
+  process.env.LLM_WORKERS_CONFIG = `'[{"provider":"gemini"}]'`;
+  let parsed = getEnvJSON('LLM_WORKERS_CONFIG');
+  assert.strictEqual(parsed[0].provider, 'gemini');
+
+  // Test 2: Double quotes wrapping
+  process.env.LLM_WORKERS_CONFIG = `"[{"provider":"ollama"}]"`;
+  parsed = getEnvJSON('LLM_WORKERS_CONFIG');
+  assert.strictEqual(parsed[0].provider, 'ollama');
+
+  // Test 3: Standard unquoted JSON
+  process.env.LLM_WORKERS_CONFIG = `[{"provider":"cerebras"}]`;
+  parsed = getEnvJSON('LLM_WORKERS_CONFIG');
+  assert.strictEqual(parsed[0].provider, 'cerebras');
+
+  // Clean up
   process.env.LLM_WORKERS_CONFIG = originalConfig;
 });
