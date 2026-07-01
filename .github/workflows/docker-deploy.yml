@@ -70,8 +70,8 @@ jobs:
             # Pull latest image
             docker compose pull gencourse-backend
             
-            # Recreate containers with new image
-            docker compose up -d
+            # Recreate containers with new image (forcing recreate to bypass Docker caching)
+            docker compose up -d --force-recreate
             
             # Clean up older unused docker images
             docker image prune -f
