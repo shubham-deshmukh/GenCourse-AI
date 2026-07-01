@@ -845,6 +845,11 @@ test('Utility - getEnvJSON Safe Quote Stripping', () => {
   parsed = getEnvJSON('LLM_WORKERS_CONFIG');
   assert.strictEqual(parsed[0].provider, 'cerebras');
 
+  // Test 4: Unbalanced quotes (e.g. trailing quote missing)
+  process.env.LLM_WORKERS_CONFIG = `'[{"provider":"gemini"}]`;
+  parsed = getEnvJSON('LLM_WORKERS_CONFIG');
+  assert.strictEqual(parsed[0].provider, 'gemini');
+
   // Clean up
   process.env.LLM_WORKERS_CONFIG = originalConfig;
 });
