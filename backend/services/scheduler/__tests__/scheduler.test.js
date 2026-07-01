@@ -23,22 +23,34 @@ Course.findByIdAndUpdate = async (id, update) => {
 // We create a global memory store for Mock Lessons to support the Catch-Up Sync Mapper test
 let mockLessonStore = [];
 
-Lesson.find = async (query) => {
-  if (query && query.moduleId) {
-    const moduleIdStr = query.moduleId.$in 
-      ? query.moduleId.$in.map(id => id.toString()) 
-      : [query.moduleId.toString()];
-    
-    const results = mockLessonStore.filter(l => moduleIdStr.includes(l.moduleId.toString()));
-    return {
-      sort: () => results.sort((a, b) => a.order - b.order)
-    };
-  }
-  return { sort: () => [] };
+// Mock Lesson.find to return a chainable Query object
+Lesson.find = (query) => {
+  const getResults = () => {
+    if (query && query.moduleId) {
+      const moduleIdStr = query.moduleId.$in 
+        ? query.moduleId.$in.map(id => id.toString()) 
+        : [query.moduleId.toString()];
+      
+      return mockLessonStore.filter(l => moduleIdStr.includes(l.moduleId.toString()));
+    }
+    return [];
+  };
+
+  return {
+    sort: () => {
+      const results = getResults();
+      results.sort((a, b) => a.order - b.order);
+      return Promise.resolve(results);
+    },
+    then: (resolve) => {
+      resolve(getResults());
+    }
+  };
 };
 
-Course.findById = async (id) => {
-  return {
+// Mock Course.findById globally to return a chainable Query object
+Course.findById = (id) => {
+  const getResult = () => ({
     _id: id,
     title: 'Mock Course',
     description: 'A mock course description',
@@ -47,6 +59,13 @@ Course.findById = async (id) => {
     modules: [{ _id: 'mod-1', title: 'Mock Module 1' }],
     toObject: function() { return this; },
     save: async () => {}
+  });
+
+  return {
+    populate: function() { return this; },
+    then: (resolve) => {
+      resolve(getResult());
+    }
   };
 };
 
@@ -454,6 +473,78 @@ test('LessonScheduler - Worker Cool-Down Expiry and Recovery', async () => {
   assert.strictEqual(executionLog[2], 'GeminiWorker:job-2');
 
   // Clean queue
+  scheduler.queue = [];
+});
+
+test('LessonScheduler - Concurrent Module Linking Protection', async () => {
+  const executionLog = [];
+  const worker = new MockWorker({ name: 'LinkWorker', provider: 'gemini', maxConcurrency: 2, executionLog, delay: 10 });
+  
+  scheduler.queue = [];
+  scheduler.workers = [worker];
+
+  // Enqueue 2 lesson jobs for the same course
+  scheduler.queue.push(new Job({ id: 'link-job-1', courseId: 'c-link', type: 'lesson', priority: 2, payload: { moduleId: 'mod-1', targetLessonTitle: 'L1', lIdx: 0 } }));
+  scheduler.queue.push(new Job({ id: 'link-job-2', courseId: 'c-link', type: 'lesson', priority: 2, payload: { moduleId: 'mod-1', targetLessonTitle: 'L2', lIdx: 1 } }));
+
+  // Mock Module.findByIdAndUpdate to track how many times it was called
+  let moduleLinkCalls = 0;
+  const originalModuleFindByIdAndUpdate = Module.findByIdAndUpdate;
+  Module.findByIdAndUpdate = async (id, update) => {
+    moduleLinkCalls++;
+    return { _id: id };
+  };
+
+  // Mock Course findByIdAndUpdate to simulate progression counters
+  let completedCount = 0;
+  const originalCourseFindByIdAndUpdate = Course.findByIdAndUpdate;
+  Course.findByIdAndUpdate = async (id, update) => {
+    if (update && update.$inc && update.$inc['progress.completedLessons']) {
+      completedCount += update.$inc['progress.completedLessons'];
+    }
+    return {
+      _id: id,
+      status: completedCount >= 2 ? 'completed' : 'lessons_generating',
+      progress: { completedLessons: completedCount, totalLessons: 2 },
+      modules: ['mod-1'],
+      save: async () => {}
+    };
+  };
+
+  // Mock Course findById to return the final populated course doc
+  const originalCourseFindById = Course.findById;
+  Course.findById = (id) => {
+    const getResult = () => ({
+      _id: id,
+      progress: { completedLessons: completedCount, totalLessons: 2 },
+      modules: ['mod-1'],
+      toObject: function() { return this; }
+    });
+
+    return {
+      populate: function() { return this; },
+      then: (resolve) => {
+        resolve(getResult());
+      }
+    };
+  };
+
+  // Run scheduler tick - dispatches both jobs concurrently (SafeWorker maxConcurrency = 2)
+  scheduler.tick();
+
+  // Wait 25ms for both jobs to fully execute and persist
+  await new Promise(r => setTimeout(r, 25));
+
+  // Assert that both jobs were executed
+  assert.strictEqual(executionLog.length, 2);
+
+  // Assert that Module link update was called exactly once (when final lesson completed)
+  assert.strictEqual(moduleLinkCalls, 1);
+
+  // Restore mocks
+  Module.findByIdAndUpdate = originalModuleFindByIdAndUpdate;
+  Course.findByIdAndUpdate = originalCourseFindByIdAndUpdate;
+  Course.findById = originalCourseFindById;
   scheduler.queue = [];
 });
 
