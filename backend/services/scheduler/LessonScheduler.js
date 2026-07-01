@@ -178,6 +178,9 @@ class LessonScheduler {
       await this.handleJobSuccess(job, resultText);
     } catch (error) {
       console.error(`[LessonScheduler] Job "${job.id}" failed on worker "${worker.name}":`, error.message);
+      if (job.status === 'completed' || job.status === 'processing') {
+        job.fail(error);
+      }
       await this.handleJobFailure(job, error);
     } finally {
       // Re-trigger tick immediately to check for newly freed workers
@@ -204,7 +207,7 @@ class LessonScheduler {
       this.queue = this.queue.filter(j => j.id !== job.id);
     } catch (err) {
       console.error(`[LessonScheduler] Error persisting success results for job "${job.id}":`, err.message);
-      await this.handleJobFailure(job, err);
+      throw err;
     }
   }
 

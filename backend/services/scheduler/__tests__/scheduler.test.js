@@ -229,11 +229,7 @@ test('LessonScheduler - Worker Cooldown and Provider Failover', async () => {
   const job = new Job({ id: 'failover-job', courseId: 'c1', type: 'lesson', priority: 2 });
   scheduler.queue.push(job);
 
-  // Run tick. This will:
-  // 1. Dispatch job to GeminiWorker (primary).
-  // 2. GeminiWorker fails, increments job.retries to 1, sets job.status to 'pending', and goes into cooldown.
-  // 3. The dispatch's finally block immediately calls tick() again.
-  // 4. Gemini is in cooldown, so it dispatches the job to OllamaWorker.
+  // Run tick
   scheduler.tick();
 
   // Wait for both sequential dispatch pipelines to fully execute (approx 15ms)
@@ -354,6 +350,49 @@ test('SSE Catch-Up Sync Mapper (Reconnection mapping logic)', async () => {
   // Clean queue and mock DB
   scheduler.queue = [];
   mockLessonStore = [];
+});
+
+test('LessonScheduler - DB Persistence Failure & Concurrency Safety (No Leak)', async () => {
+  const executionLog = [];
+  const worker = new MockWorker({ name: 'SafeWorker', provider: 'gemini', maxConcurrency: 1, executionLog, delay: 10 });
+  
+  scheduler.queue = [];
+  scheduler.workers = [worker];
+
+  // Enqueue a lesson job (maxRetries = 3)
+  const job = new Job({ id: 'leak-test-job', courseId: 'c1', type: 'lesson', priority: 2, maxRetries: 3 });
+  scheduler.queue.push(job);
+
+  // Mock Lesson.save to throw a database connection error
+  const originalLessonSave = Lesson.prototype.save;
+  Lesson.prototype.save = async function() {
+    throw new Error('Database Write Failure (ECONNRESET)');
+  };
+
+  // Trigger tick - starts job execution
+  scheduler.tick();
+
+  // Wait for all retries and fatal pruning to complete (approx 50ms)
+  await new Promise(r => setTimeout(r, 50));
+
+  // Assert that SafeWorker attempted to run the job 3 times
+  assert.deepStrictEqual(executionLog, [
+    'SafeWorker:leak-test-job',
+    'SafeWorker:leak-test-job',
+    'SafeWorker:leak-test-job'
+  ]);
+
+  // Assert that the worker slot was successfully freed on each failure and is now idle (no leaks!)
+  assert.strictEqual(worker.activeJobsCount, 0);
+
+  // Assert that the job failed permanently after 3 retries
+  assert.strictEqual(job.status, 'failed');
+  assert.strictEqual(job.retries, 3);
+  assert.strictEqual(job.error, 'Database Write Failure (ECONNRESET)');
+
+  // Restore original mock save method
+  Lesson.prototype.save = originalLessonSave;
+  scheduler.queue = [];
 });
 
 // Helper function to reset worker cooldown inside max-retries test so we don't have to wait 10 seconds per tick
