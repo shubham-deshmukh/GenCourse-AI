@@ -1,13 +1,21 @@
+import { GoogleGenAI } from '@google/genai';
 import Worker from './Worker.js';
-import { callGemini } from '../geminiService.js';
-import { getEnv } from '../../config/env.js';
 
 /**
  * Concrete Worker implementation for Google Gemini LLM API.
  */
 export default class GeminiWorker extends Worker {
-  constructor({ name = 'GeminiDefaultWorker', maxConcurrency = 2 } = {}) {
+  constructor({ name = 'GeminiDefaultWorker', maxConcurrency = 2, apiKey, model } = {}) {
     super({ name, provider: 'gemini', maxConcurrency });
+    this.apiKey = apiKey;
+    this.model = model;
+
+    this.ai = new GoogleGenAI({
+      apiKey: this.apiKey,
+      httpOptions: {
+        timeout: 300000 // 5 minutes in milliseconds
+      }
+    });
   }
 
   /**
@@ -17,24 +25,30 @@ export default class GeminiWorker extends Worker {
    */
   async performWork(job) {
     const { type, payload } = job;
-    const { systemPrompt, userPrompt, jsonMode, temperature, timeout } = payload;
+    const { systemPrompt, userPrompt, jsonMode, temperature } = payload;
     
-    // Resolve model dynamically based on job type or general env variables
-    const purposeModelEnvKey = `${type.toUpperCase()}_LLM_MODEL`;
-    const model = getEnv(purposeModelEnvKey, getEnv('GEMINI_MODEL', 'gemini-1.5-flash'));
+    const resolvedModel = this.model || 'gemini-1.5-flash';
     
-    console.log(`[Worker:${this.name}] Generating ${type} for course: ${job.courseId} using Gemini model: "${model}"...`);
+    console.log(`[Worker:${this.name}] Generating ${type} for course: ${job.courseId} using Gemini model: "${resolvedModel}"...`);
     
-    const responseText = await callGemini({
-      systemPrompt,
-      userPrompt,
-      jsonMode: !!jsonMode,
-      model,
-      temperature: typeof temperature === 'number' ? temperature : 0.1,
-      timeout: timeout || 120000
+    const config = {};
+    if (jsonMode) {
+      config.responseMimeType = 'application/json';
+    }
+    if (systemPrompt) {
+      config.systemInstruction = systemPrompt;
+    }
+    if (typeof temperature === 'number') {
+      config.temperature = temperature;
+    }
+
+    const response = await this.ai.models.generateContent({
+      model: resolvedModel,
+      contents: userPrompt,
+      config
     });
     
-    return responseText;
+    return response.text;
   }
 
   /**

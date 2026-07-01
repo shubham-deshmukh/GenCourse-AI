@@ -1,6 +1,5 @@
 import Job from './Job.js';
-import GeminiWorker from './GeminiWorker.js';
-import OllamaWorker from './OllamaWorker.js';
+import { createWorker } from './WorkerFactory.js';
 import generationEvents from './eventEmitter.js';
 import Course from '../../models/Course.js';
 import Module from '../../models/Module.js';
@@ -15,12 +14,17 @@ import { getEnv } from '../../config/env.js';
  */
 class LessonScheduler {
   constructor() {
-    const geminiConcurrency = parseInt(getEnv('CONCURRENT_GENERATION_LIMIT', '2'), 10);
     this.queue = [];
-    this.workers = [
-      new GeminiWorker({ name: 'GeminiPrimaryWorker', maxConcurrency: geminiConcurrency }),
-      new OllamaWorker({ name: 'OllamaFallbackWorker', maxConcurrency: 1 })
-    ];
+
+    const configString = getEnv('LLM_WORKERS_CONFIG', '[]');
+    let configs = [];
+    try {
+      configs = JSON.parse(configString);
+    } catch (err) {
+      console.error('[LessonScheduler] Failed to parse LLM_WORKERS_CONFIG:', err.message);
+    }
+
+    this.workers = configs.map(config => createWorker(config));
 
     // Tick the scheduler loop every 1 second to inspect queues and free workers
     this.intervalId = setInterval(() => this.tick(), 1000);
@@ -81,12 +85,9 @@ class LessonScheduler {
 
     if (availableSlots.length === 0) return;
 
-    // Sort available slots to ensure primary provider is chosen first
-    const primaryProvider = getEnv('PRIMARY_LLM_PROVIDER', 'gemini');
+    // Sort available slots based on their order in the configured workers list (earlier = higher priority)
     availableSlots.sort((a, b) => {
-      if (a.provider === primaryProvider && b.provider !== primaryProvider) return -1;
-      if (a.provider !== primaryProvider && b.provider === primaryProvider) return 1;
-      return 0;
+      return this.workers.indexOf(a) - this.workers.indexOf(b);
     });
 
     // 2. Retrieve pending jobs

@@ -6,9 +6,11 @@ import { getEnv } from '../../config/env.js';
  * Concrete Worker implementation for local Ollama LLM execution.
  */
 export default class OllamaWorker extends Worker {
-  constructor({ name = 'OllamaDefaultWorker', maxConcurrency = 1 } = {}) {
+  constructor({ name = 'OllamaDefaultWorker', maxConcurrency = 1, baseUrl, model } = {}) {
     // Default concurrency is 1 to prevent local models from running concurrently, which crashes most consumer GPUs/CPUs
     super({ name, provider: 'ollama', maxConcurrency });
+    this.baseUrl = baseUrl;
+    this.model = model;
   }
 
   /**
@@ -20,16 +22,17 @@ export default class OllamaWorker extends Worker {
     const { type, payload } = job;
     const { systemPrompt, userPrompt, jsonMode, temperature, timeout } = payload;
     
-    // Resolve local model name from env
-    const model = getEnv('OLLAMA_MODEL', 'qwen2.5:1.5b-instruct');
+    // Resolve local model name
+    const resolvedModel = this.model || 'qwen2.5:1.5b-instruct';
     
-    console.log(`[Worker:${this.name}] Generating ${type} for course: ${job.courseId} using Ollama model: "${model}"...`);
+    console.log(`[Worker:${this.name}] Generating ${type} for course: ${job.courseId} using Ollama model: "${resolvedModel}"...`);
     
     const responseText = await callOllama({
       systemPrompt,
       userPrompt,
       jsonMode: !!jsonMode,
-      model,
+      model: resolvedModel,
+      baseUrl: this.baseUrl,
       temperature: typeof temperature === 'number' ? temperature : 0.1,
       timeout: timeout || 180000 // Local model generation can be slow, default to 180 seconds
     });
