@@ -33,13 +33,16 @@ export const getEnv = (key, defaultValue = undefined) => {
 export const getEnvJSON = (key, defaultJSON = '[]') => {
   let value = process.env[key] || defaultJSON;
   value = value.trim();
-  if (
-    (value.startsWith("'") && value.endsWith("'")) ||
-    (value.startsWith('"') && value.endsWith('"'))
-  ) {
-    value = value.slice(1, -1).trim();
+  
+  // Aggressively strip any wrapping single or double quotes
+  if (value.startsWith("'") || value.startsWith('"')) {
+    value = value.slice(1);
   }
-  return JSON.parse(value);
+  if (value.endsWith("'") || value.endsWith('"')) {
+    value = value.slice(0, -1);
+  }
+  
+  return JSON.parse(value.trim());
 };
 
 // Validate required environment variables immediately on load
