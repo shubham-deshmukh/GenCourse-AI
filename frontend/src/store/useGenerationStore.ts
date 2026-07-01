@@ -108,12 +108,20 @@ export const useGenerationStore = create<GenerationState>((set, get) => ({
               }))
             }
             
-            set((state) => ({
-              logs: [...state.logs, `[PLANNER] Course curriculum structure generated and saved.`],
-              activeCourse: outlineCourse,
-              currentStepIndex: 2,
-              progress: 35,
-            }))
+            set((state) => {
+              // Avoid duplicate outline logs on catch-up
+              const hasOutlineLog = state.logs.some(log => log.includes('Course curriculum structure generated'));
+              const newLogs = hasOutlineLog 
+                ? state.logs 
+                : [...state.logs, `[PLANNER] Course curriculum structure generated and saved.`];
+
+              return {
+                logs: newLogs,
+                activeCourse: outlineCourse,
+                currentStepIndex: 2,
+                progress: Math.max(state.progress, 35),
+              }
+            })
           } catch (err) {
             console.error('Error parsing SSE outline:', err)
           }
@@ -132,6 +140,16 @@ export const useGenerationStore = create<GenerationState>((set, get) => ({
                 }
               }
               
+              // Only log and advance progress if this lesson is newly completed (not previously loaded on catch-up)
+              let isNewLesson = true;
+              const module = (prevCourse.modules || []).find((m: any) => m._id === moduleId || m.title === moduleId);
+              if (module) {
+                const existing = (module.lessons || []).find((l: any) => l._id === lesson._id || l.title === lesson.title);
+                if (existing && !existing.isPlaceholder) {
+                  isNewLesson = false;
+                }
+              }
+
               const updatedModules = (prevCourse.modules || []).map((m: any) => {
                 if (m._id === moduleId || m.title === moduleId) {
                   const lessonExists = (m.lessons || []).some((l: any) => l._id === lesson._id || l.title === lesson.title)
@@ -143,11 +161,17 @@ export const useGenerationStore = create<GenerationState>((set, get) => ({
                 return m
               })
 
+              const newLogs = isNewLesson 
+                ? [...state.logs, `[LESSON-GEN] Synthesized and saved chapter: "${lesson.title}"`]
+                : state.logs;
+
+              const progressIncrement = isNewLesson ? 8 : 0;
+
               return {
-                logs: [...state.logs, `[LESSON-GEN] Synthesized and saved chapter: "${lesson.title}"`],
+                logs: newLogs,
                 activeCourse: { ...prevCourse, modules: updatedModules },
                 currentStepIndex: 3,
-                progress: state.progress < 95 ? state.progress + 8 : state.progress
+                progress: state.progress < 95 ? state.progress + progressIncrement : state.progress
               }
             })
           } catch (err) {
@@ -196,12 +220,20 @@ export const useGenerationStore = create<GenerationState>((set, get) => ({
 
         eventSource.onerror = (err) => {
           console.error('SSE connection error:', err)
-          eventSource.close()
-          set((state) => ({
-            logs: [...state.logs, `[SYSTEM] Connection closed or timed out.`],
-            isGenerating: false,
-            eventSource: null,
-          }))
+          
+          // If browser is attempting auto-reconnect, keep generating state active
+          if (eventSource.readyState === EventSource.CONNECTING) {
+            set((state) => ({
+              logs: [...state.logs, `[SYSTEM] Connection lost. Reconnecting in background...`],
+            }))
+          } else {
+            eventSource.close()
+            set((state) => ({
+              logs: [...state.logs, `[SYSTEM] Connection closed or timed out.`],
+              isGenerating: false,
+              eventSource: null,
+            }))
+          }
         }
       })
       .catch((err) => {
