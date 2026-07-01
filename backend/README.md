@@ -38,13 +38,9 @@ Before setting up the server, ensure you have the following installed and runnin
      ```bash
      docker run -d --name gencourse-mongo -p 27017:27017 -e MONGO_INITDB_ROOT_USERNAME=<username> -e MONGO_INITDB_ROOT_PASSWORD=<password> -v mongo-data:/data/db mongo:latest
      ```
-3. **Ollama (Optional for local execution)**: 
-   * Install [Ollama](https://ollama.com).
-   * Download the model: `ollama pull qwen2.5:1.5b-instruct`.
-   * Ensure Ollama is running at `http://localhost:11434`.
-4. **Google Gemini (Optional Fallback)**:
-   * A valid API key from Google AI Studio.
-5. **Auth0 Account (Optional for Production Auth)**:
+3. **LLM Workers**:
+   * API keys or connection info for any configured LLM providers (e.g. Google Gemini, Cerebras Cloud, or a local Ollama instance running at `http://localhost:11434`).
+4. **Auth0 Account (Optional for Production Auth)**:
    * An Auth0 Regular Web Application configuration with Allowed Callback URLs set to `http://localhost:5174/auth/callback` (or your domain callback) and Allowed Logout URLs set to `http://localhost:5174`.
 
 ---
@@ -69,10 +65,8 @@ PORT=5000
 NODE_ENV=development
 MONGO_URI=mongodb://<username>:<password>@localhost:27017/gencourse_ai?authSource=admin
 
-# LLM Configurations
-GEMINI_API_KEY=your_gemini_api_key_here
-OLLAMA_BASE_URL=http://localhost:11434
-OLLAMA_MODEL=qwen2.5:1.5b-instruct
+# LLM Workers Configuration
+LLM_WORKERS_CONFIG='[{"provider":"gemini","name":"GeminiPrimaryWorker","apiKey":"your_gemini_key","model":"gemini-3.1-flash-lite","maxConcurrency":2}]'
 
 # Auth0 & Session Session Configuration
 SESSION_SECRET=your_32_character_long_session_secret_key
@@ -110,7 +104,7 @@ The server will bind to the configured port (default: `5000`).
 You can run the backend and database inside Docker containers.
 
 #### 1. Setup Environment
-Ensure your `.env` contains the required keys (e.g., `GEMINI_API_KEY`, Auth0 configurations). These will be injected into the container by Docker Compose.
+Ensure your `.env` contains the required keys (e.g., `LLM_WORKERS_CONFIG`, Auth0 configurations). These will be injected into the container by Docker Compose.
 
 #### 2. Start Services
 From the **root workspace directory**, run:
