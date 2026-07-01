@@ -11,6 +11,10 @@ import { parseJSONSafely } from '../../../utils/jsonUtils.js';
 // Prevent actual scheduler interval from ticking during test imports
 clearInterval(scheduler.intervalId);
 
+// Mock persistOutline to prevent outline jobs from enqueuing lesson jobs during tests
+const originalPersistOutline = scheduler.persistOutline;
+scheduler.persistOutline = async () => {};
+
 // 1. Mock DB methods to avoid connection errors and keep tests fast
 Course.findByIdAndUpdate = async (id, update) => {
   return {
@@ -559,8 +563,8 @@ test('LessonScheduler - Worker Selection Bias (Primary provider priority)', asyn
   const ollamaWorkerA = new MockWorker({ name: 'OllamaWorkerA', provider: 'ollama', maxConcurrency: 1, executionLog, delay: 10 });
 
   scheduler.queue = [];
-  // Register Gemini first and second, Ollama third
-  scheduler.workers = [ollamaWorkerA, geminiWorkerB, geminiWorkerA];
+  // Register Gemini first and second, Ollama third (primary providers first in array order)
+  scheduler.workers = [geminiWorkerB, geminiWorkerA, ollamaWorkerA];
 
   // Enqueue 2 outline jobs (Priority 1)
   scheduler.queue.push(new Job({ id: 'outline-1', courseId: 'c1', type: 'outline', priority: 1 }));
@@ -614,51 +618,59 @@ test('LessonScheduler - Event Stream Namespace Safety (No cross-talk)', () => {
 });
 
 test('LessonScheduler - Malformed Outline Sanitization Fallbacks', async () => {
+  // Restore real persistOutline for this test
+  scheduler.persistOutline = originalPersistOutline;
+
   let savedCourse = null;
 
-  // Mock Course findById to return course document shell
-  const originalCourseFindById = Course.findById;
-  Course.findById = async (id) => {
-    return {
-      _id: id,
-      title: 'Untouchable Course',
-      description: 'A mock description',
-      toObject: function() { return this; },
-      save: async function() {
-        savedCourse = this;
-      }
+  try {
+    // Mock Course findById to return course document shell
+    const originalCourseFindById = Course.findById;
+    Course.findById = async (id) => {
+      return {
+        _id: id,
+        title: 'Untouchable Course',
+        description: 'A mock description',
+        toObject: function() { return this; },
+        save: async function() {
+          savedCourse = this;
+        }
+      };
     };
-  };
 
-  // Mock Module save
-  const originalModuleSave = Module.prototype.save;
-  Module.prototype.save = async function() {
-    this._id = 'mock-mod-shell';
-    return this;
-  };
+    // Mock Module save
+    const originalModuleSave = Module.prototype.save;
+    Module.prototype.save = async function() {
+      this._id = 'mock-mod-shell';
+      return this;
+    };
 
-  // Call persistOutline with a sparse outline (lacking modules, quizzes, resources)
-  const malformedOutline = {
-    title: 'Sanitized React JS'
-  };
+    // Call persistOutline with a sparse outline (lacking modules, quizzes, resources)
+    const malformedOutline = {
+      title: 'Sanitized React JS'
+    };
 
-  await scheduler.persistOutline('c-sanitize', malformedOutline);
+    await scheduler.persistOutline('c-sanitize', malformedOutline);
 
-  // Assertions: Verify title was updated, and default fallback resources/quizzes/modules were generated
-  assert.strictEqual(savedCourse.title, 'Sanitized React JS');
-  
-  // Default resources list populated
-  assert.ok(Array.isArray(savedCourse.resources));
-  assert.strictEqual(savedCourse.resources[0].name, 'Sanitized_React_JS_Guide.pdf');
-  assert.strictEqual(savedCourse.resources[0].type, 'PDF');
+    // Assertions: Verify title was updated, and default fallback resources/quizzes/modules were generated
+    assert.strictEqual(savedCourse.title, 'Sanitized React JS');
+    
+    // Default resources list populated
+    assert.ok(Array.isArray(savedCourse.resources));
+    assert.strictEqual(savedCourse.resources[0].name, 'Sanitized_React_JS_Guide.pdf');
+    assert.strictEqual(savedCourse.resources[0].type, 'PDF');
 
-  // Default quiz array populated clean
-  assert.deepStrictEqual(savedCourse.quizzes, []);
+    // Default quiz array populated clean
+    assert.deepStrictEqual(savedCourse.quizzes, []);
 
-  // Restore mocks
-  Course.findById = originalCourseFindById;
-  Module.prototype.save = originalModuleSave;
-  scheduler.queue = [];
+    // Restore mocks
+    Course.findById = originalCourseFindById;
+    Module.prototype.save = originalModuleSave;
+    scheduler.queue = [];
+  } finally {
+    // Re-mock persistOutline to isolate other tests
+    scheduler.persistOutline = async () => {};
+  }
 });
 
 test('Utility - parseJSONSafely Fenced Code Blocks & Repaired JSON', () => {
@@ -753,3 +765,49 @@ test('LessonScheduler - Queue Pruning Leak Prevention', async () => {
 function primaryWorkerCooldownPruningHelper(worker) {
   worker.coolDownUntil = null;
 }
+
+test('LessonScheduler - Dynamic Worker Instantiation from LLM_WORKERS_CONFIG', () => {
+  const originalConfig = process.env.LLM_WORKERS_CONFIG;
+
+  // Set mock configuration with one Gemini worker and one Ollama worker
+  process.env.LLM_WORKERS_CONFIG = JSON.stringify([
+    {
+      provider: 'gemini',
+      name: 'TestGeminiWorker',
+      apiKey: 'test-api-key-123',
+      model: 'gemini-1.5-pro',
+      maxConcurrency: 5
+    },
+    {
+      provider: 'ollama',
+      name: 'TestOllamaWorker',
+      baseUrl: 'http://127.0.0.1:11434',
+      model: 'llama3',
+      maxConcurrency: 3
+    }
+  ]);
+
+  const TempSchedulerClass = scheduler.constructor;
+  const tempScheduler = new TempSchedulerClass();
+
+  // Verify workers loaded correctly
+  assert.strictEqual(tempScheduler.workers.length, 2);
+
+  const geminiWorker = tempScheduler.workers[0];
+  assert.strictEqual(geminiWorker.name, 'TestGeminiWorker');
+  assert.strictEqual(geminiWorker.provider, 'gemini');
+  assert.strictEqual(geminiWorker.maxConcurrency, 5);
+  assert.strictEqual(geminiWorker.apiKey, 'test-api-key-123');
+  assert.strictEqual(geminiWorker.model, 'gemini-1.5-pro');
+
+  const ollamaWorker = tempScheduler.workers[1];
+  assert.strictEqual(ollamaWorker.name, 'TestOllamaWorker');
+  assert.strictEqual(ollamaWorker.provider, 'ollama');
+  assert.strictEqual(ollamaWorker.maxConcurrency, 3);
+  assert.strictEqual(ollamaWorker.baseUrl, 'http://127.0.0.1:11434');
+  assert.strictEqual(ollamaWorker.model, 'llama3');
+
+  // Clean up
+  clearInterval(tempScheduler.intervalId);
+  process.env.LLM_WORKERS_CONFIG = originalConfig;
+});
