@@ -395,6 +395,68 @@ test('LessonScheduler - DB Persistence Failure & Concurrency Safety (No Leak)', 
   scheduler.queue = [];
 });
 
+test('LessonScheduler - Worker Cool-Down Expiry and Recovery', async () => {
+  const executionLog = [];
+  
+  const primaryWorker = new MockWorker({ name: 'GeminiWorker', provider: 'gemini', maxConcurrency: 1, executionLog, delay: 10 });
+  const fallbackWorker = new MockWorker({ name: 'OllamaWorker', provider: 'ollama', maxConcurrency: 1, executionLog, delay: 10 });
+  
+  scheduler.queue = [];
+  scheduler.workers = [primaryWorker, fallbackWorker];
+
+  // Custom execution override for primaryWorker to fail on first attempt and set 15ms cooldown
+  let primaryAttempts = 0;
+  primaryWorker.execute = async (job) => {
+    primaryAttempts++;
+    primaryWorker.activeJobsCount++;
+    job.start();
+    executionLog.push(`GeminiWorker:${job.id}`);
+    
+    if (primaryAttempts === 1) {
+      primaryWorker.activeJobsCount--;
+      job.fail(new Error('Temporary Rate Limit'));
+      primaryWorker.coolDown(15); // 15ms cooldown
+      throw new Error('Temporary Rate Limit');
+    }
+    
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        job.complete(`{"mockResult": "success"}`);
+        primaryWorker.activeJobsCount--;
+        resolve(`{"mockResult": "success"}`);
+      }, 10);
+    });
+  };
+
+  // Enqueue job-1
+  scheduler.queue.push(new Job({ id: 'job-1', courseId: 'c1', type: 'lesson', priority: 2 }));
+
+  // Run tick -> primary worker fails, triggers 15ms cooldown, job falls back to OllamaWorker (10ms delay)
+  scheduler.tick();
+
+  // Wait 25ms so job-1 completes on Ollama and Gemini cooldown (15ms) expires
+  await new Promise(r => setTimeout(r, 25));
+
+  // Assert job-1 executed on both workers (failover check)
+  assert.strictEqual(executionLog[0], 'GeminiWorker:job-1');
+  assert.strictEqual(executionLog[1], 'OllamaWorker:job-1');
+
+  // Cooldown is expired now. Enqueue job-2
+  scheduler.queue.push(new Job({ id: 'job-2', courseId: 'c1', type: 'lesson', priority: 2 }));
+
+  // Run tick again -> GeminiWorker is recovered, so it must pick up job-2 as the primary provider
+  scheduler.tick();
+
+  // Wait 15ms for job-2 to complete
+  await new Promise(r => setTimeout(r, 15));
+
+  // Assert that GeminiWorker executed job-2 (automatic recovery back to primary provider!)
+  assert.strictEqual(executionLog[2], 'GeminiWorker:job-2');
+
+  // Clean queue
+  scheduler.queue = [];
+});
+
 // Helper function to reset worker cooldown inside max-retries test so we don't have to wait 10 seconds per tick
 function primaryWorkerCooldownPruningHelper(worker) {
   worker.coolDownUntil = null;
