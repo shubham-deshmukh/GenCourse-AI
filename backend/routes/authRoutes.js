@@ -6,6 +6,7 @@ import { getEnv } from '../config/env.js';
 import { signToken } from '../utils/jwt.js';
 
 const router = express.Router();
+const isProd = getEnv('NODE_ENV', 'development') === 'production';
 
 
 // Helper functions for PKCE verifier and challenge generation
@@ -31,8 +32,8 @@ router.get('/login', (req, res) => {
   // Store PKCE verifier in a first-party cookie for token exchange verification
   res.cookie('auth_code_verifier', verifier, {
     httpOnly: true,
-    secure: getEnv('NODE_ENV', 'development') === 'production',
-    sameSite: 'lax',
+    secure: isProd,
+    sameSite: isProd ? 'none' : 'lax',
     maxAge: 10 * 60 * 1000 // 10 minutes
   });
 
@@ -73,8 +74,8 @@ router.get('/callback', async (req, res) => {
   const verifier = req.cookies?.auth_code_verifier;
   res.clearCookie('auth_code_verifier', {
     httpOnly: true,
-    secure: getEnv('NODE_ENV', 'development') === 'production',
-    sameSite: 'lax'
+    secure: isProd,
+    sameSite: isProd ? 'none' : 'lax'
   });
 
   if (!verifier) {
@@ -140,8 +141,8 @@ router.get('/callback', async (req, res) => {
     // 5. Store custom application JWT in an httpOnly cookie
     res.cookie('gencourse_token', jwtToken, {
       httpOnly: true,
-      secure: getEnv('NODE_ENV', 'development') === 'production',
-      sameSite: 'lax',
+      secure: isProd,
+      sameSite: isProd ? 'none' : 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days (matching JWT expiration)
     });
 
@@ -165,8 +166,8 @@ router.get('/logout', (req, res) => {
   // Clear local JWT cookie
   res.clearCookie('gencourse_token', {
     httpOnly: true,
-    secure: getEnv('NODE_ENV', 'development') === 'production',
-    sameSite: 'lax'
+    secure: isProd,
+    sameSite: isProd ? 'none' : 'lax'
   });
 
   const logoutUrl = `${issuer}/v2/logout?` + new URLSearchParams({
