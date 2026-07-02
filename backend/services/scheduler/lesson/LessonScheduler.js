@@ -274,9 +274,7 @@ class LessonScheduler {
         return { name, size, type, url: r.url || '' };
       });
     } else {
-      resources = [
-        { name: `${course.title.replace(/\s+/g, '_')}_Guide.pdf`, size: '2.5 MB', type: 'PDF' }
-      ];
+      resources = [];
     }
     course.resources = resources;
 

@@ -1034,7 +1034,9 @@ export default function PremiumInteractiveSimulator({
                           {tab === 'downloads' && (
                             <span className={`px-1.5 py-0.5 rounded-full text-[9px] ${isActive ? 'bg-cyan-500/20 text-cyan-300' : 'bg-white/5 text-gray-500'
                               }`}>
-                              {activeCourse?.resources?.length || 0}
+                              {activeCourse && activeCourse._id && !activeCourse._id.startsWith('mock-') 
+                                ? 1 
+                                : (activeCourse?.resources?.length || 0)}
                             </span>
                           )}
                         </button>
@@ -1278,7 +1280,7 @@ export default function PremiumInteractiveSimulator({
                           <div>
                             <h4 className="text-white text-base font-bold font-display flex items-center gap-2">
                               <Download className="w-5 h-5 text-purple-primary" />
-                              Generated Resource Packets
+                              Course Materials & Downloads
                             </h4>
                             <p className="text-xs text-gray-400 mt-1">
                               Download AI-compiled course materials, worksheets, and references.
@@ -1353,89 +1355,91 @@ export default function PremiumInteractiveSimulator({
                               </div>
                             )}
 
-                            {(!activeCourse?.resources || activeCourse.resources.length === 0) ? (
-                              <div className="text-center py-12 text-gray-500 italic">
-                                {isGenerating ? 'Compiling worksheets and study resources... Please wait.' : 'No resources generated for this course.'}
-                              </div>
-                            ) : (
-                              (activeCourse?.resources || []).map((res) => {
-                                const progressVal = downloadProgress[res.name]
-                                const isDownloading = progressVal !== undefined && progressVal < 100
-                                const isDownloaded = progressVal === 100
+                            {(!activeCourse?._id || activeCourse._id.startsWith('mock-')) && (
+                              (!activeCourse?.resources || activeCourse.resources.length === 0) ? (
+                                <div className="text-center py-12 text-gray-500 italic">
+                                  {isGenerating ? 'Compiling worksheets and study resources... Please wait.' : 'No resources generated for this course.'}
+                                </div>
+                              ) : (
+                                (activeCourse?.resources || []).map((res) => {
+                                  const progressVal = downloadProgress[res.name]
+                                  const isDownloading = progressVal !== undefined && progressVal < 100
+                                  const isDownloaded = progressVal === 100
 
-                                return (
-                                  <div
-                                    key={res.name}
-                                    className={`p-4 rounded-xl transition-all duration-300 border ${isDownloaded
-                                        ? 'bg-emerald-500/5 border-emerald-500/20'
-                                        : isDownloading
-                                          ? 'bg-purple-primary/5 border-purple-primary/20'
-                                          : 'bg-white/2 border-white/5 hover:border-white/10 hover:bg-white/4'
-                                      }`}
-                                  >
-                                    <div className="flex items-center justify-between gap-4">
-                                      <div className="flex items-center gap-3 truncate">
-                                        <div className={`p-2.5 rounded-lg border ${isDownloaded
-                                            ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-                                            : isDownloading
-                                              ? 'bg-purple-primary/15 border-purple-primary/20 text-purple-300 animate-pulse'
-                                              : 'bg-white/5 border-white/5 text-gray-400'
-                                          }`}>
-                                          <FileText className="w-5 h-5" />
+                                  return (
+                                    <div
+                                      key={res.name}
+                                      className={`p-4 rounded-xl transition-all duration-300 border ${isDownloaded
+                                          ? 'bg-emerald-500/5 border-emerald-500/20'
+                                          : isDownloading
+                                            ? 'bg-purple-primary/5 border-purple-primary/20'
+                                            : 'bg-white/2 border-white/5 hover:border-white/10 hover:bg-white/4'
+                                        }`}
+                                    >
+                                      <div className="flex items-center justify-between gap-4">
+                                        <div className="flex items-center gap-3 truncate">
+                                          <div className={`p-2.5 rounded-lg border ${isDownloaded
+                                              ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                                              : isDownloading
+                                                ? 'bg-purple-primary/15 border-purple-primary/20 text-purple-300 animate-pulse'
+                                                : 'bg-white/5 border-white/5 text-gray-400'
+                                            }`}>
+                                            <FileText className="w-5 h-5" />
+                                          </div>
+                                          <div className="truncate">
+                                            <h5 className="text-sm font-semibold text-white truncate">{res.name}</h5>
+                                            <span className="text-[10px] text-gray-500 font-medium">
+                                              {res.type} • {res.size}
+                                            </span>
+                                          </div>
                                         </div>
-                                        <div className="truncate">
-                                          <h5 className="text-sm font-semibold text-white truncate">{res.name}</h5>
-                                          <span className="text-[10px] text-gray-500 font-medium">
-                                            {res.type} • {res.size}
-                                          </span>
-                                        </div>
+
+                                        <button
+                                          onClick={() => startDownload(res.name)}
+                                          disabled={isDownloading}
+                                          className={`p-2 rounded-lg border transition-all duration-300 cursor-pointer flex items-center justify-center ${isDownloaded
+                                              ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-300'
+                                              : isDownloading
+                                                ? 'bg-purple-primary/10 border-purple-primary/20 text-purple-300 cursor-not-allowed'
+                                                : 'bg-white/5 hover:bg-cyan-primary border-white/10 hover:border-cyan-primary hover:text-black text-gray-300'
+                                            }`}
+                                        >
+                                          {isDownloaded ? (
+                                            <Check className="w-4 h-4" />
+                                          ) : isDownloading ? (
+                                            <div className="w-4 h-4 border-2 border-purple-primary/20 border-t-purple-primary rounded-full animate-spin"></div>
+                                          ) : (
+                                            <Download className="w-4 h-4" />
+                                          )}
+                                        </button>
                                       </div>
 
-                                      <button
-                                        onClick={() => startDownload(res.name)}
-                                        disabled={isDownloading}
-                                        className={`p-2 rounded-lg border transition-all duration-300 cursor-pointer flex items-center justify-center ${isDownloaded
-                                            ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-300'
-                                            : isDownloading
-                                              ? 'bg-purple-primary/10 border-purple-primary/20 text-purple-300 cursor-not-allowed'
-                                              : 'bg-white/5 hover:bg-cyan-primary border-white/10 hover:border-cyan-primary hover:text-black text-gray-300'
-                                          }`}
-                                      >
-                                        {isDownloaded ? (
-                                          <Check className="w-4 h-4" />
-                                        ) : isDownloading ? (
-                                          <div className="w-4 h-4 border-2 border-purple-primary/20 border-t-purple-primary rounded-full animate-spin"></div>
-                                        ) : (
-                                          <Download className="w-4 h-4" />
-                                        )}
-                                      </button>
+                                      {/* Progress Bar inside download card */}
+                                      {isDownloading && (
+                                        <div className="mt-3">
+                                          <div className="flex justify-between text-[9px] text-gray-400 mb-1 font-semibold">
+                                            <span>Downloading package...</span>
+                                            <span>{progressVal}%</span>
+                                          </div>
+                                          <div className="w-full bg-white/5 h-1 rounded-full overflow-hidden">
+                                            <div
+                                              className="bg-gradient-to-r from-purple-primary to-cyan-primary h-full transition-all duration-150"
+                                              style={{ width: `${progressVal}%` }}
+                                            ></div>
+                                          </div>
+                                        </div>
+                                      )}
+
+                                      {isDownloaded && (
+                                        <div className="mt-2 text-[9px] text-emerald-400 font-semibold flex items-center gap-1 animate-pulse">
+                                          <CheckCircle className="w-3 h-3" />
+                                          <span>Download completed! File saved to simulated local cache.</span>
+                                        </div>
+                                      )}
                                     </div>
-
-                                    {/* Progress Bar inside download card */}
-                                    {isDownloading && (
-                                      <div className="mt-3">
-                                        <div className="flex justify-between text-[9px] text-gray-400 mb-1 font-semibold">
-                                          <span>Downloading package...</span>
-                                          <span>{progressVal}%</span>
-                                        </div>
-                                        <div className="w-full bg-white/5 h-1 rounded-full overflow-hidden">
-                                          <div
-                                            className="bg-gradient-to-r from-purple-primary to-cyan-primary h-full transition-all duration-150"
-                                            style={{ width: `${progressVal}%` }}
-                                          ></div>
-                                        </div>
-                                      </div>
-                                    )}
-
-                                    {isDownloaded && (
-                                      <div className="mt-2 text-[9px] text-emerald-400 font-semibold flex items-center gap-1 animate-pulse">
-                                        <CheckCircle className="w-3 h-3" />
-                                        <span>Download completed! File saved to simulated local cache.</span>
-                                      </div>
-                                    )}
-                                  </div>
-                                )
-                              })
+                                  )
+                                })
+                              )
                             )}
                           </div>
                         </div>
