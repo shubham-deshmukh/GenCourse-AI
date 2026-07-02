@@ -8,7 +8,7 @@ import generationEvents from '../eventEmitter.js';
  * Runs an in-memory queue to process requests sequentially.
  * Decoupled from lesson generation queue templates.
  */
-class PdfScheduler {
+export class PdfScheduler {
   constructor() {
     this.queue = []; // Array of PdfJob instances
     this.worker = new PdfWorker();
@@ -84,8 +84,10 @@ class PdfScheduler {
       console.error(`[PdfScheduler] PDF generation failed for course ${job.courseId}:`, err);
       job.fail(err);
       
-      // Clean up failed job from memory queue (status is updated to failed in PdfWorker)
-      this.queue = this.queue.filter(j => j.courseId !== job.courseId);
+      // Clean up failed job from memory queue only when retries are exhausted
+      if (job.status === 'failed') {
+        this.queue = this.queue.filter(j => j.courseId !== job.courseId);
+      }
     } finally {
       this.isProcessing = false;
     }
