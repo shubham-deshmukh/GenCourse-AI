@@ -55,14 +55,18 @@ export const useGenerationStore = create<GenerationState>((set, get) => ({
 
         // Establish Server-Sent Events stream
         const isMock = localStorage.getItem('gencourse_mock_mode') === 'true';
+        const token = localStorage.getItem('gencourse_token');
         const queryParams = [];
         if (isMock) {
           queryParams.push('mockUser=true');
         }
+        if (token) {
+          queryParams.push(`token=${token}`);
+        }
         const apiBase = import.meta.env.VITE_API_BASE_URL || '';
         const streamUrl = `${apiBase}/api/courses/${courseId}/stream` + 
           (queryParams.length > 0 ? `?${queryParams.join('&')}` : '');
-        const eventSource = new EventSource(streamUrl, { withCredentials: true });
+        const eventSource = new EventSource(streamUrl)
         set({ eventSource })
 
         eventSource.addEventListener('status', (event: any) => {
