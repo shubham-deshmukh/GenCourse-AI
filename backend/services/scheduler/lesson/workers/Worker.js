@@ -1,5 +1,5 @@
 /**
- * Base abstract class for an execution worker.
+ * Base abstract class for an execution worker in the lesson generation workflow.
  */
 export default class Worker {
   constructor({ name, provider, maxConcurrency = 1 }) {
@@ -35,7 +35,7 @@ export default class Worker {
 
   /**
    * Runs the job workflow, tracking active job count, execution timing, and failures
-   * @param {Job} job 
+   * @param {LessonJob} job 
    * @returns {Promise<any>}
    */
   async execute(job) {
@@ -61,7 +61,7 @@ export default class Worker {
 
   /**
    * Core logic to generate text/data (to be implemented by subclasses)
-   * @param {Job} job 
+   * @param {LessonJob} job 
    * @returns {Promise<any>}
    */
   async performWork(job) {

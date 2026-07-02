@@ -1,5 +1,5 @@
 import Worker from '../Worker.js';
-import { callOllama } from '../../../ollamaService.js';
+import { callOllama } from '../../../../ollamaService.js';
 
 /**
  * Concrete Worker implementation for local Ollama LLM execution.
@@ -14,7 +14,7 @@ export default class OllamaWorker extends Worker {
 
   /**
    * Performs the LLM generation via Ollama local API client
-   * @param {Job} job 
+   * @param {LessonJob} job 
    * @returns {Promise<string>}
    */
   async performWork(job) {

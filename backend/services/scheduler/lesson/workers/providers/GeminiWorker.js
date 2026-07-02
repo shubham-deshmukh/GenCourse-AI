@@ -20,7 +20,7 @@ export default class GeminiWorker extends Worker {
 
   /**
    * Performs the LLM generation via Gemini SDK
-   * @param {Job} job 
+   * @param {LessonJob} job 
    * @returns {Promise<string>}
    */
   async performWork(job) {

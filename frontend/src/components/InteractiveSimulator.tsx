@@ -1189,7 +1189,7 @@ export default function InteractiveSimulator({
                           <div>
                             <h4 className="text-white text-base font-bold font-display flex items-center gap-2">
                               <Download className="w-5 h-5 text-purple-primary" />
-                              Generated Resource Packets
+                              Course Materials & Downloads
                             </h4>
                             <p className="text-xs text-gray-400 mt-1">
                               Download AI-compiled course materials, worksheets, and references.

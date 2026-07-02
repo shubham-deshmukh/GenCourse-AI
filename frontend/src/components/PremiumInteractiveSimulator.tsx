@@ -395,6 +395,85 @@ export default function PremiumInteractiveSimulator({
   // Interactive tracking states
   const [completedLessons, setCompletedLessons] = useState<Record<string, boolean>>({})
   const [downloadProgress, setDownloadProgress] = useState<Record<string, number>>({})
+  const [pdfStatus, setPdfStatus] = useState<string>('idle')
+  const [pdfUrl, setPdfUrl] = useState<string>('')
+  const [pdfDownloaded, setPdfDownloaded] = useState<boolean>(false)
+
+  // Sync database PDF status to local state when course loads
+  useEffect(() => {
+    if (activeCourse) {
+      setPdfStatus((activeCourse as any).pdfStatus || 'idle');
+      setPdfUrl((activeCourse as any).pdfUrl || '');
+      setPdfDownloaded(false);
+    }
+  }, [activeCourse])
+
+  const handleDownloadPdf = async () => {
+    if (!activeCourse || !activeCourse._id) {
+      return;
+    }
+    const courseId = activeCourse._id;
+
+    if (pdfStatus === 'completed' && pdfUrl) {
+      try {
+        const response = await axios.get(pdfUrl, {
+          responseType: 'blob'
+        });
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `gencourse_${courseId}.pdf`);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setPdfDownloaded(true);
+      } catch (err: any) {
+        console.error('Failed to download PDF:', err);
+        if (err.response?.status === 404) {
+          // File no longer exists on server — DB has been reset. Revert UI to idle so user can re-compile.
+          setPdfStatus('idle');
+          setPdfUrl('');
+          setPdfDownloaded(false);
+        } else {
+          alert('Could not download the course PDF. Please try again.');
+        }
+      }
+      return;
+    }
+
+    try {
+      setPdfStatus('queued');
+      await axios.post(`/api/courses/${courseId}/pdf`);
+      pollPdfStatus(courseId);
+    } catch (err: any) {
+      console.error('Failed to start PDF generation:', err);
+      alert(err.response?.data?.message || 'Error triggering PDF generation.');
+      setPdfStatus('idle');
+    }
+  };
+
+  const pollPdfStatus = (courseId: string) => {
+    const interval = setInterval(async () => {
+      try {
+        const response = await axios.get('/api/courses');
+        const updatedCourse = response.data.find((c: any) => c._id === courseId);
+        
+        if (updatedCourse) {
+          setPdfStatus(updatedCourse.pdfStatus || 'idle');
+          setPdfUrl(updatedCourse.pdfUrl || '');
+
+          if (updatedCourse.pdfStatus === 'completed' || updatedCourse.pdfStatus === 'failed') {
+            clearInterval(interval);
+          }
+        } else {
+          clearInterval(interval);
+        }
+      } catch (err) {
+        console.error('Error polling PDF status:', err);
+        clearInterval(interval);
+      }
+    }, 3000);
+  };
 
   // Quiz interaction states
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, number>>({})
@@ -967,7 +1046,9 @@ export default function PremiumInteractiveSimulator({
                           {tab === 'downloads' && (
                             <span className={`px-1.5 py-0.5 rounded-full text-[9px] ${isActive ? 'bg-cyan-500/20 text-cyan-300' : 'bg-white/5 text-gray-500'
                               }`}>
-                              {activeCourse?.resources?.length || 0}
+                              {activeCourse && activeCourse._id && !activeCourse._id.startsWith('mock-') 
+                                ? 1 
+                                : (activeCourse?.resources?.length || 0)}
                             </span>
                           )}
                         </button>
@@ -1211,7 +1292,7 @@ export default function PremiumInteractiveSimulator({
                           <div>
                             <h4 className="text-white text-base font-bold font-display flex items-center gap-2">
                               <Download className="w-5 h-5 text-purple-primary" />
-                              Generated Resource Packets
+                              Course Materials & Downloads
                             </h4>
                             <p className="text-xs text-gray-400 mt-1">
                               Download AI-compiled course materials, worksheets, and references.
@@ -1219,89 +1300,177 @@ export default function PremiumInteractiveSimulator({
                           </div>
 
                           <div className="grid grid-cols-1 gap-3 mt-4">
-                            {(!activeCourse?.resources || activeCourse.resources.length === 0) ? (
-                              <div className="text-center py-12 text-gray-500 italic">
-                                {isGenerating ? 'Compiling worksheets and study resources... Please wait.' : 'No resources generated for this course.'}
-                              </div>
-                            ) : (
-                              (activeCourse?.resources || []).map((res) => {
-                                const progressVal = downloadProgress[res.name]
-                                const isDownloading = progressVal !== undefined && progressVal < 100
-                                const isDownloaded = progressVal === 100
-
-                                return (
-                                  <div
-                                    key={res.name}
-                                    className={`p-4 rounded-xl transition-all duration-300 border ${isDownloaded
-                                        ? 'bg-emerald-500/5 border-emerald-500/20'
-                                        : isDownloading
-                                          ? 'bg-purple-primary/5 border-purple-primary/20'
-                                          : 'bg-white/2 border-white/5 hover:border-white/10 hover:bg-white/4'
-                                      }`}
-                                  >
-                                    <div className="flex items-center justify-between gap-4">
-                                      <div className="flex items-center gap-3 truncate">
-                                        <div className={`p-2.5 rounded-lg border ${isDownloaded
-                                            ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-                                            : isDownloading
-                                              ? 'bg-purple-primary/15 border-purple-primary/20 text-purple-300 animate-pulse'
-                                              : 'bg-white/5 border-white/5 text-gray-400'
-                                          }`}>
-                                          <FileText className="w-5 h-5" />
-                                        </div>
-                                        <div className="truncate">
-                                          <h5 className="text-sm font-semibold text-white truncate">{res.name}</h5>
-                                          <span className="text-[10px] text-gray-500 font-medium">
-                                            {res.type} • {res.size}
-                                          </span>
-                                        </div>
-                                      </div>
-
-                                      <button
-                                        onClick={() => startDownload(res.name)}
-                                        disabled={isDownloading}
-                                        className={`p-2 rounded-lg border transition-all duration-300 cursor-pointer flex items-center justify-center ${isDownloaded
-                                            ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-300'
-                                            : isDownloading
-                                              ? 'bg-purple-primary/10 border-purple-primary/20 text-purple-300 cursor-not-allowed'
-                                              : 'bg-white/5 hover:bg-cyan-primary border-white/10 hover:border-cyan-primary hover:text-black text-gray-300'
-                                          }`}
-                                      >
-                                        {isDownloaded ? (
-                                          <Check className="w-4 h-4" />
-                                        ) : isDownloading ? (
-                                          <div className="w-4 h-4 border-2 border-purple-primary/20 border-t-purple-primary rounded-full animate-spin"></div>
-                                        ) : (
-                                          <Download className="w-4 h-4" />
-                                        )}
-                                      </button>
+                            {/* Real Server-Side PDF Download Booklet */}
+                            {activeCourse && activeCourse._id && !activeCourse._id.startsWith('mock-') && (
+                              <div
+                                className={`p-4 rounded-xl transition-all duration-300 border ${
+                                  pdfDownloaded
+                                    ? 'bg-emerald-500/5 border-emerald-500/20'
+                                    : pdfStatus === 'completed'
+                                    ? 'bg-cyan-500/5 border-cyan-500/20'
+                                    : pdfStatus === 'queued' || pdfStatus === 'generating'
+                                    ? 'bg-purple-primary/5 border-purple-primary/20'
+                                    : 'bg-white/2 border-white/5 hover:border-white/10 hover:bg-white/4'
+                                }`}
+                              >
+                                <div className="flex items-center justify-between gap-4">
+                                  <div className="flex items-center gap-3 truncate">
+                                    <div className={`p-2.5 rounded-lg border transition-all duration-300 ${
+                                      pdfDownloaded
+                                        ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                                        : pdfStatus === 'completed'
+                                        ? 'bg-cyan-500/10 border-cyan-500/20 text-cyan-400'
+                                        : pdfStatus === 'queued' || pdfStatus === 'generating'
+                                        ? 'bg-purple-primary/15 border-purple-primary/20 text-purple-300 animate-pulse'
+                                        : 'bg-white/5 border-white/5 text-gray-400'
+                                    }`}>
+                                      <FileText className="w-5 h-5" />
                                     </div>
+                                    <div className="truncate">
+                                      <h5 className="text-sm font-semibold text-white truncate">Full Course Booklet.pdf</h5>
+                                      <span className="text-[10px] text-gray-500 font-medium">
+                                        PDF eBook • Dynamic text compilation & slides
+                                      </span>
+                                    </div>
+                                  </div>
 
-                                    {/* Progress Bar inside download card */}
-                                    {isDownloading && (
-                                      <div className="mt-3">
-                                        <div className="flex justify-between text-[9px] text-gray-400 mb-1 font-semibold">
-                                          <span>Downloading package...</span>
-                                          <span>{progressVal}%</span>
-                                        </div>
-                                        <div className="w-full bg-white/5 h-1 rounded-full overflow-hidden">
-                                          <div
-                                            className="bg-gradient-to-r from-purple-primary to-cyan-primary h-full transition-all duration-150"
-                                            style={{ width: `${progressVal}%` }}
-                                          ></div>
-                                        </div>
-                                      </div>
+                                  <button
+                                    onClick={handleDownloadPdf}
+                                    disabled={pdfStatus === 'queued' || pdfStatus === 'generating'}
+                                    className={`p-2 rounded-lg border transition-all duration-300 cursor-pointer flex items-center justify-center ${
+                                      pdfDownloaded
+                                        ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/30'
+                                        : pdfStatus === 'completed'
+                                        ? 'bg-cyan-500/20 border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/30'
+                                        : pdfStatus === 'queued' || pdfStatus === 'generating'
+                                        ? 'bg-purple-primary/10 border-purple-primary/20 text-purple-300 cursor-not-allowed'
+                                        : 'bg-white/5 hover:bg-cyan-primary border-white/10 hover:border-cyan-primary hover:text-black text-gray-300'
+                                    }`}
+                                    title={
+                                      pdfDownloaded
+                                        ? 'Download Again'
+                                        : pdfStatus === 'completed'
+                                        ? 'Download PDF'
+                                        : pdfStatus === 'queued' || pdfStatus === 'generating'
+                                        ? 'Generating PDF...'
+                                        : 'Compile Course to PDF'
+                                    }
+                                  >
+                                    {pdfDownloaded ? (
+                                      <Check className="w-4 h-4" />
+                                    ) : pdfStatus === 'completed' ? (
+                                      <Download className="w-4 h-4" />
+                                    ) : pdfStatus === 'queued' || pdfStatus === 'generating' ? (
+                                      <div className="w-4 h-4 border-2 border-purple-primary/20 border-t-purple-primary rounded-full animate-spin"></div>
+                                    ) : (
+                                      <Download className="w-4 h-4" />
                                     )}
+                                  </button>
+                                </div>
 
-                                    {isDownloaded && (
-                                      <div className="mt-2 text-[9px] text-emerald-400 font-semibold flex items-center gap-1 animate-pulse">
-                                        <CheckCircle className="w-3 h-3" />
-                                        <span>Download completed! File saved to simulated local cache.</span>
-                                      </div>
+                                {pdfStatus === 'completed' && (
+                                  <div className="mt-2 text-[9px] font-semibold flex items-center gap-1">
+                                    {pdfDownloaded ? (
+                                      <>
+                                        <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+                                        <span className="text-emerald-400">Booklet downloaded successfully to your device!</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <CheckCircle className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
+                                        <span className="text-cyan-400 animate-pulse">Booklet compiled successfully! Ready for download.</span>
+                                      </>
                                     )}
                                   </div>
-                                )
-                              })
+                                )}
+                              </div>
+                            )}
+
+                            {(!activeCourse?._id || activeCourse._id.startsWith('mock-')) && (
+                              (!activeCourse?.resources || activeCourse.resources.length === 0) ? (
+                                <div className="text-center py-12 text-gray-500 italic">
+                                  {isGenerating ? 'Compiling worksheets and study resources... Please wait.' : 'No resources generated for this course.'}
+                                </div>
+                              ) : (
+                                (activeCourse?.resources || []).map((res) => {
+                                  const progressVal = downloadProgress[res.name]
+                                  const isDownloading = progressVal !== undefined && progressVal < 100
+                                  const isDownloaded = progressVal === 100
+
+                                  return (
+                                    <div
+                                      key={res.name}
+                                      className={`p-4 rounded-xl transition-all duration-300 border ${isDownloaded
+                                          ? 'bg-emerald-500/5 border-emerald-500/20'
+                                          : isDownloading
+                                            ? 'bg-purple-primary/5 border-purple-primary/20'
+                                            : 'bg-white/2 border-white/5 hover:border-white/10 hover:bg-white/4'
+                                        }`}
+                                    >
+                                      <div className="flex items-center justify-between gap-4">
+                                        <div className="flex items-center gap-3 truncate">
+                                          <div className={`p-2.5 rounded-lg border ${isDownloaded
+                                              ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                                              : isDownloading
+                                                ? 'bg-purple-primary/15 border-purple-primary/20 text-purple-300 animate-pulse'
+                                                : 'bg-white/5 border-white/5 text-gray-400'
+                                            }`}>
+                                            <FileText className="w-5 h-5" />
+                                          </div>
+                                          <div className="truncate">
+                                            <h5 className="text-sm font-semibold text-white truncate">{res.name}</h5>
+                                            <span className="text-[10px] text-gray-500 font-medium">
+                                              {res.type} • {res.size}
+                                            </span>
+                                          </div>
+                                        </div>
+
+                                        <button
+                                          onClick={() => startDownload(res.name)}
+                                          disabled={isDownloading}
+                                          className={`p-2 rounded-lg border transition-all duration-300 cursor-pointer flex items-center justify-center ${isDownloaded
+                                              ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-300'
+                                              : isDownloading
+                                                ? 'bg-purple-primary/10 border-purple-primary/20 text-purple-300 cursor-not-allowed'
+                                                : 'bg-white/5 hover:bg-cyan-primary border-white/10 hover:border-cyan-primary hover:text-black text-gray-300'
+                                            }`}
+                                        >
+                                          {isDownloaded ? (
+                                            <Check className="w-4 h-4" />
+                                          ) : isDownloading ? (
+                                            <div className="w-4 h-4 border-2 border-purple-primary/20 border-t-purple-primary rounded-full animate-spin"></div>
+                                          ) : (
+                                            <Download className="w-4 h-4" />
+                                          )}
+                                        </button>
+                                      </div>
+
+                                      {/* Progress Bar inside download card */}
+                                      {isDownloading && (
+                                        <div className="mt-3">
+                                          <div className="flex justify-between text-[9px] text-gray-400 mb-1 font-semibold">
+                                            <span>Downloading package...</span>
+                                            <span>{progressVal}%</span>
+                                          </div>
+                                          <div className="w-full bg-white/5 h-1 rounded-full overflow-hidden">
+                                            <div
+                                              className="bg-gradient-to-r from-purple-primary to-cyan-primary h-full transition-all duration-150"
+                                              style={{ width: `${progressVal}%` }}
+                                            ></div>
+                                          </div>
+                                        </div>
+                                      )}
+
+                                      {isDownloaded && (
+                                        <div className="mt-2 text-[9px] text-emerald-400 font-semibold flex items-center gap-1 animate-pulse">
+                                          <CheckCircle className="w-3 h-3" />
+                                          <span>Download completed! File saved to simulated local cache.</span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )
+                                })
+                              )
                             )}
                           </div>
                         </div>

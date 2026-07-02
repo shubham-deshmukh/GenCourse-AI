@@ -1,10 +1,11 @@
-import test from 'node:test';
+import test, { after } from 'node:test';
 import assert from 'node:assert';
-import scheduler from '../LessonScheduler.js';
+import mongoose from 'mongoose';
+import scheduler from '../lesson/LessonScheduler.js';
 import Course from '../../../models/Course.js';
 import Module from '../../../models/Module.js';
 import Lesson from '../../../models/Lesson.js';
-import Job from '../Job.js';
+import Job from '../lesson/LessonJob.js';
 import generationEvents from '../eventEmitter.js';
 import { parseJSONSafely } from '../../../utils/jsonUtils.js';
 import { getEnvJSON } from '../../../config/env.js';
@@ -656,10 +657,8 @@ test('LessonScheduler - Malformed Outline Sanitization Fallbacks', async () => {
     // Assertions: Verify title was updated, and default fallback resources/quizzes/modules were generated
     assert.strictEqual(savedCourse.title, 'Sanitized React JS');
     
-    // Default resources list populated
-    assert.ok(Array.isArray(savedCourse.resources));
-    assert.strictEqual(savedCourse.resources[0].name, 'Sanitized_React_JS_Guide.pdf');
-    assert.strictEqual(savedCourse.resources[0].type, 'PDF');
+    // Resources list initialized to empty array (no mock guides)
+    assert.deepStrictEqual(savedCourse.resources, []);
 
     // Default quiz array populated clean
     assert.deepStrictEqual(savedCourse.quizzes, []);
@@ -852,4 +851,8 @@ test('Utility - getEnvJSON Safe Quote Stripping', () => {
 
   // Clean up
   process.env.LLM_WORKERS_CONFIG = originalConfig;
+});
+
+after(async () => {
+  await mongoose.disconnect();
 });

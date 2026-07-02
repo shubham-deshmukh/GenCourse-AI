@@ -8,3 +8,6 @@ node_modules/
 .DS_Store
 dist/
 build/
+
+# Generated PDF and file storage (runtime artifacts)
+storage/
