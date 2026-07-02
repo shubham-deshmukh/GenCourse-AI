@@ -39,7 +39,7 @@ router.get('/login', (req, res) => {
 
   const issuer = getEnv('AUTH0_ISSUER_BASE_URL');
   const clientId = getEnv('AUTH0_CLIENT_ID');
-  const redirectUri = `${req.protocol}://${req.get('host')}/auth/callback`;
+  const redirectUri = `${getEnv('FRONTEND_URL')}/auth/callback`;
 
   const authUrl = `${issuer}/authorize?` + new URLSearchParams({
     response_type: 'code',
@@ -87,7 +87,7 @@ router.get('/callback', async (req, res) => {
     const issuer = getEnv('AUTH0_ISSUER_BASE_URL');
     const clientId = getEnv('AUTH0_CLIENT_ID');
     const clientSecret = process.env.AUTH0_CLIENT_SECRET || '';
-    const redirectUri = `${req.protocol}://${req.get('host')}/auth/callback`;
+    const redirectUri = `${getEnv('FRONTEND_URL')}/auth/callback`;
 
     // 1. Exchange auth code for tokens
     const exchangePayload = {
