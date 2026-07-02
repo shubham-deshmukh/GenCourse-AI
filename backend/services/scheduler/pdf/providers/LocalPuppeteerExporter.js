@@ -44,8 +44,8 @@ export default class LocalPuppeteerExporter extends PdfExporter {
         margin: {
           top: '60px',
           bottom: '80px',
-          left: '40px',
-          right: '40px'
+          left: '0px',
+          right: '0px'
         }
       });
 
@@ -252,7 +252,7 @@ export default class LocalPuppeteerExporter extends PdfExporter {
 
       /* Table of Contents */
       .toc-page {
-        padding: 60px 20px;
+        padding: 60px 40px;
         page-break-after: always;
       }
 
@@ -289,19 +289,30 @@ export default class LocalPuppeteerExporter extends PdfExporter {
       .toc-lessons li {
         font-size: 13px;
         color: #94a3b8;
-        margin-bottom: 8px;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .toc-lessons li::before {
+        content: "•";
+        color: #7c3aed;
+        font-weight: bold;
+        font-size: 16px;
       }
 
       /* Modules & Lessons */
       .module-section {
         page-break-before: always;
+        padding: 0 40px;
       }
 
       .module-header {
-        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-        padding-bottom: 15px;
-        margin-bottom: 40px;
-        margin-top: 40px;
+        border-bottom: 2px solid rgba(124, 58, 237, 0.25);
+        padding-bottom: 20px;
+        margin-bottom: 45px;
+        margin-top: 20px;
+        page-break-after: avoid;
       }
 
       .module-number {
@@ -336,14 +347,16 @@ export default class LocalPuppeteerExporter extends PdfExporter {
         margin-bottom: 20px;
         border-left: 4px solid #7c3aed;
         padding-left: 12px;
+        page-break-after: avoid;
       }
 
       .objectives-box {
-        background: rgba(124, 58, 237, 0.04);
+        background: rgba(124, 58, 237, 0.03);
         border: 1px solid rgba(124, 58, 237, 0.15);
-        border-radius: 12px;
-        padding: 20px;
-        margin-bottom: 30px;
+        border-radius: 14px;
+        padding: 22px;
+        margin-bottom: 35px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
       }
 
       .objectives-box h3 {
@@ -411,27 +424,29 @@ export default class LocalPuppeteerExporter extends PdfExporter {
       }
 
       .lesson-body-content blockquote {
-        border-left: 3px solid #06b6d4;
-        background: rgba(6, 182, 212, 0.04);
-        margin: 0 0 1.5em 0;
-        padding: 15px 20px;
-        border-radius: 0 8px 8px 0;
+        border-left: 4px solid #06b6d4;
+        background: rgba(6, 182, 212, 0.03);
+        margin: 0 0 20px 0;
+        padding: 18px 24px;
+        border-radius: 0 12px 12px 0;
         font-style: italic;
-        color: #94a3b8;
+        color: #cbd5e1;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
       }
 
       /* Monospace code styling */
       pre {
-        background: rgba(0, 0, 0, 0.4) !important;
-        border: 1px solid rgba(255, 255, 255, 0.06);
+        background: #010103 !important;
+        border: 1px solid rgba(255, 255, 255, 0.05);
         border-radius: 12px;
-        padding: 15px;
+        padding: 18px;
         overflow-x: auto;
-        margin: 0 0 1.5em 0;
+        margin: 0 0 20px 0;
         font-family: 'JetBrains Mono', monospace;
         font-size: 12px;
         color: #67e8f9;
         page-break-inside: avoid;
+        box-shadow: inset 0 1px 5px rgba(0, 0, 0, 0.5);
       }
 
       code {
@@ -455,6 +470,7 @@ export default class LocalPuppeteerExporter extends PdfExporter {
       /* Quizzes Section */
       .quizzes-section {
         page-break-before: always;
+        padding: 0 40px;
       }
 
       .quiz-card {
