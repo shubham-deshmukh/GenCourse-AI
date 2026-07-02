@@ -449,6 +449,7 @@ export default function PremiumDashboard() {
           <button
             onClick={() => {
               localStorage.removeItem('gencourse_mock_mode');
+              localStorage.removeItem('gencourse_token');
               const apiBase = import.meta.env.VITE_API_BASE_URL || '';
               window.location.href = `${apiBase}/auth/logout`;
             }}
@@ -832,6 +833,7 @@ export default function PremiumDashboard() {
         <button
           onClick={() => {
             localStorage.removeItem('gencourse_mock_mode');
+            localStorage.removeItem('gencourse_token');
             const apiBase = import.meta.env.VITE_API_BASE_URL || '';
             window.location.href = `${apiBase}/auth/logout`;
           }}
