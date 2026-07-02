@@ -48,7 +48,7 @@ Course.findById = (id) => {
 };
 
 // Mock the LocalPuppeteerExporter to prevent launching actual headless Chromium
-LocalPuppeteerExporter.prototype.generatePdf = async (course) => {
+LocalPuppeteerExporter.prototype.generatePdf = async (_course) => {
   return Buffer.from('mock-pdf-binary-buffer');
 };
 
@@ -368,7 +368,9 @@ test('PdfScheduler - File Cleanup / Storage Directory Verification', async () =>
   // Ensure any legacy leftover file is deleted
   try {
     await fs.unlink(expectedFilePath);
-  } catch {}
+  } catch {
+    // Ignore if file does not exist
+  }
 
   try {
     await pdfScheduler.addPdfJob(courseId);
@@ -385,7 +387,9 @@ test('PdfScheduler - File Cleanup / Storage Directory Verification', async () =>
     // Delete file to keep repository clean
     try {
       await fs.unlink(expectedFilePath);
-    } catch {}
+    } catch {
+      // Ignore if deletion fails
+    }
   }
 });
 

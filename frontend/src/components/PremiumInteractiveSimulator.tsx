@@ -409,7 +409,9 @@ export default function PremiumInteractiveSimulator({
   }, [activeCourse])
 
   const handleDownloadPdf = async () => {
-    if (!activeCourse || !activeCourse._id) return;
+    if (!activeCourse || !activeCourse._id) {
+      return;
+    }
     const courseId = activeCourse._id;
 
     if (pdfStatus === 'completed' && pdfUrl) {
