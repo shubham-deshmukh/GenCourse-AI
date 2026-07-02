@@ -397,12 +397,14 @@ export default function PremiumInteractiveSimulator({
   const [downloadProgress, setDownloadProgress] = useState<Record<string, number>>({})
   const [pdfStatus, setPdfStatus] = useState<string>('idle')
   const [pdfUrl, setPdfUrl] = useState<string>('')
+  const [pdfDownloaded, setPdfDownloaded] = useState<boolean>(false)
 
   // Sync database PDF status to local state when course loads
   useEffect(() => {
     if (activeCourse) {
       setPdfStatus((activeCourse as any).pdfStatus || 'idle');
       setPdfUrl((activeCourse as any).pdfUrl || '');
+      setPdfDownloaded(false);
     }
   }, [activeCourse])
 
@@ -422,12 +424,14 @@ export default function PremiumInteractiveSimulator({
         document.body.appendChild(link);
         link.click();
         link.remove();
+        setPdfDownloaded(true);
       } catch (err: any) {
         console.error('Failed to download PDF:', err);
         if (err.response?.status === 404) {
           // File no longer exists on server — DB has been reset. Revert UI to idle so user can re-compile.
           setPdfStatus('idle');
           setPdfUrl('');
+          setPdfDownloaded(false);
         } else {
           alert('Could not download the course PDF. Please try again.');
         }
@@ -1298,8 +1302,10 @@ export default function PremiumInteractiveSimulator({
                             {activeCourse && activeCourse._id && !activeCourse._id.startsWith('mock-') && (
                               <div
                                 className={`p-4 rounded-xl transition-all duration-300 border ${
-                                  pdfStatus === 'completed'
+                                  pdfDownloaded
                                     ? 'bg-emerald-500/5 border-emerald-500/20'
+                                    : pdfStatus === 'completed'
+                                    ? 'bg-cyan-500/5 border-cyan-500/20'
                                     : pdfStatus === 'queued' || pdfStatus === 'generating'
                                     ? 'bg-purple-primary/5 border-purple-primary/20'
                                     : 'bg-white/2 border-white/5 hover:border-white/10 hover:bg-white/4'
@@ -1307,9 +1313,11 @@ export default function PremiumInteractiveSimulator({
                               >
                                 <div className="flex items-center justify-between gap-4">
                                   <div className="flex items-center gap-3 truncate">
-                                    <div className={`p-2.5 rounded-lg border ${
-                                      pdfStatus === 'completed'
+                                    <div className={`p-2.5 rounded-lg border transition-all duration-300 ${
+                                      pdfDownloaded
                                         ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                                        : pdfStatus === 'completed'
+                                        ? 'bg-cyan-500/10 border-cyan-500/20 text-cyan-400'
                                         : pdfStatus === 'queued' || pdfStatus === 'generating'
                                         ? 'bg-purple-primary/15 border-purple-primary/20 text-purple-300 animate-pulse'
                                         : 'bg-white/5 border-white/5 text-gray-400'
@@ -1328,22 +1336,28 @@ export default function PremiumInteractiveSimulator({
                                     onClick={handleDownloadPdf}
                                     disabled={pdfStatus === 'queued' || pdfStatus === 'generating'}
                                     className={`p-2 rounded-lg border transition-all duration-300 cursor-pointer flex items-center justify-center ${
-                                      pdfStatus === 'completed'
-                                        ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-300'
+                                      pdfDownloaded
+                                        ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/30'
+                                        : pdfStatus === 'completed'
+                                        ? 'bg-cyan-500/20 border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/30'
                                         : pdfStatus === 'queued' || pdfStatus === 'generating'
                                         ? 'bg-purple-primary/10 border-purple-primary/20 text-purple-300 cursor-not-allowed'
                                         : 'bg-white/5 hover:bg-cyan-primary border-white/10 hover:border-cyan-primary hover:text-black text-gray-300'
                                     }`}
                                     title={
-                                      pdfStatus === 'completed'
+                                      pdfDownloaded
+                                        ? 'Download Again'
+                                        : pdfStatus === 'completed'
                                         ? 'Download PDF'
                                         : pdfStatus === 'queued' || pdfStatus === 'generating'
                                         ? 'Generating PDF...'
                                         : 'Compile Course to PDF'
                                     }
                                   >
-                                    {pdfStatus === 'completed' ? (
+                                    {pdfDownloaded ? (
                                       <Check className="w-4 h-4" />
+                                    ) : pdfStatus === 'completed' ? (
+                                      <Download className="w-4 h-4" />
                                     ) : pdfStatus === 'queued' || pdfStatus === 'generating' ? (
                                       <div className="w-4 h-4 border-2 border-purple-primary/20 border-t-purple-primary rounded-full animate-spin"></div>
                                     ) : (
@@ -1353,9 +1367,18 @@ export default function PremiumInteractiveSimulator({
                                 </div>
 
                                 {pdfStatus === 'completed' && (
-                                  <div className="mt-2 text-[9px] text-emerald-400 font-semibold flex items-center gap-1 animate-pulse">
-                                    <CheckCircle className="w-3 h-3" />
-                                    <span>Compilation ready! Downloaded directly to local storage.</span>
+                                  <div className="mt-2 text-[9px] font-semibold flex items-center gap-1">
+                                    {pdfDownloaded ? (
+                                      <>
+                                        <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+                                        <span className="text-emerald-400">Booklet downloaded successfully to your device!</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <CheckCircle className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
+                                        <span className="text-cyan-400 animate-pulse">Booklet compiled successfully! Ready for download.</span>
+                                      </>
+                                    )}
                                   </div>
                                 )}
                               </div>
