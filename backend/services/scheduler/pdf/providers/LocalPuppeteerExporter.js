@@ -63,11 +63,13 @@ export default class LocalPuppeteerExporter extends PdfExporter {
     const modules = course.modules || [];
     
     modules.forEach((mod, modIdx) => {
+      // Strip "Module X:" prefix if it exists to prevent duplication with MODULE X header
+      const displayTitle = mod.title.replace(/^module\s+\d+:\s*/i, '');
       modulesHtml += `
         <div class="module-section">
           <div class="module-header">
             <span class="module-number">MODULE ${modIdx + 1}</span>
-            <h2 class="module-title">${mod.title}</h2>
+            <h2 class="module-title">${displayTitle}</h2>
           </div>
       `;
 
@@ -112,15 +114,33 @@ export default class LocalPuppeteerExporter extends PdfExporter {
     // 2. Build Table of Contents HTML
     let tocHtml = '';
     modules.forEach((mod, modIdx) => {
+      // If the module title already starts with "Module", use it directly. Otherwise, prepend "Module X: "
+      const tocModuleTitle = /^module/i.test(mod.title)
+        ? mod.title
+        : `Module ${modIdx + 1}: ${mod.title}`;
+
       tocHtml += `
         <div class="toc-module">
-          <span class="toc-module-title">Module ${modIdx + 1}: ${mod.title}</span>
+          <span class="toc-module-title">${tocModuleTitle}</span>
           <ul class="toc-lessons">
             ${(mod.lessons || []).map(lesson => `<li>${lesson.title}</li>`).join('')}
           </ul>
         </div>
       `;
     });
+
+    // Add Quizzes to Table of Contents if they exist
+    const quizzes = course.quizzes || [];
+    if (quizzes.length > 0) {
+      tocHtml += `
+        <div class="toc-module">
+          <span class="toc-module-title">Course Assessment</span>
+          <ul class="toc-lessons">
+            <li>Practice Quiz (${quizzes.length} question${quizzes.length === 1 ? '' : 's'})</li>
+          </ul>
+        </div>
+      `;
+    }
 
     // Premium styling imitating our workspace's dark and glow aesthetic
     const styles = `
@@ -299,7 +319,6 @@ export default class LocalPuppeteerExporter extends PdfExporter {
 
       .lesson-section {
         margin-bottom: 60px;
-        page-break-inside: avoid;
       }
 
       .lesson-title {
@@ -426,7 +445,124 @@ export default class LocalPuppeteerExporter extends PdfExporter {
         border-radius: 0 !important;
         border: none !important;
       }
+
+      /* Quizzes Section */
+      .quizzes-section {
+        page-break-before: always;
+      }
+
+      .quiz-card {
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 16px;
+        padding: 25px;
+        margin-bottom: 30px;
+        page-break-inside: avoid;
+      }
+
+      .quiz-question {
+        font-family: 'Outfit', sans-serif;
+        font-size: 16px;
+        font-weight: 600;
+        color: #fff;
+        margin-top: 0;
+        margin-bottom: 20px;
+      }
+
+      .quiz-question-number {
+        color: #c084fc;
+      }
+
+      .quiz-options {
+        list-style: none;
+        padding: 0;
+        margin: 0 0 20px 0;
+      }
+
+      .quiz-option {
+        font-size: 13px;
+        color: #cbd5e1;
+        padding: 10px 15px;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.01);
+        border: 1px solid rgba(255, 255, 255, 0.03);
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .correct-option {
+        background: rgba(16, 185, 129, 0.04);
+        border-color: rgba(16, 185, 129, 0.2);
+        color: #34d399;
+      }
+
+      .option-letter {
+        font-weight: 700;
+        color: #a78bfa;
+      }
+
+      .correct-option .option-letter {
+        color: #34d399;
+      }
+
+      .correct-badge {
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        background: rgba(16, 185, 129, 0.15);
+        color: #34d399;
+        padding: 2px 6px;
+        border-radius: 4px;
+        margin-left: auto;
+      }
+
+      .quiz-explanation {
+        background: rgba(124, 58, 237, 0.04);
+        border-left: 3px solid #7c3aed;
+        border-radius: 0 8px 8px 0;
+        padding: 12px 15px;
+        font-size: 12px;
+        color: #cbd5e1;
+        line-height: 1.5;
+      }
     `;
+
+    // 3. Build Quizzes HTML
+    let quizzesHtml = '';
+    if (quizzes.length > 0) {
+      quizzesHtml += `
+        <div class="quizzes-section">
+          <div class="module-header">
+            <span class="module-number">ASSESSMENT</span>
+            <h2 class="module-title">Practice Quiz</h2>
+          </div>
+      `;
+
+      quizzes.forEach((quiz, quizIdx) => {
+        quizzesHtml += `
+          <div class="quiz-card">
+            <h3 class="quiz-question"><span class="quiz-question-number">Question ${quizIdx + 1}:</span> ${quiz.question}</h3>
+            <ul class="quiz-options">
+              ${quiz.options.map((opt, optIdx) => `
+                <li class="quiz-option ${optIdx === quiz.correctIndex ? 'correct-option' : ''}">
+                  <span class="option-letter">${String.fromCharCode(65 + optIdx)}.</span> ${opt}
+                  ${optIdx === quiz.correctIndex ? ' <span class="correct-badge">(Correct Answer)</span>' : ''}
+                </li>
+              `).join('')}
+            </ul>
+            ${quiz.explanation ? `
+              <div class="quiz-explanation">
+                <strong>Explanation:</strong> ${quiz.explanation}
+              </div>
+            ` : ''}
+          </div>
+        `;
+      });
+
+      quizzesHtml += `</div>`; // Close quizzes-section
+    }
 
     return `
       <!DOCTYPE html>
@@ -460,6 +596,9 @@ export default class LocalPuppeteerExporter extends PdfExporter {
 
         <!-- Course Curriculum -->
         ${modulesHtml}
+
+        <!-- Course Quizzes / Assessments -->
+        ${quizzesHtml}
       </body>
       </html>
     `;

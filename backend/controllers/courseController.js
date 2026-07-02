@@ -498,7 +498,7 @@ export const downloadCoursePdf = async (req, res, next) => {
       return res.status(403).json({ message: 'Unauthorized to download this course' });
     }
 
-    const filePath = path.join(__dirname, '../../storage/pdfs', `${id}.pdf`);
+    const filePath = path.join(__dirname, '../storage/pdfs', `${id}.pdf`);
 
     // Verify physical file exists on VPS disk
     try {
