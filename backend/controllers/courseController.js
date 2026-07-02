@@ -500,11 +500,13 @@ export const downloadCoursePdf = async (req, res, next) => {
 
     const filePath = path.join(__dirname, '../storage/pdfs', `${id}.pdf`);
 
-    // Verify physical file exists on VPS disk
+    // Verify physical file exists on disk
     try {
       await fs.promises.access(filePath);
     } catch {
-      return res.status(404).json({ message: 'PDF file not generated or missing' });
+      // File has been deleted or was never written — reset DB state so user can re-compile
+      await Course.findByIdAndUpdate(id, { pdfStatus: 'idle', pdfUrl: '' });
+      return res.status(404).json({ message: 'PDF file not found. Please re-compile the course booklet.' });
     }
 
     // Stream download safely with clean file naming

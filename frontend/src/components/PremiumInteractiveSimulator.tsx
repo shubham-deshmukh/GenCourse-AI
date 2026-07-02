@@ -422,9 +422,15 @@ export default function PremiumInteractiveSimulator({
         document.body.appendChild(link);
         link.click();
         link.remove();
-      } catch (err) {
+      } catch (err: any) {
         console.error('Failed to download PDF:', err);
-        alert('Could not download the course PDF. Please try again.');
+        if (err.response?.status === 404) {
+          // File no longer exists on server — DB has been reset. Revert UI to idle so user can re-compile.
+          setPdfStatus('idle');
+          setPdfUrl('');
+        } else {
+          alert('Could not download the course PDF. Please try again.');
+        }
       }
       return;
     }
