@@ -2,10 +2,13 @@ import Course from '../models/Course.js';
 import Module from '../models/Module.js';
 import Lesson from '../models/Lesson.js';
 import User from '../models/User.js';
-import scheduler from '../services/scheduler/LessonScheduler.js';
+import scheduler from '../services/scheduler/lesson/LessonScheduler.js';
+import pdfScheduler from '../services/scheduler/pdf/PdfScheduler.js';
 import generationEvents from '../services/scheduler/eventEmitter.js';
 import mongoose from 'mongoose';
 import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { getEnv } from '../config/env.js';
 
 
@@ -426,6 +429,87 @@ export const deleteCourse = async (req, res, next) => {
     console.log(`✅ Successfully deleted course "${course.title}".`);
 
     res.json({ message: 'Course and all related data successfully deleted' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Trigger PDF generation in background queue
+ * @route   POST /api/courses/:id/pdf
+ * @access  Private
+ */
+export const generateCoursePdf = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'Invalid Course ID format' });
+    }
+
+    const course = await Course.findById(id);
+    if (!course) {
+      return res.status(404).json({ message: 'Course not found' });
+    }
+
+    // Security: Only course creator can trigger PDF generation
+    if (course.creator && course.creator.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Unauthorized to export this course' });
+    }
+
+    // Safety constraint: Only completed courses can be exported
+    if (course.status !== 'completed') {
+      return res.status(400).json({ message: 'Download button is allowed only when course generation completes.' });
+    }
+
+    // Enqueue PDF generation job
+    await pdfScheduler.addPdfJob(id);
+
+    res.status(202).json({
+      message: 'PDF generation enqueued',
+      pdfStatus: 'queued'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Securely download generated course PDF
+ * @route   GET /api/courses/:id/download-pdf
+ * @access  Private
+ */
+export const downloadCoursePdf = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'Invalid Course ID format' });
+    }
+
+    const course = await Course.findById(id);
+    if (!course) {
+      return res.status(404).json({ message: 'Course not found' });
+    }
+
+    // Security: Only course creator can download
+    if (course.creator && course.creator.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Unauthorized to download this course' });
+    }
+
+    const filePath = path.join(__dirname, '../../storage/pdfs', `${id}.pdf`);
+
+    // Verify physical file exists on VPS disk
+    try {
+      await fs.promises.access(filePath);
+    } catch {
+      return res.status(404).json({ message: 'PDF file not generated or missing' });
+    }
+
+    // Stream download safely with clean file naming
+    const safeTitle = course.title.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+    res.download(filePath, `gencourse_${safeTitle}.pdf`);
   } catch (error) {
     next(error);
   }

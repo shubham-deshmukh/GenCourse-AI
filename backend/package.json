@@ -21,9 +21,11 @@
     "express": "^5.2.1",
     "express-openid-connect": "^3.0.0",
     "jsonwebtoken": "^9.0.3",
+    "marked": "^18.0.5",
     "mongoose": "^9.6.3",
     "morgan": "^1.11.0",
     "p-limit": "^7.3.0",
+    "puppeteer": "^25.3.0",
     "undici": "^7.28.0"
   },
   "devDependencies": {

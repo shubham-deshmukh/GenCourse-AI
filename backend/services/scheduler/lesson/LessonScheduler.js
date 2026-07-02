@@ -1,12 +1,12 @@
-import Job from './Job.js';
+import LessonJob from './LessonJob.js';
 import { createWorker } from './workers/WorkerFactory.js';
-import generationEvents from './eventEmitter.js';
-import Course from '../../models/Course.js';
-import Module from '../../models/Module.js';
-import Lesson from '../../models/Lesson.js';
-import { getCourseOutlinePrompt, getLessonDetailsPrompt } from '../courseGenerationService.js';
-import { parseJSONSafely } from '../../utils/jsonUtils.js';
-import { getEnvJSON } from '../../config/env.js';
+import generationEvents from '../eventEmitter.js';
+import Course from '../../../models/Course.js';
+import Module from '../../../models/Module.js';
+import Lesson from '../../../models/Lesson.js';
+import { getCourseOutlinePrompt, getLessonDetailsPrompt } from '../../courseGenerationService.js';
+import { parseJSONSafely } from '../../../utils/jsonUtils.js';
+import { getEnvJSON } from '../../../config/env.js';
 
 /**
  * Singleton Coordinator managing course generation job orchestration,
@@ -47,7 +47,7 @@ class LessonScheduler {
       }
     });
 
-    const job = new Job({
+    const job = new LessonJob({
       id: `outline-${courseId}`,
       courseId,
       type: 'outline',
@@ -116,8 +116,8 @@ class LessonScheduler {
 
   /**
    * Interleaves jobs from different courses to implement Round-Robin scheduling
-   * @param {Job[]} jobs 
-   * @returns {Job[]}
+   * @param {LessonJob[]} jobs 
+   * @returns {LessonJob[]}
    */
   interleaveJobs(jobs) {
     const grouped = this.groupByCourse(jobs);
@@ -142,7 +142,7 @@ class LessonScheduler {
 
   /**
    * Helper to group an array of jobs by their courseId
-   * @param {Job[]} jobs 
+   * @param {LessonJob[]} jobs 
    * @returns {object}
    */
   groupByCourse(jobs) {
@@ -157,7 +157,7 @@ class LessonScheduler {
 
   /**
    * Dispatches a job to a worker and coordinates responses and errors
-   * @param {Job} job 
+   * @param {LessonJob} job 
    * @param {Worker} worker 
    */
   async dispatch(job, worker) {
@@ -190,7 +190,7 @@ class LessonScheduler {
 
   /**
    * Handles successful job generation, parsing responses, updating databases, and enqueuing child tasks
-   * @param {Job} job 
+   * @param {LessonJob} job 
    * @param {string} resultText 
    */
   async handleJobSuccess(job, resultText) {
@@ -213,7 +213,7 @@ class LessonScheduler {
 
   /**
    * Handles job failure, evaluating retry constraints and worker cooldown periods
-   * @param {Job} job 
+   * @param {LessonJob} job 
    * @param {Error} error 
    */
   async handleJobFailure(job, error) {
@@ -386,7 +386,7 @@ class LessonScheduler {
       const { doc: moduleDoc, lessonTitles } = savedModules[mIdx];
       for (let lIdx = 0; lIdx < lessonTitles.length; lIdx++) {
         const lessonTitle = lessonTitles[lIdx];
-        const job = new Job({
+        const job = new LessonJob({
           id: `lesson-${courseId}-${moduleDoc._id}-${lIdx}`,
           courseId,
           type: 'lesson',

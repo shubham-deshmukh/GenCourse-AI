@@ -71,6 +71,15 @@ const courseSchema = new mongoose.Schema(
       enum: ['outline_generating', 'lessons_generating', 'completed', 'failed'],
       default: 'outline_generating'
     },
+    pdfStatus: {
+      type: String,
+      enum: ['idle', 'queued', 'generating', 'completed', 'failed'],
+      default: 'idle'
+    },
+    pdfUrl: {
+      type: String,
+      default: ''
+    },
     progress: {
       totalLessons: {
         type: Number,

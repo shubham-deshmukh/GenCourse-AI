@@ -13,7 +13,7 @@ export default class CerebrasWorker extends Worker {
 
   /**
    * Performs LLM generation via Cerebras API
-   * @param {Job} job 
+   * @param {LessonJob} job 
    * @returns {Promise<string>}
    */
   async performWork(job) {

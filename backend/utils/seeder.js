@@ -528,8 +528,8 @@ const seedDB = async () => {
     await Lesson.deleteMany({});
     console.log('✅ Collections cleared.');
 
-    // 2. Create Instructor User
-    console.log('👤 Creating default instructor user...');
+    // 2. Create Instructor and Mock Developer Users
+    console.log('👤 Creating default instructor and mock developer users...');
     const instructor = await User.create({
       name: 'Dr. Jane Doe',
       email: 'instructor@gencourse.ai',
@@ -537,7 +537,15 @@ const seedDB = async () => {
       auth0Sub: 'auth0|instructor_jane_doe',
       role: 'instructor'
     });
-    console.log(`✅ Instructor user created: ${instructor.name} (${instructor._id})`);
+
+    const mockDev = await User.create({
+      name: 'Mock Developer',
+      email: 'developer@example.com',
+      picture: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=150',
+      auth0Sub: 'mock-auth-sub-id',
+      role: 'admin'
+    });
+    console.log(`✅ Mock developer user created: ${mockDev.name} (${mockDev._id})`);
 
     // 3. Populate Courses, Modules, and Lessons
     console.log('📚 Seeding courses database...');
@@ -548,9 +556,10 @@ const seedDB = async () => {
       const course = new Course({
         title: cData.title,
         description: cData.description,
-        creator: instructor._id,
+        creator: mockDev._id,
         resources: cData.resources,
         quizzes: cData.quizzes,
+        status: 'completed',
         modules: []
       });
 
