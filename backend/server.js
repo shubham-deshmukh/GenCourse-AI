@@ -7,6 +7,7 @@ setGlobalDispatcher(new Agent({
 }));
 
 import express from 'express';
+import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import morgan from 'morgan';
 import connectDB from './config/db.js';
@@ -30,6 +31,7 @@ app.use(cors({
   origin: getEnv('FRONTEND_URL'),
   credentials: true
 }));
+app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
