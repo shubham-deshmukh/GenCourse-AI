@@ -13,8 +13,14 @@ export default class LocalPuppeteerExporter extends PdfExporter {
 
     // Launch headless browser with sandbox options for Linux/Docker compatibility
     const browser = await puppeteer.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
+      headless: 'shell',
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-gpu',
+        '--disable-dev-shm-usage',
+        '--disable-software-rasterizer'
+      ]
     });
 
     try {
