@@ -7,20 +7,6 @@ import { signToken } from '../utils/jwt.js';
 
 const router = express.Router();
 
-// Helper to parse cookies manually without needing cookie-parser package
-const getCookie = (req, name) => {
-  const list = {};
-  const rc = req.headers.cookie;
-
-  if (rc) {
-    rc.split(';').forEach((cookie) => {
-      const parts = cookie.split('=');
-      list[parts.shift().trim()] = decodeURI(parts.join('='));
-    });
-  }
-
-  return list[name];
-};
 
 // Helper functions for PKCE verifier and challenge generation
 const base64URLEncode = (str) => {
@@ -84,8 +70,12 @@ router.get('/callback', async (req, res) => {
   }
 
   // Retrieve code verifier from first-party cookie
-  const verifier = getCookie(req, 'auth_code_verifier');
-  res.clearCookie('auth_code_verifier');
+  const verifier = req.cookies?.auth_code_verifier;
+  res.clearCookie('auth_code_verifier', {
+    httpOnly: true,
+    secure: getEnv('NODE_ENV', 'development') === 'production',
+    sameSite: 'lax'
+  });
 
   if (!verifier) {
     console.error('❌ Missing code verifier cookie (expired or cross-origin issues)');
@@ -147,9 +137,16 @@ router.get('/callback', async (req, res) => {
     };
     const jwtToken = signToken(tokenPayload);
 
-    // 5. Redirect browser back to frontend callback with JWT token in URL hash
-    console.log(`✅ Authentication successful. Redirecting user back to frontend callback`);
-    res.redirect(`${getEnv('FRONTEND_URL')}/#token=${jwtToken}`);
+    // 5. Store custom application JWT in an httpOnly cookie
+    res.cookie('gencourse_token', jwtToken, {
+      httpOnly: true,
+      secure: getEnv('NODE_ENV', 'development') === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days (matching JWT expiration)
+    });
+
+    console.log(`✅ Authentication successful. Redirecting user back to frontend`);
+    res.redirect(getEnv('FRONTEND_URL'));
   } catch (err) {
     console.error('❌ Error handling authentication callback:', err.message);
     res.redirect(`${getEnv('FRONTEND_URL')}/#error=${encodeURIComponent(err.message)}`);
@@ -165,12 +162,19 @@ router.get('/logout', (req, res) => {
   const clientId = getEnv('AUTH0_CLIENT_ID');
   const frontendUrl = getEnv('FRONTEND_URL');
 
+  // Clear local JWT cookie
+  res.clearCookie('gencourse_token', {
+    httpOnly: true,
+    secure: getEnv('NODE_ENV', 'development') === 'production',
+    sameSite: 'lax'
+  });
+
   const logoutUrl = `${issuer}/v2/logout?` + new URLSearchParams({
     client_id: clientId,
     returnTo: frontendUrl
   }).toString();
 
-  console.log(`🚪 Logging user out of Auth0, redirecting to frontend logout success page`);
+  console.log(`🚪 Logging user out of Auth0, clearing token cookie, redirecting to frontend`);
   res.redirect(logoutUrl);
 });
 

@@ -12,17 +12,13 @@ import PremiumDashboard from './components/PremiumDashboard'
 
 // Set Axios baseURL from environment variables (direct backend connection)
 axios.defaults.baseURL = import.meta.env.VITE_API_BASE_URL || '';
+axios.defaults.withCredentials = true;
 
 // Configure Axios request interceptor to append headers for auth
 axios.interceptors.request.use((config) => {
   const isMock = localStorage.getItem('gencourse_mock_mode') === 'true';
   if (isMock) {
     config.headers['X-Mock-User'] = 'true';
-  }
-
-  const token = localStorage.getItem('gencourse_token');
-  if (token) {
-    config.headers['Authorization'] = `Bearer ${token}`;
   }
 
   return config;
@@ -37,15 +33,10 @@ export default function App() {
   const { isAuthenticated, setAuthState } = useAuthStore()
 
   useEffect(() => {
-    // Check for token or error in URL hash
+    // Check for error in URL hash
     const hash = window.location.hash;
     if (hash) {
-      if (hash.startsWith('#token=')) {
-        const token = hash.split('#token=')[1];
-        localStorage.setItem('gencourse_token', token);
-        // Clear mock mode if switching to real token auth
-        localStorage.removeItem('gencourse_mock_mode');
-      } else if (hash.startsWith('#error=')) {
+      if (hash.startsWith('#error=')) {
         const errorMsg = decodeURIComponent(hash.split('#error=')[1]);
         console.error('Authentication error:', errorMsg);
         alert(`Authentication failed: ${errorMsg}`);
@@ -60,7 +51,6 @@ export default function App() {
     // Store mock mode setting in localStorage to persist across reloads
     if (isMockUrl) {
       localStorage.setItem('gencourse_mock_mode', 'true');
-      localStorage.removeItem('gencourse_token'); // Clear token if explicitly entering mock mode
     }
 
     const checkAuth = async () => {
@@ -69,8 +59,7 @@ export default function App() {
         const user = response.data;
         setAuthState(user, true, false);
       } catch (_err) {
-        // If unauthenticated or token expires, clean up storage and state
-        localStorage.removeItem('gencourse_token');
+        // If unauthenticated or token expires, reset state
         setAuthState(null, false, false);
       }
     };

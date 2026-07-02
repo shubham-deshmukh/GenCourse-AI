@@ -34,15 +34,17 @@ export const protect = async (req, res, next) => {
   }
 
   // Use JWT token validation
-  let token;
+  let token = req.cookies?.gencourse_token;
 
-  if (
-    req.headers.authorization &&
-    req.headers.authorization.startsWith('Bearer')
-  ) {
-    token = req.headers.authorization.split(' ')[1];
-  } else if (req.query.token) {
-    token = req.query.token;
+  if (!token) {
+    if (
+      req.headers.authorization &&
+      req.headers.authorization.startsWith('Bearer')
+    ) {
+      token = req.headers.authorization.split(' ')[1];
+    } else if (req.query.token) {
+      token = req.query.token;
+    }
   }
 
   if (token) {
