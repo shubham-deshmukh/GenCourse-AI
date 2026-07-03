@@ -37,8 +37,9 @@ interface Lesson {
     es: string
     fr: string
   }
-  script: string
-  videoSlide: string
+  youtubeVideoId?: string
+  script?: string
+  videoSlide?: string
 }
 
 interface Module {
@@ -1172,6 +1173,27 @@ export default function PremiumInteractiveSimulator({
                                 {renderFormattedContent((currentLesson.content as any)?.[language] || '')}
                               </div>
                             </div>
+
+                            {currentLesson.youtubeVideoId && activeCourse && activeCourse._id && !activeCourse._id.startsWith('mock-') && (
+                              <div className="mt-8 border border-white/10 rounded-2xl overflow-hidden bg-[#0a051b]/40 shadow-2xl backdrop-blur-md">
+                                <div className="px-5 py-4 border-b border-white/5 flex items-center justify-between bg-white/2">
+                                  <h5 className="text-white text-xs font-bold font-display uppercase tracking-wider flex items-center gap-2">
+                                    <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                                    Recommended Video
+                                  </h5>
+                                </div>
+                                <div className="relative w-full aspect-video">
+                                  <iframe
+                                    src={`https://www.youtube.com/embed/${currentLesson.youtubeVideoId}`}
+                                    title="YouTube video player"
+                                    frameBorder="0"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                    allowFullScreen
+                                    className="absolute top-0 left-0 w-full h-full border-0"
+                                  ></iframe>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         )
                       )}

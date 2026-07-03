@@ -28,6 +28,11 @@ const lessonSchema = new mongoose.Schema(
       type: String,
       trim: true
     },
+    youtubeVideoId: {
+      type: String,
+      trim: true,
+      default: ''
+    },
     script: {
       type: String,
       trim: true
