@@ -11,7 +11,8 @@ export default class LocalPuppeteerExporter extends PdfExporter {
   async generatePdf(course) {
     const htmlContent = this.compileHtml(course);
 
-    const launchOptions = {
+    // Launch headless browser with sandbox options for Linux/Docker compatibility
+    const browser = await puppeteer.launch({
       headless: 'shell',
       args: [
         '--no-sandbox',
@@ -20,13 +21,7 @@ export default class LocalPuppeteerExporter extends PdfExporter {
         '--disable-dev-shm-usage',
         '--disable-software-rasterizer'
       ]
-    };
-
-    if (process.env.PUPPETEER_EXECUTABLE_PATH) {
-      launchOptions.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
-    }
-
-    const browser = await puppeteer.launch(launchOptions);
+    });
 
     try {
       const page = await browser.newPage();
