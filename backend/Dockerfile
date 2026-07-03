@@ -26,7 +26,7 @@ RUN if [ "$NODE_ENV" = "production" ]; then \
     fi
 
 # Install Chrome Headless Shell and let Puppeteer install all system libraries automatically
-RUN npx puppeteer browsers install chrome-headless-shell --install-deps
+RUN apt-get update && npx puppeteer browsers install chrome-headless-shell --install-deps && rm -rf /var/lib/apt/lists/*
 
 # Copy application source code
 COPY . .
