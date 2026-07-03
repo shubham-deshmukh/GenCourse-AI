@@ -23,13 +23,13 @@ services:
     restart: always
     ports:
       - "3000:3000"
-    shm_size: '256m'
+    shm_size: '384m'
     networks:
       - gencourse-network
     deploy:
       resources:
         limits:
-          memory: 256M
+          memory: 384M
 
   gencourse-backend:
     # For production deployment via CI/CD, use the pre-built image:
@@ -68,7 +68,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 200M
+          memory: 150M
 
 volumes:
   mongo-data:
