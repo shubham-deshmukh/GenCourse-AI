@@ -72,6 +72,9 @@ LLM_WORKERS_CONFIG='[{"provider":"gemini","name":"GeminiPrimaryWorker","apiKey":
 SESSION_SECRET=your_32_character_long_session_secret_key
 AUTH0_CLIENT_ID=your_auth0_client_id_here
 AUTH0_ISSUER_BASE_URL=https://your-auth0-domain.auth0.com
+
+# YouTube API Configuration (Optional: if omitted, searches fall back to yt-search scraping)
+YOUTUBE_API_KEY=your_youtube_data_api_v3_key
 ```
 
 ### 3. Seed the Database
