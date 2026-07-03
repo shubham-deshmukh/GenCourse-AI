@@ -67,7 +67,8 @@ Target JSON Schema:
     "en": "...",
     "mr": "...",
     "hi": "..."
-  }
+  },
+  "videoSearchQuery": "A highly targeted YouTube search query to find a matching tutorial/explanation video."
 }
 
 Constraints & Formatting Rules:
@@ -78,7 +79,9 @@ Constraints & Formatting Rules:
    - **Hindi ("hi")**: Write a detailed summary of the English content in Hindi (around 150-200 words).
 3. **No Code Blocks for Non-Programming Topics**: If the course is about a non-programming topic (e.g., Cardiology, Law, History, Music, Medicine, etc.), you must NEVER include code blocks or code snippets (do not use \`\`\` language blocks) and you must NEVER write code-related headings (like "Code Block" or similar). Only include code blocks if the topic is directly about writing software/programming.
 4. **Flow**: Ensure the content flows naturally from the previous lessons in the module list and does not repeat basic introductory material if this is a later lesson (e.g., Lesson 1.2 or 2.1).
-5. All translations must maintain exact content parity and structure.`;
+5. All translations must maintain exact content parity and structure.
+6. **Video Search Query**:
+   - **videoSearchQuery**: Generate a highly specific YouTube search query (3-6 words) targeted to finding a relevant tutorial for this exact topic (e.g., for a lesson 'useEffect Hook' in 'Intro to React', query should be 'react hooks useeffect side effects tutorial'). Avoid generic phrases like 'lesson', 'video', or 'tutorial on'.`;
 
 /**
  * Generate a course outline syllabus
