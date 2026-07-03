@@ -1,5 +1,5 @@
-# Use Node.js 20 LTS Alpine image for a small, secure container
-FROM node:20-alpine
+# Use Node.js 20 LTS Slim image for a secure container with glibc compatibility
+FROM node:20-slim
 
 # Set build-time node environment
 ARG NODE_ENV=production
@@ -18,8 +18,8 @@ RUN if [ "$NODE_ENV" = "production" ]; then \
       npm ci; \
     fi
 
-# Install Chrome Headless Shell
-RUN npx puppeteer browsers install chrome-headless-shell
+# Install Chrome Headless Shell and let Puppeteer install all system libraries automatically
+RUN npx puppeteer browsers install chrome-headless-shell --install-deps
 
 # Copy application source code
 COPY . .
