@@ -13,9 +13,9 @@ COPY package.json package-lock.json ./
 
 # Install dependencies (only production if NODE_ENV is production)
 RUN if [ "$NODE_ENV" = "production" ]; then \
-      npm ci --only=production; \
+      PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true npm ci --only=production; \
     else \
-      npm ci; \
+      PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true npm ci; \
     fi
 
 # Install Chrome Headless Shell and let Puppeteer install all system libraries automatically
