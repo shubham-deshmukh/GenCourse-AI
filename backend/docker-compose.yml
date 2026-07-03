@@ -4,6 +4,7 @@ services:
   mongodb:
     image: mongo:latest
     container_name: gencourse-mongo
+    command: mongod --wiredTigerCacheSizeGB 0.05
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
@@ -11,6 +12,10 @@ services:
       - mongo-data:/data/db
     networks:
       - gencourse-network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
 
   gotenberg:
     image: gotenberg/gotenberg:8
@@ -18,8 +23,13 @@ services:
     restart: always
     ports:
       - "3000:3000"
+    shm_size: '256m'
     networks:
       - gencourse-network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
 
   gencourse-backend:
     # For production deployment via CI/CD, use the pre-built image:
@@ -55,6 +65,10 @@ services:
       # Note: The 'proxy' network is for production behind a global reverse proxy (Caddy).
       # For local development, you can comment this line out.
       - proxy
+    deploy:
+      resources:
+        limits:
+          memory: 200M
 
 volumes:
   mongo-data:

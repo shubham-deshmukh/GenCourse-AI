@@ -1,4 +1,5 @@
 import { marked } from 'marked';
+import { getEnv } from '../../../config/env.js';
 
 /**
  * Base abstract class defining the interface for a PDF exporter.
@@ -113,8 +114,13 @@ export default class PdfExporter {
     }
 
     // Premium styling imitating our workspace's dark and glow aesthetic
+    const loadGoogleFonts = getEnv('PDF_LOAD_GOOGLE_FONTS', 'false') === 'true';
+    const fontImport = loadGoogleFonts
+      ? `@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');`
+      : '';
+
     const styles = `
-      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+      ${fontImport}
       
       * {
         box-sizing: border-box;
