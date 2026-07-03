@@ -128,6 +128,8 @@ export default class PdfExporter {
         padding: 0;
         line-height: 1.6;
         font-size: 14px;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
       }
 
       /* Cover Page */

@@ -18,22 +18,30 @@ export default class GotenbergExporter extends PdfExporter {
       <head>
         <meta charset="UTF-8">
         <style>
-          body {
-            font-family: 'Inter', sans-serif;
-            font-size: 8px;
+          html, body {
             margin: 0;
             padding: 0;
+            background-color: transparent;
+            height: 100%;
           }
           .footer {
+            position: absolute;
+            bottom: 0;
+            left: 0;
             width: 100%;
-            text-align: center;
-            border-top: 1px solid rgba(255,255,255,0.05);
-            padding-top: 5px;
+            height: 80px;
+            background-color: #030014;
             color: #888;
+            font-family: 'Inter', sans-serif;
+            font-size: 8px;
             display: flex;
+            align-items: center;
             justify-content: space-between;
             padding-left: 40px;
             padding-right: 40px;
+            box-sizing: border-box;
+            border-top: 1px solid rgba(255,255,255,0.05);
+            -webkit-print-color-adjust: exact;
           }
         </style>
       </head>
@@ -46,12 +54,45 @@ export default class GotenbergExporter extends PdfExporter {
       </html>
     `;
 
+    // Build the header HTML to cover the top margin area with a dark background
+    const headerHtml = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <style>
+          html, body {
+            margin: 0;
+            padding: 0;
+            background-color: transparent;
+            height: 100%;
+          }
+          .header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 60px;
+            background-color: #030014;
+            -webkit-print-color-adjust: exact;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header"></div>
+      </body>
+      </html>
+    `;
+
     // Construct FormData payload
     const formData = new FormData();
     
-    // Gotenberg reads 'index.html' and 'footer.html' from 'files' field
+    // Gotenberg reads 'index.html', 'header.html', and 'footer.html' from 'files' field
     const indexBlob = new Blob([htmlContent], { type: 'text/html' });
     formData.append('files', indexBlob, 'index.html');
+
+    const headerBlob = new Blob([headerHtml], { type: 'text/html' });
+    formData.append('files', headerBlob, 'header.html');
 
     const footerBlob = new Blob([footerHtml], { type: 'text/html' });
     formData.append('files', footerBlob, 'footer.html');
@@ -65,6 +106,7 @@ export default class GotenbergExporter extends PdfExporter {
     formData.append('marginRight', '0');
     formData.append('printBackground', 'true');
     formData.append('displayHeaderFooter', 'true');
+    formData.append('waitDelay', '1.5s');
 
     const endpoint = `${gotenbergUrl.replace(/\/$/, '')}/forms/chromium/convert/html`;
     console.log(`[GotenbergExporter] Sending PDF conversion request to: ${endpoint}`);

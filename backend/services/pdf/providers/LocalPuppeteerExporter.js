@@ -33,9 +33,46 @@ export default class LocalPuppeteerExporter extends PdfExporter {
         format: 'A4',
         printBackground: true,
         displayHeaderFooter: true,
-        headerTemplate: '<div></div>', // Empty top header
+        headerTemplate: `
+          <style>
+            .header-wrapper {
+              position: absolute;
+              top: 0;
+              left: 0;
+              width: 100%;
+              height: 60px;
+              background-color: #030014;
+              -webkit-print-color-adjust: exact;
+              margin: 0;
+              padding: 0;
+            }
+          </style>
+          <div class="header-wrapper"></div>
+        `,
         footerTemplate: `
-          <div style="font-family: 'Inter', sans-serif; font-size: 8px; width: 100%; text-align: center; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 5px; color: #888; display: flex; justify-content: space-between; padding-left: 40px; padding-right: 40px;">
+          <style>
+            .footer-wrapper {
+              position: absolute;
+              bottom: 0;
+              left: 0;
+              width: 100%;
+              height: 80px;
+              background-color: #030014;
+              color: #888;
+              font-family: 'Inter', sans-serif;
+              font-size: 8px;
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              padding-left: 40px;
+              padding-right: 40px;
+              box-sizing: border-box;
+              border-top: 1px solid rgba(255,255,255,0.05);
+              -webkit-print-color-adjust: exact;
+              margin: 0;
+            }
+          </style>
+          <div class="footer-wrapper">
             <span>GenCourse AI Academy</span>
             <span>Page <span class="pageNumber"></span> of <span class="totalPages"></span></span>
           </div>

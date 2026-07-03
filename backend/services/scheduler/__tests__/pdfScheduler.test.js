@@ -9,6 +9,7 @@ import Course from '../../../models/Course.js';
 clearInterval(pdfSchedulerDefault.intervalId);
 
 import generationEvents from '../eventEmitter.js';
+import pdfService from '../../pdf/PdfService.js';
 import LocalPuppeteerExporter from '../../pdf/providers/LocalPuppeteerExporter.js';
 import fs from 'fs/promises';
 import path from 'path';
@@ -47,8 +48,8 @@ Course.findById = (id) => {
   };
 };
 
-// Mock the LocalPuppeteerExporter to prevent launching actual headless Chromium
-LocalPuppeteerExporter.prototype.generatePdf = async (_course) => {
+// Mock pdfService to prevent launching actual print engines
+pdfService.generatePdf = async (_course) => {
   return Buffer.from('mock-pdf-binary-buffer');
 };
 
@@ -166,9 +167,9 @@ test('PdfScheduler - Generation Error Cleanup', async () => {
   mockDbUpdates[courseId] = {};
   mockCourses[courseId] = {};
 
-  // Mock exporter to throw an error
-  const originalGeneratePdf = LocalPuppeteerExporter.prototype.generatePdf;
-  LocalPuppeteerExporter.prototype.generatePdf = async () => {
+  // Mock pdfService to throw an error
+  const originalGeneratePdf = pdfService.generatePdf;
+  pdfService.generatePdf = async () => {
     throw new Error('Chromium crash or format error');
   };
 
@@ -205,7 +206,7 @@ test('PdfScheduler - Generation Error Cleanup', async () => {
     // Restore original addPdfJob
     pdfScheduler.addPdfJob = originalAddPdfJob;
   } finally {
-    LocalPuppeteerExporter.prototype.generatePdf = originalGeneratePdf;
+    pdfService.generatePdf = originalGeneratePdf;
     generationEvents.off(`course:${courseId}`, eventListener);
   }
 });
@@ -252,9 +253,9 @@ test('PdfScheduler - Max Retry Exhaustion', async () => {
   mockDbUpdates[courseId] = {};
   mockCourses[courseId] = {};
 
-  // Force exporter to fail consistently
-  const originalGeneratePdf = LocalPuppeteerExporter.prototype.generatePdf;
-  LocalPuppeteerExporter.prototype.generatePdf = async () => {
+  // Force pdfService to fail consistently
+  const originalGeneratePdf = pdfService.generatePdf;
+  pdfService.generatePdf = async () => {
     throw new Error('Transient Database Error');
   };
 
@@ -283,7 +284,7 @@ test('PdfScheduler - Max Retry Exhaustion', async () => {
     assert.strictEqual(pdfScheduler.queue.length, 0);
     assert.strictEqual(mockDbUpdates[courseId].pdfStatus, 'failed');
   } finally {
-    LocalPuppeteerExporter.prototype.generatePdf = originalGeneratePdf;
+    pdfService.generatePdf = originalGeneratePdf;
   }
 });
 

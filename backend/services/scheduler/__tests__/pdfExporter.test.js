@@ -98,12 +98,14 @@ test('GotenbergExporter - HTML compilation and Multipart request encoding', asyn
 
     // Inspect compiled files
     const files = formData.getAll('files');
-    assert.strictEqual(files.length, 2);
+    assert.strictEqual(files.length, 3);
 
     const indexFile = files.find(f => f.name === 'index.html' || (f instanceof File && f.name === 'index.html'));
+    const headerFile = files.find(f => f.name === 'header.html' || (f instanceof File && f.name === 'header.html'));
     const footerFile = files.find(f => f.name === 'footer.html' || (f instanceof File && f.name === 'footer.html'));
 
     assert.ok(indexFile);
+    assert.ok(headerFile);
     assert.ok(footerFile);
 
     // Verify PDF buffer response
