@@ -27,7 +27,8 @@
     "morgan": "^1.11.0",
     "p-limit": "^7.3.0",
     "puppeteer": "^25.3.0",
-    "undici": "^7.28.0"
+    "undici": "^7.28.0",
+    "yt-search": "^2.13.1"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

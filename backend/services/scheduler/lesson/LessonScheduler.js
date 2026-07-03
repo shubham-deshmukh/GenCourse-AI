@@ -7,7 +7,7 @@ import Lesson from '../../../models/Lesson.js';
 import { getCourseOutlinePrompt, getLessonDetailsPrompt } from '../../courseGenerationService.js';
 import { parseJSONSafely } from '../../../utils/jsonUtils.js';
 import { getEnvJSON } from '../../../config/env.js';
-import { searchYoutubeVideo } from '../../youtube/youtubeService.js';
+import videoService from '../../video/VideoService.js';
 
 /**
  * Singleton Coordinator managing course generation job orchestration,
@@ -472,7 +472,7 @@ class LessonScheduler {
     const videoSearchQuery = lessonDetails?.videoSearchQuery;
     if (videoSearchQuery) {
       try {
-        const resolvedId = await searchYoutubeVideo(videoSearchQuery);
+        const resolvedId = await videoService.searchVideo(videoSearchQuery);
         if (resolvedId) {
           youtubeVideoId = resolvedId;
         }
