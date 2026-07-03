@@ -7,6 +7,7 @@ import Lesson from '../../../models/Lesson.js';
 import { getCourseOutlinePrompt, getLessonDetailsPrompt } from '../../courseGenerationService.js';
 import { parseJSONSafely } from '../../../utils/jsonUtils.js';
 import { getEnvJSON } from '../../../config/env.js';
+import { searchYoutubeVideo } from '../../youtube/youtubeService.js';
 
 /**
  * Singleton Coordinator managing course generation job orchestration,
@@ -467,12 +468,26 @@ class LessonScheduler {
       }
     }
 
+    let youtubeVideoId = '';
+    const videoSearchQuery = lessonDetails?.videoSearchQuery;
+    if (videoSearchQuery) {
+      try {
+        const resolvedId = await searchYoutubeVideo(videoSearchQuery);
+        if (resolvedId) {
+          youtubeVideoId = resolvedId;
+        }
+      } catch (err) {
+        console.error(`[LessonScheduler] Error resolving YouTube video for "${targetLessonTitle}":`, err.message);
+      }
+    }
+
     const lessonDoc = new Lesson({
       moduleId,
       title: lessonDetails?.title || targetLessonTitle,
       content,
       objectives: lessonDetails?.objectives || [],
-      videoSearchQuery: lessonDetails?.videoSearchQuery || '',
+      videoSearchQuery: videoSearchQuery || '',
+      youtubeVideoId,
       script: lessonDetails?.script || '',
       videoSlide: lessonDetails?.videoSlide || '',
       order: lIdx
