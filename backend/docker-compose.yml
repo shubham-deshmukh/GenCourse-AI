@@ -12,6 +12,15 @@ services:
     networks:
       - gencourse-network
 
+  gotenberg:
+    image: gotenberg/gotenberg:8
+    container_name: gencourse-gotenberg
+    restart: always
+    ports:
+      - "3000:3000"
+    networks:
+      - gencourse-network
+
   gencourse-backend:
     # For production deployment via CI/CD, use the pre-built image:
     image: ghcr.io/shubham-deshmukh/gencourse-backend:latest
@@ -36,8 +45,11 @@ services:
       - AUTH0_CLIENT_ID=${AUTH0_CLIENT_ID}
       - AUTH0_CLIENT_SECRET=${AUTH0_CLIENT_SECRET}
       - AUTH0_ISSUER_BASE_URL=${AUTH0_ISSUER_BASE_URL}
+      - PDF_PROVIDER=${PDF_PROVIDER:-gotenberg}
+      - GOTENBERG_URL=http://gotenberg:3000
     depends_on:
       - mongodb
+      - gotenberg
     networks:
       - gencourse-network
       # Note: The 'proxy' network is for production behind a global reverse proxy (Caddy).
