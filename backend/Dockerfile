@@ -18,6 +18,9 @@ RUN if [ "$NODE_ENV" = "production" ]; then \
       npm ci; \
     fi
 
+# Install Chrome Headless Shell
+RUN npx puppeteer browsers install chrome-headless-shell
+
 # Copy application source code
 COPY . .
 
