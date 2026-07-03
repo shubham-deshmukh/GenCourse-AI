@@ -1,22 +1,13 @@
 import Course from '../../../../models/Course.js';
-import LocalPuppeteerExporter from '../providers/LocalPuppeteerExporter.js';
+import pdfService from '../../../pdf/PdfService.js';
 import generationEvents from '../../eventEmitter.js';
-import fs from 'fs/promises';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /**
  * Concrete worker responsible for fetching course schemas, converting markdown modules,
- * compiling PDF buffers via Puppeteer, and writing them to secure storage.
+ * compiling PDF buffers via PdfService, and writing them to secure storage.
  * Decoupled from the base worker template.
  */
 export default class PdfWorker {
-  constructor() {
-    this.exporter = new LocalPuppeteerExporter();
-  }
-
   /**
    * Generates a PDF for a given course ID
    * @param {string} courseId 
@@ -45,14 +36,10 @@ export default class PdfWorker {
       }
 
       // 3. Generate PDF Buffer
-      const pdfBuffer = await this.exporter.generatePdf(course);
+      const pdfBuffer = await pdfService.generatePdf(course);
 
-      // 4. Save to secure storage (non-public VPS directory)
-      const storagePath = path.join(__dirname, '../../../../storage/pdfs');
-      await fs.mkdir(storagePath, { recursive: true });
-
-      const filePath = path.join(storagePath, `${courseId}.pdf`);
-      await fs.writeFile(filePath, pdfBuffer);
+      // 4. Save to secure storage
+      const filePath = await pdfService.savePdfFile(courseId, pdfBuffer);
       console.log(`[PdfWorker] Successfully stored course PDF at: ${filePath}`);
 
       // 5. Update course status in DB

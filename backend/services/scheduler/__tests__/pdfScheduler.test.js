@@ -9,7 +9,7 @@ import Course from '../../../models/Course.js';
 clearInterval(pdfSchedulerDefault.intervalId);
 
 import generationEvents from '../eventEmitter.js';
-import LocalPuppeteerExporter from '../pdf/providers/LocalPuppeteerExporter.js';
+import LocalPuppeteerExporter from '../../pdf/providers/LocalPuppeteerExporter.js';
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
