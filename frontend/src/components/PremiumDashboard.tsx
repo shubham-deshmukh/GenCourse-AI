@@ -471,7 +471,10 @@ export default function PremiumDashboard() {
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <button
-                  onClick={() => setSelectedCourseForPlayer(null)}
+                  onClick={() => {
+                    setSelectedCourseForPlayer(null)
+                    fetchCourses()
+                  }}
                   className="text-xs font-semibold text-gray-400 hover:text-white transition flex items-center gap-1 cursor-pointer"
                 >
                   ← Back to Library
@@ -535,7 +538,9 @@ export default function PremiumDashboard() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5 w-full">
                       {courses.map((course, idx) => {
                         const dec = getCourseDecorations(course.title, idx)
-                        const totalLessons = (course.modules || []).reduce((acc: number, m: any) => acc + (m.lessons?.length || 0), 0)
+                        const totalLessons = course.userProgress?.totalLessons ?? (course.modules || []).reduce((acc: number, m: any) => acc + (m.lessons?.length || 0), 0)
+                        const completedCount = course.userProgress?.completedLessons ?? dec.completedCount
+                        const progressPercent = course.userProgress?.progress ?? dec.progress
 
                         return (
                           <div
@@ -559,14 +564,14 @@ export default function PremiumDashboard() {
                                 <div className="flex justify-between text-xs text-gray-400">
                                   <span className="flex items-center gap-1 text-[11px]">
                                     <Clock className="w-3.5 h-3.5 text-gray-500" />
-                                    {dec.completedCount}/{totalLessons} lessons complete
+                                    {completedCount}/{totalLessons} lessons complete
                                   </span>
-                                  <span className="font-bold text-white">{dec.progress}%</span>
+                                  <span className="font-bold text-white">{progressPercent}%</span>
                                 </div>
                                 <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
                                   <div
                                     className="bg-gradient-to-r from-purple-primary to-cyan-primary h-full transition-all duration-300"
-                                    style={{ width: `${dec.progress}%` }}
+                                    style={{ width: `${progressPercent}%` }}
                                   ></div>
                                 </div>
                               </div>
@@ -576,7 +581,7 @@ export default function PremiumDashboard() {
                                   onClick={() => setSelectedCourseForPlayer(course.title)}
                                   className="flex-1 py-2.5 rounded-xl bg-white/5 hover:bg-white/15 border border-white/8 text-white text-xs font-semibold transition cursor-pointer flex items-center justify-center gap-1 hover:scale-[1.01]"
                                 >
-                                  <span>{dec.progress === 100 ? 'Review Course' : dec.progress === 0 ? 'Start Course' : 'Resume Course'}</span>
+                                  <span>{progressPercent === 100 ? 'Review Course' : progressPercent === 0 ? 'Start Course' : 'Resume Course'}</span>
                                   <ChevronRight className="w-3.5 h-3.5" />
                                 </button>
                                 <button

@@ -382,6 +382,23 @@ export default function InteractiveSimulator({
   const [completedLessons, setCompletedLessons] = useState<Record<string, boolean>>({})
   const [downloadProgress, setDownloadProgress] = useState<Record<string, number>>({})
 
+  // Load progress from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('gencourse_simulated_progress')
+    if (saved) {
+      try {
+        setCompletedLessons(JSON.parse(saved))
+      } catch (err) {
+        console.error('Failed to parse simulated progress:', err)
+      }
+    }
+  }, [])
+
+  // Save progress to localStorage on update
+  useEffect(() => {
+    localStorage.setItem('gencourse_simulated_progress', JSON.stringify(completedLessons))
+  }, [completedLessons])
+
   // Quiz interaction states
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, number>>({})
   const [showExplanation, setShowExplanation] = useState<Record<string, boolean>>({})

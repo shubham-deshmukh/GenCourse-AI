@@ -1,5 +1,14 @@
 import express from 'express';
-import { getCourses, createCourse, deleteCourse, streamCourse, generateCoursePdf, downloadCoursePdf } from '../controllers/courseController.js';
+import { 
+  getCourses, 
+  createCourse, 
+  deleteCourse, 
+  streamCourse, 
+  generateCoursePdf, 
+  downloadCoursePdf,
+  completeLesson,
+  undoCompleteLesson
+} from '../controllers/courseController.js';
 import { protect, requireRole } from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
@@ -19,5 +28,9 @@ router.route('/:id/pdf')
 
 router.route('/:id/download-pdf')
   .get(protect, downloadCoursePdf);
+
+router.route('/:id/lessons/:lessonId/complete')
+  .post(protect, completeLesson)
+  .delete(protect, undoCompleteLesson);
 
 export default router;

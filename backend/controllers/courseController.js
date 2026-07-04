@@ -2,6 +2,7 @@ import Course from '../models/Course.js';
 import Module from '../models/Module.js';
 import Lesson from '../models/Lesson.js';
 import User from '../models/User.js';
+import LessonProgress from '../models/LessonProgress.js';
 import scheduler from '../services/scheduler/lesson/LessonScheduler.js';
 import pdfScheduler from '../services/scheduler/pdf/PdfScheduler.js';
 import generationEvents from '../services/scheduler/eventEmitter.js';
@@ -185,7 +186,48 @@ export const getCourses = async (req, res, next) => {
       })
       .sort({ createdAt: -1 });
 
-    res.json(courses);
+    // Fetch all completed lessons for this user
+    const completedProgress = await LessonProgress.find({
+      userId: req.user._id,
+      status: 'COMPLETED'
+    });
+
+    // Group completed lesson IDs by courseId
+    const progressMap = {};
+    completedProgress.forEach(progress => {
+      const cId = progress.courseId.toString();
+      if (!progressMap[cId]) {
+        progressMap[cId] = [];
+      }
+      progressMap[cId].push(progress.lessonId.toString());
+    });
+
+    // Map progress to each course
+    const coursesWithProgress = courses.map(course => {
+      const courseObj = course.toObject({ flattenMaps: true });
+      const completedIds = progressMap[courseObj._id.toString()] || [];
+      
+      // Calculate total lessons
+      let totalLessons = 0;
+      if (courseObj.modules) {
+        courseObj.modules.forEach(mod => {
+          if (mod.lessons) {
+            totalLessons += mod.lessons.length;
+          }
+        });
+      }
+
+      courseObj.userProgress = {
+        completedLessonsList: completedIds,
+        completedLessons: completedIds.length,
+        totalLessons,
+        progress: totalLessons > 0 ? Math.round((completedIds.length / totalLessons) * 100) : 0
+      };
+
+      return courseObj;
+    });
+
+    res.json(coursesWithProgress);
   } catch (error) {
     next(error);
   }
@@ -274,11 +316,11 @@ export const streamCourse = async (req, res, next) => {
 
     // 3. Catch-Up Phase: Send historical outline and completed lessons if already generated
     if (course.status !== 'outline_generating') {
-      const outlineData = course.toObject();
+      const outlineData = course.toObject({ flattenMaps: true });
       const populatedModules = [];
 
       for (const mod of course.modules) {
-        const modObj = mod.toObject ? mod.toObject() : mod;
+        const modObj = mod.toObject ? mod.toObject({ flattenMaps: true }) : mod;
 
         // Retrieve completed lessons from MongoDB
         const completedLessons = await Lesson.find({ moduleId: mod._id }).sort({ order: 1 });
@@ -294,7 +336,7 @@ export const streamCourse = async (req, res, next) => {
 
         // Add already generated lessons
         for (const l of completedLessons) {
-          lessonsList.push(l.toObject());
+          lessonsList.push(l.toObject({ flattenMaps: true }));
         }
 
         // Add pending lessons as placeholders for the frontend outline
@@ -313,6 +355,28 @@ export const streamCourse = async (req, res, next) => {
       }
 
       outlineData.modules = populatedModules;
+
+      // Fetch user progress for this course
+      const completedProgress = await LessonProgress.find({
+        userId: req.user._id,
+        courseId: id,
+        status: 'COMPLETED'
+      });
+      const completedIds = completedProgress.map(p => p.lessonId.toString());
+
+      let totalLessons = 0;
+      for (const mod of populatedModules) {
+        if (mod.lessons) {
+          totalLessons += mod.lessons.length;
+        }
+      }
+
+      outlineData.userProgress = {
+        completedLessonsList: completedIds,
+        completedLessons: completedIds.length,
+        totalLessons,
+        progress: totalLessons > 0 ? Math.round((completedIds.length / totalLessons) * 100) : 0
+      };
 
       // Stream curriculum outline structure to frontend
       sendEvent('outline', outlineData);
@@ -512,6 +576,154 @@ export const downloadCoursePdf = async (req, res, next) => {
     // Stream download safely with clean file naming
     const safeTitle = course.title.replace(/[^a-z0-9]/gi, '_').toLowerCase();
     res.download(filePath, `gencourse_${safeTitle}.pdf`);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Mark a lesson as completed
+ * @route   POST /api/courses/:id/lessons/:lessonId/complete
+ * @access  Private
+ */
+export const completeLesson = async (req, res, next) => {
+  try {
+    const { id: courseId, lessonId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(courseId) || !mongoose.Types.ObjectId.isValid(lessonId)) {
+      return res.status(400).json({ message: 'Invalid ID format' });
+    }
+
+    // 1. Fetch course to validate ownership / existence and find modules
+    const course = await Course.findById(courseId);
+    if (!course) {
+      return res.status(404).json({ message: 'Course not found' });
+    }
+
+    // 2. Validate lesson exists and belongs to this course
+    const lesson = await Lesson.findById(lessonId);
+    if (!lesson) {
+      return res.status(404).json({ message: 'Lesson not found' });
+    }
+
+    // Double check that the lesson belongs to a module of this course
+    const isModuleInCourse = course.modules.some(
+      (modId) => modId.toString() === lesson.moduleId.toString()
+    );
+    if (!isModuleInCourse) {
+      return res.status(400).json({ message: 'Lesson does not belong to this course' });
+    }
+
+    // 3. Upsert LessonProgress
+    await LessonProgress.findOneAndUpdate(
+      { userId: req.user._id, courseId, lessonId },
+      { status: 'COMPLETED', completedAt: new Date() },
+      { upsert: true, returnDocument: 'after' }
+    );
+
+    // 4. Calculate progress stats
+    const completedCount = await LessonProgress.countDocuments({
+      userId: req.user._id,
+      courseId,
+      status: 'COMPLETED'
+    });
+
+    // Count all lessons across all modules for this course
+    const populatedCourse = await Course.findById(courseId).populate({
+      path: 'modules',
+      populate: { path: 'lessons' }
+    });
+
+    let totalLessons = 0;
+    if (populatedCourse && populatedCourse.modules) {
+      for (const mod of populatedCourse.modules) {
+        if (mod.lessons) {
+          totalLessons += mod.lessons.length;
+        }
+      }
+    }
+
+    const progressPercentage = totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0;
+
+    res.json({
+      lessonStatus: 'COMPLETED',
+      completedLessons: completedCount,
+      totalLessons,
+      progress: progressPercentage
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Undo completion of a lesson
+ * @route   DELETE /api/courses/:id/lessons/:lessonId/complete
+ * @access  Private
+ */
+export const undoCompleteLesson = async (req, res, next) => {
+  try {
+    const { id: courseId, lessonId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(courseId) || !mongoose.Types.ObjectId.isValid(lessonId)) {
+      return res.status(400).json({ message: 'Invalid ID format' });
+    }
+
+    // 1. Fetch course
+    const course = await Course.findById(courseId);
+    if (!course) {
+      return res.status(404).json({ message: 'Course not found' });
+    }
+
+    // 2. Validate lesson belongs to course
+    const lesson = await Lesson.findById(lessonId);
+    if (!lesson) {
+      return res.status(404).json({ message: 'Lesson not found' });
+    }
+
+    const isModuleInCourse = course.modules.some(
+      (modId) => modId.toString() === lesson.moduleId.toString()
+    );
+    if (!isModuleInCourse) {
+      return res.status(400).json({ message: 'Lesson does not belong to this course' });
+    }
+
+    // 3. Remove LessonProgress document
+    await LessonProgress.deleteOne({
+      userId: req.user._id,
+      courseId,
+      lessonId
+    });
+
+    // 4. Calculate progress stats
+    const completedCount = await LessonProgress.countDocuments({
+      userId: req.user._id,
+      courseId,
+      status: 'COMPLETED'
+    });
+
+    const populatedCourse = await Course.findById(courseId).populate({
+      path: 'modules',
+      populate: { path: 'lessons' }
+    });
+
+    let totalLessons = 0;
+    if (populatedCourse && populatedCourse.modules) {
+      for (const mod of populatedCourse.modules) {
+        if (mod.lessons) {
+          totalLessons += mod.lessons.length;
+        }
+      }
+    }
+
+    const progressPercentage = totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0;
+
+    res.json({
+      lessonStatus: 'NOT_STARTED',
+      completedLessons: completedCount,
+      totalLessons,
+      progress: progressPercentage
+    });
   } catch (error) {
     next(error);
   }
