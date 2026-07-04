@@ -69,10 +69,10 @@ jobs:
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             
             # Pull latest image
-            docker-compose pull gencourse-backend
+            docker compose pull gencourse-backend
             
             # Recreate containers with new image (forcing recreate to bypass Docker caching)
-            docker-compose up -d --force-recreate
+            docker compose up -d --force-recreate
             
             # Clean up older unused docker images
             docker image prune -f

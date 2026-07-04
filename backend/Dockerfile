@@ -1,13 +1,12 @@
-# Use Node.js 20 LTS Slim image for a secure container with glibc compatibility
-FROM node:20-slim
+# Use Node.js 22 LTS Slim image for a secure container with glibc compatibility
+FROM node:22-slim
 
 # Set build-time node environment
 ARG NODE_ENV=production
 ENV NODE_ENV=${NODE_ENV}
 
-# Install unzip (required to extract chrome zip files) and ca-certificates (required to download over HTTPS)
+# Install ca-certificates (required to download over HTTPS)
 RUN apt-get update && apt-get install -y \
-    unzip \
     ca-certificates \
     --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
@@ -24,9 +23,6 @@ RUN if [ "$NODE_ENV" = "production" ]; then \
     else \
       PUPPETEER_SKIP_DOWNLOAD=true npm ci; \
     fi
-
-# Install Chrome Headless Shell and let Puppeteer install all system libraries automatically
-RUN apt-get update && npx puppeteer browsers install chrome-headless-shell --install-deps && rm -rf /var/lib/apt/lists/*
 
 # Copy application source code
 COPY . .
