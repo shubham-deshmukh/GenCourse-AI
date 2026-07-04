@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v2.1.0-save-progress] - 2026-07-04
+
+### Added
+- **Lesson Completion & Progress Saving**: Implemented persistent tracking for course completion. Users can now mark individual lessons as completed or incomplete, and progress is saved directly to MongoDB.
+- **Progress Synchronization**: Backend automatically calculates progress percentages and total lessons per course, exposing them directly to the Course Library and Student Portal.
+
+### Fixed
+- **Lesson Content Map Serialization**: Resolved a bug where multi-language lesson translations in Mongoose Maps serialized as empty objects `{}` on course-library load or catch-up SSE stream.
+- **Mongoose Deprecations**: Fixed deprecation warning for `findOneAndUpdate` by replacing the deprecated `{ new: true }` option with `{ returnDocument: 'after' }`.
+
 ## [v2.0.0-multi-llm-video-pdf] - 2026-07-04
 
 ### Added
