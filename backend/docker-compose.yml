@@ -15,7 +15,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 256M
+          memory: 512M
 
   gotenberg:
     image: gotenberg/gotenberg:8
@@ -23,13 +23,13 @@ services:
     restart: always
     ports:
       - "3000:3000"
-    shm_size: '384m'
+    shm_size: '512m'
     networks:
       - gencourse-network
     deploy:
       resources:
         limits:
-          memory: 384M
+          memory: 1G
 
   gencourse-backend:
     # For production deployment via CI/CD, use the pre-built image:
@@ -68,7 +68,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 150M
+          memory: 300M
 
 volumes:
   mongo-data:
