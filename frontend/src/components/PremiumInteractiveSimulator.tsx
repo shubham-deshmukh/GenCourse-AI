@@ -63,6 +63,12 @@ export interface CourseData {
   modules: Module[]
   resources: { name: string; size: string; type: string }[]
   quizzes: QuizQuestion[]
+  userProgress?: {
+    completedLessonsList: string[]
+    completedLessons: number
+    totalLessons: number
+    progress: number
+  }
 }
 
 export const COURSES_DATABASE: Record<string, CourseData> = {
@@ -396,6 +402,19 @@ export default function PremiumInteractiveSimulator({
   // Interactive tracking states
   const [completedLessons, setCompletedLessons] = useState<Record<string, boolean>>({})
   const [downloadProgress, setDownloadProgress] = useState<Record<string, number>>({})
+
+  // Load completed lessons from activeCourse progress info on mount/change
+  useEffect(() => {
+    if (activeCourse && activeCourse.userProgress && activeCourse.userProgress.completedLessonsList) {
+      const completedMap: Record<string, boolean> = {}
+      activeCourse.userProgress.completedLessonsList.forEach((id: string) => {
+        completedMap[id] = true
+      })
+      setCompletedLessons(completedMap)
+    } else {
+      setCompletedLessons({})
+    }
+  }, [activeCourse])
   const [pdfStatus, setPdfStatus] = useState<string>('idle')
   const [pdfUrl, setPdfUrl] = useState<string>('')
   const [pdfDownloaded, setPdfDownloaded] = useState<boolean>(false)
@@ -578,8 +597,7 @@ export default function PremiumInteractiveSimulator({
       onActiveLessonChange(courseId, lessonId)
     }
   }, [courseId, lessonId, onActiveLessonChange])
-  const lessonKey = activeCourse ? `${activeCourse.title}-${activeModuleIndex}-${activeLessonIndex}` : ''
-  const isLessonDone = completedLessons[lessonKey]
+  const isLessonDone = lessonId ? !!completedLessons[lessonId] : false
 
   const formatLogLine = (line: string) => {
     if (!line || typeof line !== 'string') {return <span className="text-gray-400">Processing...</span>}
@@ -1075,8 +1093,7 @@ export default function PremiumInteractiveSimulator({
                         <div className="space-y-1 mt-1.5">
                           {mod?.lessons?.map((les, lesIdx) => {
                             const isSelected = activeModuleIndex === modIdx && activeLessonIndex === lesIdx
-                            const currentLessonKey = `${activeCourse.title}-${modIdx}-${lesIdx}`
-                            const isCompleted = completedLessons[currentLessonKey]
+                            const isCompleted = les._id ? !!completedLessons[les._id] : false
 
                             return (
                               <button
@@ -1507,11 +1524,62 @@ export default function PremiumInteractiveSimulator({
                           <span>Status: {isLessonDone ? 'Completed' : 'Incomplete'}</span>
                         </div>
                         <button
-                          onClick={() => {
+                          onClick={async () => {
+                            if (!lessonId || !courseId) {
+                              return
+                            }
+
+                            const targetStatus = !isLessonDone
+                            
+                            // 1. Optimistic Update (Immediate UI response)
                             setCompletedLessons(prev => ({
                               ...prev,
-                              [lessonKey]: !isLessonDone
+                              [lessonId]: targetStatus
                             }))
+
+                            try {
+                              let response
+                              if (targetStatus) {
+                                // Mark as Complete
+                                response = await axios.post(`/api/courses/${courseId}/lessons/${lessonId}/complete`)
+                              } else {
+                                // Mark as Incomplete (Undo)
+                                response = await axios.delete(`/api/courses/${courseId}/lessons/${lessonId}/complete`)
+                              }
+
+                              // 2. Synchronize progress in activeCourse object
+                              if (activeCourse) {
+                                const completedList = targetStatus 
+                                  ? [...(activeCourse.userProgress?.completedLessonsList || []), lessonId]
+                                  : (activeCourse.userProgress?.completedLessonsList || []).filter((id: string) => id !== lessonId)
+                                
+                                const updatedCourse = {
+                                  ...activeCourse,
+                                  userProgress: {
+                                    ...activeCourse.userProgress,
+                                    completedLessonsList: completedList,
+                                    completedLessons: response.data.completedLessons,
+                                    totalLessons: response.data.totalLessons,
+                                    progress: response.data.progress
+                                  }
+                                }
+                                
+                                if (hideInput) {
+                                  setLocalActiveCourse(updatedCourse)
+                                } else {
+                                  useGenerationStore.setState({ activeCourse: updatedCourse })
+                                }
+                              }
+                            } catch (err) {
+                              console.error('Failed to save progress to backend:', err)
+                              alert('Failed to save lesson completion progress. Please try again.')
+                              
+                              // 3. Rollback on failure
+                              setCompletedLessons(prev => ({
+                                ...prev,
+                                [lessonId]: isLessonDone
+                              }))
+                            }
                           }}
                           className={`px-4 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-2 cursor-pointer ${isLessonDone
                               ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/30'

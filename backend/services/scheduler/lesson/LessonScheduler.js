@@ -366,7 +366,7 @@ class LessonScheduler {
     await course.save();
 
     // Stream outline to SSE client immediately so interface unlocks
-    const outlineData = course.toObject();
+    const outlineData = course.toObject({ flattenMaps: true });
     outlineData.modules = savedModules.map(sm => ({
       _id: sm.doc._id,
       title: sm.doc.title,
