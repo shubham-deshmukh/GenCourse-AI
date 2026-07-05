@@ -52,10 +52,11 @@ router.get('/login', (req, res) => {
 
   const issuer = getEnv('AUTH0_ISSUER_BASE_URL');
   const clientId = getEnv('AUTH0_CLIENT_ID');
-  const isProd = getEnv('NODE_ENV', 'development') === 'production';
-  const redirectUri = isProd 
-    ? `${getEnv('FRONTEND_URL')}/auth/callback` 
-    : `${req.protocol}://${req.get('host')}/auth/callback`;
+  const host = req.get('host') || '';
+  const isLocal = host.includes('localhost') || host.includes('127.0.0.1');
+  const redirectUri = isLocal
+    ? `${req.protocol}://${host}/auth/callback`
+    : `${getEnv('FRONTEND_URL')}/auth/callback`;
 
   const authUrl = `${issuer}/authorize?` + new URLSearchParams({
     response_type: 'code',
@@ -104,9 +105,11 @@ router.get('/callback', async (req, res) => {
     const issuer = getEnv('AUTH0_ISSUER_BASE_URL');
     const clientId = getEnv('AUTH0_CLIENT_ID');
     const clientSecret = process.env.AUTH0_CLIENT_SECRET || '';
-    const redirectUri = isProd 
-      ? `${getEnv('FRONTEND_URL')}/auth/callback` 
-      : `${req.protocol}://${req.get('host')}/auth/callback`;
+    const host = req.get('host') || '';
+    const isLocal = host.includes('localhost') || host.includes('127.0.0.1');
+    const redirectUri = isLocal
+      ? `${req.protocol}://${host}/auth/callback`
+      : `${getEnv('FRONTEND_URL')}/auth/callback`;
 
     // 1. Exchange auth code for tokens
     const exchangePayload = {
