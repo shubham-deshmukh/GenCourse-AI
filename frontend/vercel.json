@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://gencourse-ai.duckdns.org/api/:path*"
+    },
+    {
+      "source": "/auth/:path*",
+      "destination": "https://gencourse-ai.duckdns.org/auth/:path*"
+    }
+  ]
+}

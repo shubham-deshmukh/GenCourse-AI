@@ -84,8 +84,13 @@ router.get('/callback', async (req, res) => {
   }
 
   // Retrieve code verifier from first-party cookie
-  const verifier = getCookie(req, 'auth_code_verifier');
-  res.clearCookie('auth_code_verifier');
+  const verifier = req.cookies?.auth_code_verifier || getCookie(req, 'auth_code_verifier');
+  const isProd = getEnv('NODE_ENV', 'development') === 'production';
+  res.clearCookie('auth_code_verifier', {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: isProd ? 'none' : 'lax'
+  });
 
   if (!verifier) {
     console.error('❌ Missing code verifier cookie (expired or cross-origin issues)');
@@ -147,9 +152,16 @@ router.get('/callback', async (req, res) => {
     };
     const jwtToken = signToken(tokenPayload);
 
-    // 5. Redirect browser back to frontend callback with JWT token in URL hash
-    console.log(`✅ Authentication successful. Redirecting user back to frontend callback`);
-    res.redirect(`${getEnv('FRONTEND_URL')}/#token=${jwtToken}`);
+    // 5. Store custom application JWT in an httpOnly cookie
+    res.cookie('gencourse_token', jwtToken, {
+      httpOnly: true,
+      secure: isProd,
+      sameSite: isProd ? 'none' : 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days (matching JWT expiration)
+    });
+
+    console.log(`✅ Authentication successful. Redirecting user back to frontend`);
+    res.redirect(getEnv('FRONTEND_URL'));
   } catch (err) {
     console.error('❌ Error handling authentication callback:', err.message);
     res.redirect(`${getEnv('FRONTEND_URL')}/#error=${encodeURIComponent(err.message)}`);
@@ -164,13 +176,21 @@ router.get('/logout', (req, res) => {
   const issuer = getEnv('AUTH0_ISSUER_BASE_URL');
   const clientId = getEnv('AUTH0_CLIENT_ID');
   const frontendUrl = getEnv('FRONTEND_URL');
+  const isProd = getEnv('NODE_ENV', 'development') === 'production';
+
+  // Clear local JWT cookie
+  res.clearCookie('gencourse_token', {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: isProd ? 'none' : 'lax'
+  });
 
   const logoutUrl = `${issuer}/v2/logout?` + new URLSearchParams({
     client_id: clientId,
     returnTo: frontendUrl
   }).toString();
 
-  console.log(`🚪 Logging user out of Auth0, redirecting to frontend logout success page`);
+  console.log(`🚪 Logging user out of Auth0, clearing token cookie, redirecting to frontend`);
   res.redirect(logoutUrl);
 });
 
