@@ -92,7 +92,7 @@ router.get('/callback', async (req, res) => {
   res.clearCookie('auth_code_verifier', {
     httpOnly: true,
     secure: isProd,
-    sameSite: isProd ? 'none' : 'lax'
+    sameSite: 'lax'
   });
 
   if (!verifier) {
@@ -161,7 +161,7 @@ router.get('/callback', async (req, res) => {
     res.cookie('gencourse_token', jwtToken, {
       httpOnly: true,
       secure: isProd,
-      sameSite: isProd ? 'none' : 'lax',
+      sameSite: 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days (matching JWT expiration)
     });
 
@@ -187,7 +187,7 @@ router.get('/logout', (req, res) => {
   res.clearCookie('gencourse_token', {
     httpOnly: true,
     secure: isProd,
-    sameSite: isProd ? 'none' : 'lax'
+    sameSite: 'lax'
   });
 
   const logoutUrl = `${issuer}/v2/logout?` + new URLSearchParams({
