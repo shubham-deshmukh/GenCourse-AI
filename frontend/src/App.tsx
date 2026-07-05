@@ -12,6 +12,7 @@ import PremiumDashboard from './components/PremiumDashboard'
 
 // Set Axios baseURL from environment variables (direct backend connection)
 axios.defaults.baseURL = import.meta.env.VITE_API_BASE_URL || '';
+axios.defaults.withCredentials = true;
 
 // Configure Axios request interceptor to append headers for auth
 axios.interceptors.request.use((config) => {
