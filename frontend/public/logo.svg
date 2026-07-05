@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 256" width="800" height="256">
+  <defs>
+    <!-- Import Google Font Outfit for brand font match -->
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@700&amp;display=swap');
+      .brand-text {
+        font-family: 'Outfit', 'Plus Jakarta Sans', -apple-system, sans-serif;
+        font-weight: 700;
+        font-size: 82px;
+        fill: #ffffff;
+        letter-spacing: -1.5px;
+      }
+      .gradient-text {
+        fill: url(#purple-grad);
+      }
+    </style>
+
+    <!-- Purple gradient for the "AI" text -->
+    <linearGradient id="purple-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#b493ff" />
+      <stop offset="100%" stop-color="#7c3aed" />
+    </linearGradient>
+
+    <!-- Heavy blur filter for the background glowing aura -->
+    <filter id="aura-blur" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="30" />
+    </filter>
+  </defs>
+
+  <!-- Left Side: Glowing Icon -->
+  <g transform="translate(30, 0)">
+    <!-- Glowing Aura Background -->
+    <g filter="url(#aura-blur)" opacity="0.65">
+      <circle cx="128" cy="128" r="65" fill="#7c3aed" />
+      <circle cx="205" cy="128" r="65" fill="#06b6d4" />
+    </g>
+
+    <!-- Black Squircle Container -->
+    <rect x="64" y="64" width="128" height="128" rx="32" fill="#000000" stroke="rgba(255, 255, 255, 0.08)" stroke-width="1.5" />
+
+    <!-- Glowing Cyan Sparkles Icon -->
+    <g transform="translate(86, 86) scale(3.5)" stroke="#06b6d4" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none">
+      <path d="m12 3-1.912 5.813a2 2 0 0 0-1.275 1.275L3 12l5.813 1.912a2 2 0 0 0 1.275 1.275L12 21l1.912-5.813a2 2 0 0 0 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 0-1.275-1.275Z" />
+      <path d="M19 5v4M17 7h4" />
+      <circle cx="5" cy="18" r="1.2" fill="#06b6d4" />
+    </g>
+  </g>
+
+  <!-- Right Side: Wordmark Text -->
+  <text x="256" y="158" class="brand-text">GenCourse<tspan class="gradient-text">AI</tspan></text>
+</svg>
