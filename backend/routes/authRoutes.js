@@ -62,7 +62,8 @@ router.get('/login', (req, res) => {
     scope: 'openid profile email',
     code_challenge: challenge,
     code_challenge_method: 'S256',
-    state: state
+    state: state,
+    prompt: 'login'
   }).toString();
 
   console.log(`🔑 Redirecting client browser to Auth0 Authorize URL`);
@@ -177,7 +178,7 @@ router.get('/callback', async (req, res) => {
       httpOnly: true,
       secure: isProd,
       sameSite: 'lax',
-      maxAge: 10 * 60 * 1000 // 10 minutes (matching JWT expiration)
+      maxAge: 5 * 60 * 1000 // 5 minutes (matching JWT expiration)
     });
 
     console.log(`✅ Authentication successful. Redirecting user back to frontend`);
