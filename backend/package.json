@@ -9,7 +9,7 @@
     "dev": "nodemon server.js",
     "seed": "node utils/seeder.js",
     "lint": "eslint .",
-    "test": "node --env-file=.env --test services/scheduler/__tests__/scheduler.test.js && node --env-file=.env --test services/scheduler/__tests__/pdfScheduler.test.js && node --env-file=.env --test services/scheduler/__tests__/pdfExporter.test.js"
+    "test": "node --env-file=.env --test middlewares/__tests__/auth.test.js && node --env-file=.env --test services/scheduler/__tests__/scheduler.test.js && node --env-file=.env --test services/scheduler/__tests__/pdfScheduler.test.js && node --env-file=.env --test services/scheduler/__tests__/pdfExporter.test.js"
   },
   "keywords": [],
   "author": "",

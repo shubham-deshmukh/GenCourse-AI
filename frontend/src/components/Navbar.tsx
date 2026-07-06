@@ -115,6 +115,7 @@ export default function Navbar() {
             ) : (
               <button
                 onClick={() => {
+                  localStorage.removeItem('gencourse_mock_mode');
                   const apiBase = import.meta.env.VITE_API_BASE_URL || '';
                   window.location.href = `${apiBase}/auth/login`;
                 }}
@@ -200,6 +201,7 @@ export default function Navbar() {
             ) : (
               <button
                 onClick={() => {
+                  localStorage.removeItem('gencourse_mock_mode');
                   const apiBase = import.meta.env.VITE_API_BASE_URL || '';
                   window.location.href = `${apiBase}/auth/login`;
                 }}
