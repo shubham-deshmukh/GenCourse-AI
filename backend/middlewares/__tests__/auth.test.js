@@ -227,6 +227,7 @@ test('Auth Routes - GET /auth/login generates PKCE and CSRF cookies', () => {
   const parsedUrl = new URL(redirectedUrl);
   assert.strictEqual(parsedUrl.searchParams.get('state'), cookiesSet['auth_state'].value);
   assert.strictEqual(parsedUrl.searchParams.get('response_type'), 'code');
+  assert.strictEqual(parsedUrl.searchParams.get('prompt'), 'login');
   assert.ok(parsedUrl.searchParams.get('code_challenge'));
 });
 

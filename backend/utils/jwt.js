@@ -9,7 +9,7 @@ import { getEnv } from '../config/env.js';
  */
 export const signToken = (payload) => {
   const secret = getEnv('JWT_SECRET');
-  return jwt.sign(payload, secret, { expiresIn: '10m' });
+  return jwt.sign(payload, secret, { expiresIn: '5m' });
 };
 
 /**
