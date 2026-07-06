@@ -31,6 +31,19 @@ axios.interceptors.request.use((config) => {
   return Promise.reject(error);
 });
 
+// Configure Axios response interceptor to handle mid-session authentication expiry (401 errors)
+axios.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      // Clear token and reset authentication state globally
+      localStorage.removeItem('gencourse_token');
+      useAuthStore.getState().logoutState();
+    }
+    return Promise.reject(error);
+  }
+);
+
 export default function App() {
   const [prompt, setPrompt] = useState('Intro to React Hooks')
   const [isGenerating, setIsGenerating] = useState(false)
