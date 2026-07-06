@@ -177,7 +177,7 @@ router.get('/callback', async (req, res) => {
       httpOnly: true,
       secure: isProd,
       sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days (matching JWT expiration)
+      maxAge: 10 * 60 * 1000 // 10 minutes (matching JWT expiration)
     });
 
     console.log(`✅ Authentication successful. Redirecting user back to frontend`);
