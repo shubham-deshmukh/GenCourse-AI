@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v2.2.0-secure-cookie-auth] - 2026-07-06
+
+### Added
+- **CSRF Protection via OIDC State Validation**: Implemented cryptographically secure `state` parameter generation and validation using `auth_state` cookies on backend login and callback routes to protect against login CSRF attacks.
+- **Automated Auth Test Suite**: Added a comprehensive unit and integration test suite using Node's native test runner (`node:test`) to test token verification, mock development provisioning, secure cookie flags in production, Auth0 callback errors, and role-based permissions in `backend/middlewares/__tests__/auth.test.js`.
+- **Session Expiry UX Alerts**: Appended an Axios response interceptor in the frontend to catch `401 Unauthorized` responses globally, display a single-trigger warning dialog ("Your session has expired. Please sign in again."), and redirect to the login page.
+
+### Changed
+- **Secure HttpOnly Cookie Authentication**: Completed migration of session management from insecure URL hashes and `localStorage` to HttpOnly, Secure, SameSite=Lax cookies (`gencourse_token`).
+- **Strict 10-Minute Session Policy**: Reduced JWT and cookie lifetimes to 10 minutes to minimize active session hijacking exposure windows.
+- **DX Improvements**: Replaced manual cookie parsing with global `cookie-parser`'s `req.cookies`.
+- **App Startup Synchronization**: Utilized `isLoading` state from `useAuthStore` in `App.tsx` to render a spinner during active authentication checks, eliminating page load layout shifts.
+
+### Fixed
+- **Sticky Mock Mode**: Fixed an issue where the frontend remained locked in developer mock mode (`X-Mock-User: true`) after a successful Auth0 login due to deprecated URL hash parsing logic.
+
 ## [v2.1.0-save-progress] - 2026-07-04
 
 ### Added
