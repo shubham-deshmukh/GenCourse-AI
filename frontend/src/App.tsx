@@ -38,7 +38,15 @@ axios.interceptors.response.use(
     if (error.response && error.response.status === 401) {
       // Clear token and reset authentication state globally
       localStorage.removeItem('gencourse_token');
-      useAuthStore.getState().logoutState();
+      const state = useAuthStore.getState();
+      
+      // Only alert once when transitioning from authenticated to logged out
+      if (state.isAuthenticated) {
+        state.logoutState();
+        alert('Your session has expired. Please sign in again.');
+      } else {
+        state.logoutState();
+      }
     }
     return Promise.reject(error);
   }
