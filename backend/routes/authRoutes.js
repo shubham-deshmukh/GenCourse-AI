@@ -7,20 +7,7 @@ import { signToken } from '../utils/jwt.js';
 
 const router = express.Router();
 
-// Helper to parse cookies manually without needing cookie-parser package
-const getCookie = (req, name) => {
-  const list = {};
-  const rc = req.headers.cookie;
 
-  if (rc) {
-    rc.split(';').forEach((cookie) => {
-      const parts = cookie.split('=');
-      list[parts.shift().trim()] = decodeURI(parts.join('='));
-    });
-  }
-
-  return list[name];
-};
 
 // Helper functions for PKCE verifier and challenge generation
 const base64URLEncode = (str) => {
@@ -36,16 +23,26 @@ const sha256 = (buffer) => {
 
 /**
  * Route: GET /auth/login
- * Purpose: Initiates OAuth2 authorization flow with PKCE, setting a verifier cookie.
+ * Purpose: Initiates OAuth2 authorization flow with PKCE and CSRF state parameter, setting verifier and state cookies.
  */
 router.get('/login', (req, res) => {
   const verifier = base64URLEncode(crypto.randomBytes(32));
   const challenge = base64URLEncode(sha256(verifier));
+  const state = base64URLEncode(crypto.randomBytes(32));
 
-  // Store PKCE verifier in a first-party cookie for token exchange verification
+  const isProd = getEnv('NODE_ENV', 'development') === 'production';
+
+  // Store PKCE verifier and CSRF state in first-party cookies for token exchange verification
   res.cookie('auth_code_verifier', verifier, {
     httpOnly: true,
-    secure: getEnv('NODE_ENV', 'development') === 'production',
+    secure: isProd,
+    sameSite: 'lax',
+    maxAge: 10 * 60 * 1000 // 10 minutes
+  });
+
+  res.cookie('auth_state', state, {
+    httpOnly: true,
+    secure: isProd,
     sameSite: 'lax',
     maxAge: 10 * 60 * 1000 // 10 minutes
   });
@@ -64,7 +61,8 @@ router.get('/login', (req, res) => {
     redirect_uri: redirectUri,
     scope: 'openid profile email',
     code_challenge: challenge,
-    code_challenge_method: 'S256'
+    code_challenge_method: 'S256',
+    state: state
   }).toString();
 
   console.log(`🔑 Redirecting client browser to Auth0 Authorize URL`);
@@ -76,7 +74,7 @@ router.get('/login', (req, res) => {
  * Purpose: Handles callback from Auth0, exchanges code for tokens, JIT provisions database profile, and issues custom JWT.
  */
 router.get('/callback', async (req, res) => {
-  const { code, error, error_description } = req.query;
+  const { code, state, error, error_description } = req.query;
 
   if (error) {
     console.error(`❌ Authentication error from provider: ${error} - ${error_description}`);
@@ -87,14 +85,28 @@ router.get('/callback', async (req, res) => {
     return res.status(400).json({ message: 'Authorization code is missing.' });
   }
 
-  // Retrieve code verifier from first-party cookie
-  const verifier = req.cookies?.auth_code_verifier || getCookie(req, 'auth_code_verifier');
   const isProd = getEnv('NODE_ENV', 'development') === 'production';
+
+  // Retrieve state and verifier from first-party cookies
+  const cookieState = req.cookies?.auth_state;
+  const verifier = req.cookies?.auth_code_verifier;
+
+  // Clear verification cookies immediately
   res.clearCookie('auth_code_verifier', {
     httpOnly: true,
     secure: isProd,
     sameSite: 'lax'
   });
+  res.clearCookie('auth_state', {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: 'lax'
+  });
+
+  if (!cookieState || state !== cookieState) {
+    console.error('❌ CSRF validation failed: Missing or mismatched state parameter');
+    return res.redirect(`${getEnv('FRONTEND_URL')}/#error=${encodeURIComponent('Authentication session expired or CSRF state verification failed.')}`);
+  }
 
   if (!verifier) {
     console.error('❌ Missing code verifier cookie (expired or cross-origin issues)');

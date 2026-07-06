@@ -35,18 +35,13 @@ export default function App() {
   const [prompt, setPrompt] = useState('Intro to React Hooks')
   const [isGenerating, setIsGenerating] = useState(false)
 
-  const { isAuthenticated, setAuthState } = useAuthStore()
+  const { isAuthenticated, isLoading, setAuthState } = useAuthStore()
 
   useEffect(() => {
-    // Check for token or error in URL hash
+    // Check for error in URL hash
     const hash = window.location.hash;
     if (hash) {
-      if (hash.startsWith('#token=')) {
-        const token = hash.split('#token=')[1];
-        localStorage.setItem('gencourse_token', token);
-        // Clear mock mode if switching to real token auth
-        localStorage.removeItem('gencourse_mock_mode');
-      } else if (hash.startsWith('#error=')) {
+      if (hash.startsWith('#error=')) {
         const errorMsg = decodeURIComponent(hash.split('#error=')[1]);
         console.error('Authentication error:', errorMsg);
         alert(`Authentication failed: ${errorMsg}`);
@@ -78,6 +73,14 @@ export default function App() {
 
     checkAuth();
   }, [setAuthState])
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#030014] flex items-center justify-center">
+        <div className="w-10 h-10 border-4 border-purple-primary/40 border-t-purple-primary rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   const handleGenerate = (topic?: string) => {
     if (topic) {
