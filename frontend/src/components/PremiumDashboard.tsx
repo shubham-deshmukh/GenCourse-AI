@@ -14,6 +14,7 @@ import {
   X,
   Sparkles,
   Trash2,
+  User,
 } from 'lucide-react'
 import PremiumInteractiveSimulator from './PremiumInteractiveSimulator'
 
@@ -24,6 +25,7 @@ export default function PremiumDashboard() {
 
   const [activeTab, setActiveTab] = useState<'library' | 'generate' | 'settings'>('library')
   const [isAiOpen, setIsAiOpen] = useState(false)
+  const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false)
 
   // Quiz and simulator control
   const [simulatorPrompt, setSimulatorPrompt] = useState('')
@@ -365,7 +367,7 @@ export default function PremiumDashboard() {
         </div>
 
         {/* Right Side: Usage & Profile details */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 relative">
           {/* Quick Metrics (visible on desktop only) */}
           <div className="hidden lg:flex items-center gap-3 bg-white/2 border border-white/5 rounded-full px-4 py-1.5 text-[10px]">
             <span className="text-gray-500 font-bold uppercase tracking-wider">AI Tokens:</span>
@@ -375,30 +377,111 @@ export default function PremiumDashboard() {
             </div>
           </div>
 
-          {/* User profile details */}
-          <div className="flex items-center gap-3 border-l border-white/5 pl-4">
-            <img
-              src={user?.picture || 'https://via.placeholder.com/150'}
-              alt={user?.name || 'User profile'}
-              className="w-8 h-8 rounded-full border border-purple-primary/30 object-cover shrink-0"
-              title={`${user?.name} (${user?.email})`}
-            />
-            <span className="hidden sm:inline text-xs font-semibold text-gray-300 truncate max-w-[100px]">{user?.name}</span>
-          </div>
+          {/* User profile dropdown button */}
+          <div className="border-l border-white/5 pl-4 relative">
+            <button
+              onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
+              className="flex items-center gap-2 hover:opacity-95 transition-all focus:outline-none cursor-pointer"
+            >
+              <img
+                src={user?.picture || 'https://via.placeholder.com/150'}
+                alt={user?.name || 'User profile'}
+                className="w-8 h-8 rounded-full border border-purple-primary/30 object-cover shrink-0 hover:scale-105 transition"
+              />
+              <span className="hidden sm:inline text-xs font-semibold text-gray-300 hover:text-white truncate max-w-[100px] select-none">
+                {user?.name || 'Guest Admin'}
+              </span>
+            </button>
 
-          {/* Log out */}
-          <button
-            onClick={() => {
-              localStorage.removeItem('gencourse_mock_mode');
-              localStorage.removeItem('gencourse_token');
-              const apiBase = import.meta.env.VITE_API_BASE_URL || '';
-              window.location.href = `${apiBase}/auth/logout`;
-            }}
-            className="p-2 rounded-full border border-red-500/20 hover:bg-red-500/5 text-red-400 hover:text-red-300 transition cursor-pointer flex items-center justify-center"
-            title="Sign Out"
-          >
-            <LogOut className="w-3.5 h-3.5 shrink-0" />
-          </button>
+            {/* Dropdown Card */}
+            {isUserDropdownOpen && (
+              <>
+                <div
+                  className="fixed inset-0 z-45 cursor-default"
+                  onClick={() => setIsUserDropdownOpen(false)}
+                />
+                <div className="absolute right-0 mt-3 w-64 bg-[#141414] border border-white/10 rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.5)] z-50 overflow-hidden divide-y divide-white/5">
+                  {/* Header: User Info */}
+                  <div className="p-4 flex gap-3 items-center">
+                    {user?.picture ? (
+                      <img
+                        src={user.picture}
+                        alt={user.name || 'User profile'}
+                        className="w-10 h-10 rounded-full border border-purple-primary/30 object-cover"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-primary to-cyan-primary text-white font-bold flex items-center justify-center text-sm shadow">
+                        {(user?.name || 'G').charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <div className="truncate flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <h4 className="text-xs font-bold text-white truncate">{user?.name || 'Guest Admin'}</h4>
+                        {user?.role === 'admin' && (
+                          <span className="px-1.5 py-0.5 rounded-md bg-purple-primary/15 border border-purple-primary/30 text-[8px] text-purple-300 font-bold uppercase tracking-wider select-none">
+                            Admin
+                          </span>
+                        )}
+                        {user?.role === 'instructor' && (
+                          <span className="px-1.5 py-0.5 rounded-md bg-cyan-primary/15 border border-cyan-primary/30 text-[8px] text-cyan-300 font-bold uppercase tracking-wider select-none">
+                            Instructor
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[10px] text-gray-500 truncate mt-0.5">{user?.email || 'guest@example.com'}</p>
+                    </div>
+                  </div>
+
+                  {/* Menu Items */}
+                  <div className="p-2 space-y-1">
+                    <button
+                      onClick={() => {
+                        setActiveTab('settings')
+                        setSelectedCourseForPlayer(null)
+                        setTutorCourseId(null)
+                        setTutorLessonId(null)
+                        setIsUserDropdownOpen(false)
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-gray-300 hover:text-white hover:bg-white/5 transition cursor-pointer text-left"
+                    >
+                      <User className="w-4 h-4 text-gray-400" />
+                      <span>Profile</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setActiveTab('settings')
+                        setSelectedCourseForPlayer(null)
+                        setTutorCourseId(null)
+                        setTutorLessonId(null)
+                        setIsUserDropdownOpen(false)
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-gray-300 hover:text-white hover:bg-white/5 transition cursor-pointer text-left"
+                    >
+                      <Settings className="w-4 h-4 text-gray-400" />
+                      <span>Preferences</span>
+                    </button>
+                  </div>
+
+                  {/* Footer Action: Sign Out */}
+                  <div className="p-2">
+                    <button
+                      onClick={() => {
+                        setIsUserDropdownOpen(false)
+                        localStorage.removeItem('gencourse_mock_mode')
+                        localStorage.removeItem('gencourse_token')
+                        const apiBase = import.meta.env.VITE_API_BASE_URL || ''
+                        window.location.href = `${apiBase}/auth/logout`
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold text-red-400 hover:text-red-300 hover:bg-red-500/5 transition cursor-pointer text-left"
+                    >
+                      <LogOut className="w-4 h-4 text-red-500/70" />
+                      <span>Sign out</span>
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </nav>
 
