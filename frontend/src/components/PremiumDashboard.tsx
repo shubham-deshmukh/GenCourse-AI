@@ -9,7 +9,6 @@ import {
   LogOut,
   Clock,
   ChevronRight,
-  ChevronLeft,
   Send,
   MessageSquare,
   X,
@@ -25,7 +24,6 @@ export default function PremiumDashboard() {
 
   const [activeTab, setActiveTab] = useState<'library' | 'generate' | 'settings'>('library')
   const [isAiOpen, setIsAiOpen] = useState(false)
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
 
   // Quiz and simulator control
   const [simulatorPrompt, setSimulatorPrompt] = useState('')
@@ -274,178 +272,121 @@ export default function PremiumDashboard() {
   }
 
   return (
-    <div className="flex h-screen bg-[#030014] text-white overflow-hidden relative">
+    <div className="flex flex-col h-screen bg-[#030014] text-white overflow-hidden relative">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(124,58,237,0.03),transparent_40%)] pointer-events-none"></div>
 
-      {/* Pane 1: Left Navigation Sidebar */}
-      <aside
-        className={`border-r border-white/5 bg-[#030014]/65 backdrop-blur-xl flex flex-col justify-between shrink-0 hidden md:flex transition-all duration-300 ${isSidebarCollapsed ? 'w-20' : 'w-64'
-          }`}
-      >
-        <div className={`transition-all duration-300 flex-1 flex flex-col min-h-0 ${isSidebarCollapsed ? 'p-4 space-y-6' : 'p-6 space-y-8'}`}>
-          {/* Logo & Project Title */}
-          {!isSidebarCollapsed ? (
-            <div className="flex items-center justify-between pb-5 border-b border-white/5 gap-2">
-              <div className="flex items-center gap-2.5 cursor-pointer group px-1">
-                <div className="relative">
-                  <div className="absolute -inset-0.5 rounded-lg bg-gradient-to-r from-purple-primary to-cyan-primary opacity-75 blur-sm group-hover:opacity-100 transition duration-300"></div>
-                  <div className="relative p-1.5 rounded-lg bg-black flex items-center justify-center">
-                    <Sparkles className="w-4 h-4 text-cyan-primary animate-pulse" />
-                  </div>
-                </div>
-                <span className="font-display font-bold text-base tracking-tight bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
-                  GenCourse<span className="text-purple-primary">AI</span>
-                </span>
+      {/* Pane 1: Top Navigation Navbar */}
+      <nav className="w-full border-b border-white/5 bg-[#030014]/65 backdrop-blur-xl h-16 flex items-center justify-between px-6 shrink-0 z-40">
+        {/* Left Side: Brand Logo */}
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-2.5 cursor-pointer group">
+            <div className="relative">
+              <div className="absolute -inset-0.5 rounded-lg bg-gradient-to-r from-purple-primary to-cyan-primary opacity-75 blur-sm group-hover:opacity-100 transition duration-300"></div>
+              <div className="relative p-1.5 rounded-lg bg-black flex items-center justify-center">
+                <Sparkles className="w-4 h-4 text-cyan-primary animate-pulse" />
               </div>
-              <button
-                onClick={() => setIsSidebarCollapsed(true)}
-                className="p-1.5 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white transition cursor-pointer"
-                title="Collapse Sidebar"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
             </div>
-          ) : (
-            <div className="flex flex-col items-center gap-3.5 pb-5 border-b border-white/5">
-              <div
-                className="relative cursor-pointer group"
-                onClick={() => setIsSidebarCollapsed(false)}
-                title="Expand Sidebar"
-              >
-                <div className="absolute -inset-0.5 rounded-lg bg-gradient-to-r from-purple-primary to-cyan-primary opacity-75 blur-sm group-hover:opacity-100 transition duration-300"></div>
-                <div className="relative p-1.5 rounded-lg bg-black flex items-center justify-center">
-                  <Sparkles className="w-4 h-4 text-cyan-primary animate-pulse" />
-                </div>
-              </div>
-              <button
-                onClick={() => setIsSidebarCollapsed(false)}
-                className="p-1.5 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white transition cursor-pointer"
-                title="Expand Sidebar"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-          )}
-
-          {/* Menu Items */}
-          <div className="space-y-1.5">
-            {!isSidebarCollapsed && (
-              <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider pl-3 block mb-3">
-                Workspace Hub
-              </span>
-            )}
-
-            <button
-              onClick={() => {
-                setActiveTab('library')
-                setSelectedCourseForPlayer(null)
-                setTutorCourseId(null)
-                setTutorLessonId(null)
-              }}
-              className={`w-full flex items-center rounded-xl text-xs font-semibold transition-all duration-300 border cursor-pointer ${isSidebarCollapsed ? 'justify-center p-3' : 'gap-3 px-4 py-3'
-                } ${activeTab === 'library' && !selectedCourseForPlayer
-                  ? 'bg-purple-primary/10 border-purple-primary/30 text-white shadow-[0_0_15px_rgba(124,58,237,0.08)]'
-                  : 'bg-transparent border-transparent text-gray-400 hover:text-white hover:bg-white/5'
-                }`}
-              title={isSidebarCollapsed ? "My Course Library" : undefined}
-            >
-              <FolderOpen className="w-4 h-4 shrink-0" />
-              {!isSidebarCollapsed && <span>My Course Library</span>}
-            </button>
-
-            <button
-              onClick={() => {
-                setActiveTab('generate')
-                setSimulatorPrompt('')
-                setSelectedCourseForPlayer(null)
-                setTutorCourseId(null)
-                setTutorLessonId(null)
-                if (!isGenerating) {
-                  resetGeneration()
-                }
-              }}
-              className={`w-full flex items-center rounded-xl text-xs font-semibold transition-all duration-300 border cursor-pointer ${isSidebarCollapsed ? 'justify-center p-3' : 'gap-3 px-4 py-3'
-                } ${activeTab === 'generate'
-                  ? 'bg-purple-primary/10 border-purple-primary/30 text-white shadow-[0_0_15px_rgba(124,58,237,0.08)]'
-                  : 'bg-transparent border-transparent text-gray-400 hover:text-white hover:bg-white/5'
-                }`}
-              title={isSidebarCollapsed ? "Create New Course" : undefined}
-            >
-              {isGenerating ? (
-                <div className="w-4 h-4 shrink-0 relative flex items-center justify-center">
-                  <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-purple-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-purple-500"></span>
-                </div>
-              ) : (
-                <Plus className="w-4 h-4 shrink-0" />
-              )}
-              {!isSidebarCollapsed && (
-                <span className="flex-1 flex items-center justify-between">
-                  <span>Create New Course</span>
-                  {isGenerating && (
-                    <span className="text-[10px] text-purple-300 bg-purple-primary/20 px-1.5 py-0.5 rounded-md font-semibold animate-pulse">
-                      Building...
-                    </span>
-                  )}
-                </span>
-              )}
-            </button>
-
-            <button
-              onClick={() => {
-                setActiveTab('settings')
-                setSelectedCourseForPlayer(null)
-                setTutorCourseId(null)
-                setTutorLessonId(null)
-              }}
-              className={`w-full flex items-center rounded-xl text-xs font-semibold transition-all duration-300 border cursor-pointer ${isSidebarCollapsed ? 'justify-center p-3' : 'gap-3 px-4 py-3'
-                } ${activeTab === 'settings'
-                  ? 'bg-purple-primary/10 border-purple-primary/30 text-white shadow-[0_0_15px_rgba(124,58,237,0.08)]'
-                  : 'bg-transparent border-transparent text-gray-400 hover:text-white hover:bg-white/5'
-                }`}
-              title={isSidebarCollapsed ? "Account Settings" : undefined}
-            >
-              <Settings className="w-4 h-4 shrink-0" />
-              {!isSidebarCollapsed && <span>Account Settings</span>}
-            </button>
+            <span className="font-display font-bold text-base tracking-tight bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+              GenCourse<span className="text-purple-primary">AI</span>
+            </span>
           </div>
-
-          {/* Quick Metrics */}
-          {!selectedCourseForPlayer && !isSidebarCollapsed && (
-            <div className="p-4 rounded-xl border border-white/5 bg-white/2 space-y-3">
-              <span className="text-[9px] text-gray-500 font-bold uppercase tracking-wider block">
-                Resource Usage
-              </span>
-              <div className="space-y-1">
-                <div className="flex justify-between text-[10px] text-gray-400">
-                  <span>AI Outline Tokens</span>
-                  <span>45k / 100k</span>
-                </div>
-                <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
-                  <div className="bg-gradient-to-r from-purple-primary to-cyan-primary h-full w-[45%]"></div>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
 
-        {/* Sidebar Footer User Details */}
-        <div className={`border-t border-white/5 bg-black/20 flex flex-col transition-all duration-300 ${isSidebarCollapsed ? 'p-3 items-center gap-4' : 'p-4 gap-3'
-          }`}>
-          <div className="flex items-center gap-3 w-full justify-center">
+        {/* Center Side: Tab Navigation Menu (hidden on mobile, since bottom nav is active) */}
+        <div className="hidden md:flex items-center gap-2">
+          <button
+            onClick={() => {
+              setActiveTab('library')
+              setSelectedCourseForPlayer(null)
+              setTutorCourseId(null)
+              setTutorLessonId(null)
+            }}
+            className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold border transition-all duration-300 cursor-pointer ${
+              activeTab === 'library' && !selectedCourseForPlayer
+                ? 'bg-purple-primary/10 border-purple-primary/30 text-white shadow-[0_0_15px_rgba(124,58,237,0.08)]'
+                : 'bg-transparent border-transparent text-gray-400 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <FolderOpen className="w-4 h-4 shrink-0" />
+            <span>My Course Library</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setActiveTab('generate')
+              setSimulatorPrompt('')
+              setSelectedCourseForPlayer(null)
+              setTutorCourseId(null)
+              setTutorLessonId(null)
+              if (!isGenerating) {
+                resetGeneration()
+              }
+            }}
+            className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold border transition-all duration-300 cursor-pointer ${
+              activeTab === 'generate'
+                ? 'bg-purple-primary/10 border-purple-primary/30 text-white shadow-[0_0_15px_rgba(124,58,237,0.08)]'
+                : 'bg-transparent border-transparent text-gray-400 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            {isGenerating ? (
+              <div className="w-4 h-4 shrink-0 relative flex items-center justify-center">
+                <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-purple-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-purple-500"></span>
+              </div>
+            ) : (
+              <Plus className="w-4 h-4 shrink-0" />
+            )}
+            <span className="flex items-center gap-2">
+              <span>Create New Course</span>
+              {isGenerating && (
+                <span className="text-[10px] text-purple-300 bg-purple-primary/20 px-1.5 py-0.5 rounded-md font-semibold animate-pulse">
+                  Building...
+                </span>
+              )}
+            </span>
+          </button>
+
+          <button
+            onClick={() => {
+              setActiveTab('settings')
+              setSelectedCourseForPlayer(null)
+              setTutorCourseId(null)
+              setTutorLessonId(null)
+            }}
+            className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold border transition-all duration-300 cursor-pointer ${
+              activeTab === 'settings'
+                ? 'bg-purple-primary/10 border-purple-primary/30 text-white shadow-[0_0_15px_rgba(124,58,237,0.08)]'
+                : 'bg-transparent border-transparent text-gray-400 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <Settings className="w-4 h-4 shrink-0" />
+            <span>Account Settings</span>
+          </button>
+        </div>
+
+        {/* Right Side: Usage & Profile details */}
+        <div className="flex items-center gap-4">
+          {/* Quick Metrics (visible on desktop only) */}
+          <div className="hidden lg:flex items-center gap-3 bg-white/2 border border-white/5 rounded-full px-4 py-1.5 text-[10px]">
+            <span className="text-gray-500 font-bold uppercase tracking-wider">AI Tokens:</span>
+            <span className="text-gray-300 font-semibold">45k / 100k</span>
+            <div className="w-16 bg-white/10 h-1.5 rounded-full overflow-hidden shrink-0">
+              <div className="bg-gradient-to-r from-purple-primary to-cyan-primary h-full w-[45%]"></div>
+            </div>
+          </div>
+
+          {/* User profile details */}
+          <div className="flex items-center gap-3 border-l border-white/5 pl-4">
             <img
               src={user?.picture || 'https://via.placeholder.com/150'}
               alt={user?.name || 'User profile'}
-              className="w-9 h-9 rounded-full border border-purple-primary/30 object-cover shrink-0"
-              title={isSidebarCollapsed ? `${user?.name} (${user?.email})` : undefined}
+              className="w-8 h-8 rounded-full border border-purple-primary/30 object-cover shrink-0"
+              title={`${user?.name} (${user?.email})`}
             />
-            {!isSidebarCollapsed && (
-              <div className="truncate flex-1">
-                <h4 className="text-xs font-semibold text-white truncate">{user?.name}</h4>
-                <p className="text-[10px] text-gray-500 truncate">{user?.email}</p>
-              </div>
-            )}
+            <span className="hidden sm:inline text-xs font-semibold text-gray-300 truncate max-w-[100px]">{user?.name}</span>
           </div>
+
+          {/* Log out */}
           <button
             onClick={() => {
               localStorage.removeItem('gencourse_mock_mode');
@@ -453,15 +394,13 @@ export default function PremiumDashboard() {
               const apiBase = import.meta.env.VITE_API_BASE_URL || '';
               window.location.href = `${apiBase}/auth/logout`;
             }}
-            className={`border border-red-500/20 hover:bg-red-500/5 text-red-400 hover:text-red-300 text-xs font-semibold transition cursor-pointer flex items-center justify-center ${isSidebarCollapsed ? 'p-2 rounded-xl w-9 h-9' : 'w-full py-2 rounded-lg gap-1.5'
-              }`}
-            title={isSidebarCollapsed ? "Sign Out" : undefined}
+            className="p-2 rounded-full border border-red-500/20 hover:bg-red-500/5 text-red-400 hover:text-red-300 transition cursor-pointer flex items-center justify-center"
+            title="Sign Out"
           >
             <LogOut className="w-3.5 h-3.5 shrink-0" />
-            {!isSidebarCollapsed && <span>Sign Out</span>}
           </button>
         </div>
-      </aside>
+      </nav>
 
       {/* Pane 2: Central Workspace Content */}
       <main className="flex-1 overflow-y-auto p-6 md:p-8 pb-24 md:pb-8 scrollbar-thin scrollbar-thumb-white/10 flex flex-col justify-between">
