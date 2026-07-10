@@ -398,6 +398,14 @@ export default function PremiumInteractiveSimulator({
   const [isPlayingVideo, setIsPlayingVideo] = useState(false)
   const [, setVideoProgress] = useState(0)
   const videoTimerRef = useRef<any>(null)
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
+
+  // Scroll restoration on module/lesson change
+  useEffect(() => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = 0
+    }
+  }, [activeModuleIndex, activeLessonIndex])
 
   // Interactive tracking states
   const [completedLessons, setCompletedLessons] = useState<Record<string, boolean>>({})
@@ -1148,7 +1156,7 @@ export default function PremiumInteractiveSimulator({
                   </div>
 
                   {/* Right Column: Tab details */}
-                  <div className="flex-1 p-6 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 bg-[#030014]/20 flex flex-col justify-between">
+                  <div ref={scrollContainerRef} className="flex-1 p-6 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 bg-[#030014]/20 flex flex-col justify-between">
 
                     <div>
                       {/* Outline Select for mobile devices */}
