@@ -59,6 +59,13 @@ export default function PremiumDashboard() {
   const [chatInput, setChatInput] = useState('')
   const chatEndRef = useRef<HTMLDivElement>(null)
 
+  // Automatically close the AI Tutor panel when exiting the course reader
+  useEffect(() => {
+    if (!selectedCourseForPlayer) {
+      setIsAiOpen(false)
+    }
+  }, [selectedCourseForPlayer])
+
   // Auto-scroll chat
   useEffect(() => {
     if (chatEndRef.current) {
@@ -859,7 +866,7 @@ export default function PremiumDashboard() {
       )}
 
       {/* Floating Toggle Button for AI Panel when closed */}
-      {!isAiOpen && (
+      {!isAiOpen && selectedCourseForPlayer && (
         <button
           onClick={() => setIsAiOpen(true)}
           className="fixed bottom-20 md:bottom-6 right-6 p-3 rounded-full bg-gradient-to-r from-purple-primary to-cyan-primary text-white hover:scale-110 transition shadow-2xl z-30 cursor-pointer flex items-center justify-center"
