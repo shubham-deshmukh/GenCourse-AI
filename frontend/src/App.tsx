@@ -7,6 +7,7 @@ import InteractiveSimulator from './components/InteractiveSimulator'
 import Workflow from './components/Workflow'
 import Features from './components/Features'
 import CTA from './components/CTA'
+import PricingPlans from './components/PricingPlans'
 import Footer from './components/Footer'
 import PremiumDashboard from './components/PremiumDashboard'
 
@@ -153,6 +154,9 @@ export default function App() {
 
           {/* Features Grids */}
           <Features />
+
+          {/* Subscription Pricing Plans */}
+          <PricingPlans />
 
           {/* CTA Banners */}
           <CTA />
