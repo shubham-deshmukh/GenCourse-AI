@@ -10,6 +10,7 @@ import CTA from './components/CTA'
 import PricingPlans from './components/PricingPlans'
 import Footer from './components/Footer'
 import PremiumDashboard from './components/PremiumDashboard'
+import { ShieldAlert } from 'lucide-react'
 
 // Set Axios baseURL from environment variables (direct backend connection)
 axios.defaults.baseURL = import.meta.env.VITE_API_BASE_URL || '';
@@ -56,6 +57,7 @@ axios.interceptors.response.use(
 export default function App() {
   const [prompt, setPrompt] = useState('Intro to React Hooks')
   const [isGenerating, setIsGenerating] = useState(false)
+  const [showVerificationModal, setShowVerificationModal] = useState(false)
 
   const { isAuthenticated, isLoading, setAuthState } = useAuthStore()
 
@@ -66,7 +68,11 @@ export default function App() {
       if (hash.startsWith('#error=')) {
         const errorMsg = decodeURIComponent(hash.split('#error=')[1]);
         console.error('Authentication error:', errorMsg);
-        alert(`Authentication failed: ${errorMsg}`);
+        if (errorMsg === 'EmailNotVerified') {
+          setShowVerificationModal(true);
+        } else {
+          alert(`Authentication failed: ${errorMsg}`);
+        }
       }
       // Remove hash from URL without page reload
       window.history.replaceState(null, '', window.location.pathname + window.location.search);
@@ -165,6 +171,47 @@ export default function App() {
 
       {/* Footer */}
       {!isAuthenticated && <Footer />}
+
+      {showVerificationModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <div className="w-full max-w-md p-6 rounded-2xl border border-white/10 bg-[#0c0824]/90 backdrop-blur-xl shadow-2xl relative overflow-hidden text-center space-y-6">
+            <div className="absolute -inset-10 bg-[radial-gradient(circle_at_center,rgba(168,85,247,0.06),transparent_60%)] pointer-events-none"></div>
+            
+            {/* Warning Icon with Pulse */}
+            <div className="w-16 h-16 mx-auto rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 relative">
+              <span className="absolute inset-0 rounded-full bg-amber-500/5 animate-ping"></span>
+              <ShieldAlert className="w-8 h-8 relative z-10" />
+            </div>
+
+            <div className="space-y-2">
+              <h3 className="font-display font-extrabold text-xl text-white">Verification Required</h3>
+              <p className="font-sans text-xs text-gray-400 leading-relaxed">
+                To prevent API misuse and ensure secure resource usage, GenCourse AI requires verified email accounts. 
+                Please check your inbox (and spam folder) for the verification link sent by our identity provider.
+              </p>
+            </div>
+
+            <div className="pt-2 flex flex-col gap-2">
+              <button
+                onClick={() => {
+                  setShowVerificationModal(false);
+                  const apiBase = import.meta.env.VITE_API_BASE_URL || '';
+                  window.location.assign(`${apiBase}/auth/login`);
+                }}
+                className="w-full py-3 rounded-xl bg-gradient-to-r from-purple-primary to-cyan-primary text-white text-xs font-bold transition hover:opacity-95 active:scale-[0.98] cursor-pointer shadow-lg"
+              >
+                Log In Again
+              </button>
+              <button
+                onClick={() => setShowVerificationModal(false)}
+                className="w-full py-2.5 rounded-xl border border-white/5 bg-white/2 hover:bg-white/5 text-gray-400 hover:text-white text-xs font-medium transition cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -66,7 +66,7 @@ router.get('/login', (req, res) => {
     prompt: 'login'
   };
 
-  if (req.query.screen_hint) {
+  if (req.query && req.query.screen_hint) {
     authParams.screen_hint = req.query.screen_hint;
   }
 
@@ -156,6 +156,12 @@ router.get('/callback', async (req, res) => {
     const auth0User = userinfoResponse.data;
     if (!auth0User || !auth0User.sub) {
       throw new Error('Invalid user profile response from identity provider.');
+    }
+
+    // Enforce email verification to prevent API misuse/overuse
+    if (auth0User.email && auth0User.email_verified === false) {
+      console.warn(`⚠️ Blocked login attempt: email is not verified for user ${auth0User.email}`);
+      return res.redirect(`${getEnv('FRONTEND_URL')}/#error=EmailNotVerified`);
     }
 
     // 3. Just-in-Time Database Provisioning
