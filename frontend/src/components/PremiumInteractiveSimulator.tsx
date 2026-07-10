@@ -979,7 +979,9 @@ export default function PremiumInteractiveSimulator({
                 </div>
               </div>
             ) : activeCourse ? (
-              <div className="glass-panel rounded-3xl border border-white/10 overflow-hidden shadow-2xl h-[660px] flex flex-col bg-black/40">
+              <div className={`glass-panel rounded-3xl border border-white/10 overflow-hidden shadow-2xl flex flex-col bg-black/40 ${
+                minimal ? 'min-h-[680px] md:h-[calc(100vh-10rem)]' : 'h-[660px]'
+              }`}>
 
                 {/* Course Viewer Header */}
                 <div className="p-5 bg-white/2 border-b border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
