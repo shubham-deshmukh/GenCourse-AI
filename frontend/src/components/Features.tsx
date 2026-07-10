@@ -35,7 +35,7 @@ const FEATURE_LIST = [
   {
     icon: Languages,
     title: 'Instant Multilingualism',
-    desc: 'Seamlessly translate your generated modules and slide decks into multiple languages with precise technical terms preservation.',
+    desc: 'Seamlessly translate your generated modules and lessons into multiple languages with precise technical terms preservation.',
     color: 'text-blue-400 bg-blue-500/10 border-blue-500/20'
   },
   {
