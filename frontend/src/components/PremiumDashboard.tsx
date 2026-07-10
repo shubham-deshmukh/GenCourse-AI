@@ -492,22 +492,7 @@ export default function PremiumDashboard() {
           <div className={`${selectedCourseForPlayer ? 'w-full' : 'w-full max-w-6xl mx-auto'} flex-1`}>
           {/* Active Course Player Integration */}
           {selectedCourseForPlayer ? (
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <button
-                  onClick={() => {
-                    setSelectedCourseForPlayer(null)
-                    fetchCourses()
-                  }}
-                  className="text-xs font-semibold text-gray-400 hover:text-white transition flex items-center gap-1 cursor-pointer"
-                >
-                  ← Back to Library
-                </button>
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                  <span className="text-[10px] text-gray-400 uppercase tracking-widest font-semibold">Active Student Portal</span>
-                </div>
-              </div>
+            <div className="space-y-6 h-full">
               <PremiumInteractiveSimulator
                 prompt={selectedCourseForPlayer}
                 setPrompt={() => { }}
