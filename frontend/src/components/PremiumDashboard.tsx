@@ -26,10 +26,26 @@ export default function PremiumDashboard() {
   const [activeTab, setActiveTab] = useState<'library' | 'generate' | 'settings'>('library')
   const [isAiOpen, setIsAiOpen] = useState(false)
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
 
   // Quiz and simulator control
   const [simulatorPrompt, setSimulatorPrompt] = useState('')
   const [selectedCourseForPlayer, setSelectedCourseForPlayer] = useState<string | null>(null)
+
+  // Click-outside listener for User profile dropdown
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsUserDropdownOpen(false)
+      }
+    }
+    if (isUserDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isUserDropdownOpen])
 
   // Active course/lesson context for the AI Tutor
   const [tutorCourseId, setTutorCourseId] = useState<string | null>(null)
@@ -378,7 +394,7 @@ export default function PremiumDashboard() {
           </div>
 
           {/* User profile dropdown button */}
-          <div className="border-l border-white/5 pl-4 relative">
+          <div ref={dropdownRef} className="border-l border-white/5 pl-4 relative">
             <button
               onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
               className="flex items-center gap-2 hover:opacity-95 transition-all focus:outline-none cursor-pointer"
@@ -395,12 +411,7 @@ export default function PremiumDashboard() {
 
             {/* Dropdown Card */}
             {isUserDropdownOpen && (
-              <>
-                <div
-                  className="fixed inset-0 z-45 cursor-default"
-                  onClick={() => setIsUserDropdownOpen(false)}
-                />
-                <div className="absolute right-0 mt-3 w-64 bg-[#141414] border border-white/10 rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.5)] z-50 overflow-hidden divide-y divide-white/5">
+              <div className="absolute right-0 mt-3 w-64 bg-[#141414] border border-white/10 rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.5)] z-50 overflow-hidden divide-y divide-white/5">
                   {/* Header: User Info */}
                   <div className="p-4 flex gap-3 items-center">
                     {user?.picture ? (
@@ -479,7 +490,6 @@ export default function PremiumDashboard() {
                     </button>
                   </div>
                 </div>
-              </>
             )}
           </div>
         </div>

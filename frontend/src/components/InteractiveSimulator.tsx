@@ -28,6 +28,7 @@ interface InteractiveSimulatorProps {
 
 // Sample Data Structure
 interface Lesson {
+  isPlaceholder?: boolean
   title: string
   content: {
     en: string
@@ -1064,27 +1065,34 @@ export default function InteractiveSimulator({
 
                     <div>
                       {/* Outline Select for mobile devices */}
-                      <div className="mb-4 md:hidden">
-                        <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Select Lesson</label>
-                        <select
-                          value={`${activeModuleIndex}-${activeLessonIndex}`}
-                          onChange={(e) => {
-                            const [m, l] = e.target.value.split('-').map(Number)
-                            setActiveModuleIndex(m)
-                            setActiveLessonIndex(l)
-                            setVideoProgress(0)
-                            setIsPlayingVideo(false)
-                          }}
-                          className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-white"
-                        >
-                          {activeCourse?.modules?.map((m, mIdx) =>
-                            m.lessons?.map((l, lIdx) => (
-                              <option key={`${mIdx}-${lIdx}`} value={`${mIdx}-${lIdx}`} className="bg-[#030014]">
-                                {l.title}
-                              </option>
-                            ))
-                          )}
-                        </select>
+                      <div className="mb-6 md:hidden">
+                        <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 font-display">Select Lesson</label>
+                        <div className="relative">
+                          <select
+                            value={`${activeModuleIndex}-${activeLessonIndex}`}
+                            onChange={(e) => {
+                              const [m, l] = e.target.value.split('-').map(Number)
+                              setActiveModuleIndex(m)
+                              setActiveLessonIndex(l)
+                              setVideoProgress(0)
+                              setIsPlayingVideo(false)
+                            }}
+                            className="w-full appearance-none px-4 py-3 rounded-xl bg-white/2 border border-white/8 text-xs text-white font-medium focus:outline-none focus:border-purple-primary/50 focus:shadow-[0_0_15px_rgba(124,58,237,0.15)] transition-all duration-300 cursor-pointer pr-10"
+                          >
+                            {activeCourse?.modules?.map((m, mIdx) =>
+                              m.lessons?.map((l, lIdx) => (
+                                <option key={`${mIdx}-${lIdx}`} value={`${mIdx}-${lIdx}`} className="bg-[#0e0a25] text-white">
+                                  {m.title.split(':')[0]} • {l.title} {l.isPlaceholder ? '(Generating...)' : ''}
+                                </option>
+                              ))
+                            )}
+                          </select>
+                          <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-cyan-primary">
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </div>
+                        </div>
                       </div>
 
                       {/* Reader Tab */}
