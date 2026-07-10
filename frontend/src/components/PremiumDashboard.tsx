@@ -965,19 +965,6 @@ export default function PremiumDashboard() {
           <Settings className={`w-5 h-5 ${activeTab === 'settings' ? 'text-amber-400' : 'text-gray-400'}`} />
           <span className="text-[10px] font-bold tracking-wider">Settings</span>
         </button>
-
-        <button
-          onClick={() => {
-            localStorage.removeItem('gencourse_mock_mode');
-            localStorage.removeItem('gencourse_token');
-            const apiBase = import.meta.env.VITE_API_BASE_URL || '';
-            window.location.href = `${apiBase}/auth/logout`;
-          }}
-          className="flex flex-col items-center justify-center gap-1 flex-1 py-1 text-red-400 hover:text-red-300 transition-all duration-200 cursor-pointer"
-        >
-          <LogOut className="w-5 h-5" />
-          <span className="text-[10px] font-bold tracking-wider">Logout</span>
-        </button>
       </nav>
     </div>
   )
