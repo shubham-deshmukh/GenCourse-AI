@@ -4,7 +4,7 @@ export default function PricingPlans() {
   const handleAuthRedirect = (planType: string) => {
     localStorage.removeItem('gencourse_mock_mode')
     const apiBase = import.meta.env.VITE_API_BASE_URL || ''
-    window.location.href = `${apiBase}/auth/login?plan=${planType}`
+    window.location.assign(`${apiBase}/auth/login?plan=${planType}`)
   }
 
   const plans = [
