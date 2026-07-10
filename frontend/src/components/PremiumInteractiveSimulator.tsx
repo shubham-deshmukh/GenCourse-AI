@@ -1617,11 +1617,11 @@ export default function PremiumInteractiveSimulator({
                     <span>Academy deployment status: Active</span>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="hover:text-white cursor-pointer transition">SCORM Export</span>
+                    <span className="hover:text-white cursor-pointer transition">Download Lesson (Markdown)</span>
                     <span>•</span>
-                    <span className="hover:text-white cursor-pointer transition">LTI v1.3</span>
+                    <span className="hover:text-white cursor-pointer transition">Export Handbook (PDF)</span>
                     <span>•</span>
-                    <span className="hover:text-white cursor-pointer transition">PDF Package</span>
+                    <span className="hover:text-white cursor-pointer transition">Share Course Link</span>
                   </div>
                 </div>
               </div>
