@@ -16,19 +16,19 @@ const PIPELINE_NODES = [
   {
     icon: BookOpen,
     label: '3. Lesson Generator',
-    desc: 'Writes lesson materials, slides, and voiceover scripts.',
+    desc: 'Generates extensive textbook chapters with key takeaways and curates relevant video lectures.',
     color: 'from-cyan-500 to-teal-500'
   },
   {
     icon: CheckSquare,
     label: '4. Quiz Builder',
-    desc: 'Constructs module quizzes and concept verification checks.',
+    desc: 'Builds interactive multiple-choice quizzes with real-time AI explanations for concept review.',
     color: 'from-teal-500 to-emerald-500'
   },
   {
     icon: Globe,
     label: '5. Publishing Layer',
-    desc: 'Compiles localized portals, audio files, and exports PDFs.',
+    desc: 'Compiles the student portal, translates materials, and packages downloadable PDF booklets.',
     color: 'from-emerald-500 to-purple-500'
   }
 ]
