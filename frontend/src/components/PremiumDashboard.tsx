@@ -296,6 +296,16 @@ export default function PremiumDashboard() {
     }
   }
 
+  const getNextMonthFirstDayString = () => {
+    const today = new Date()
+    const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, 1)
+    return nextMonth.toLocaleDateString('en-US', {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric'
+    })
+  }
+
   return (
     <div className="flex flex-col h-screen bg-[#030014] text-white overflow-hidden relative">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(124,58,237,0.03),transparent_40%)] pointer-events-none"></div>
@@ -659,7 +669,7 @@ export default function PremiumDashboard() {
                           Active Plan
                         </span>
                         <h3 className="font-display font-bold text-lg text-white mt-1.5">Premium Educator Workspace</h3>
-                        <p className="text-xs text-gray-400 mt-1">Renewal scheduled on July 1, 2026 ($49/month)</p>
+                        <p className="text-xs text-gray-400 mt-1">Renewal scheduled on {getNextMonthFirstDayString()} (₹3,999/month)</p>
                       </div>
                       <button className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-white text-xs font-semibold transition cursor-pointer">
                         Manage Plan
