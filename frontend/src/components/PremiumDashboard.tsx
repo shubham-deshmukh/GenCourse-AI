@@ -562,8 +562,32 @@ export default function PremiumDashboard() {
                       <p className="text-xs">Loading academy courses...</p>
                     </div>
                   ) : courses.length === 0 ? (
-                    <div className="col-span-2 text-center py-20 text-gray-500 border border-dashed border-white/10 rounded-2xl bg-white/1">
-                      <p className="text-xs">Your course library is empty. Select "Create New Course" at the top to build your first curriculum!</p>
+                    <div className="w-full text-center py-16 px-6 rounded-2xl border border-white/5 bg-gradient-to-b from-white/3 to-transparent shadow-[0_8px_32px_rgba(0,0,0,0.4)] relative overflow-hidden">
+                      <div className="absolute -inset-10 bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.03),transparent_50%)] pointer-events-none"></div>
+                      <div className="relative z-10 space-y-4">
+                        <div className="w-12 h-12 rounded-full bg-cyan-primary/10 flex items-center justify-center mx-auto border border-cyan-primary/20 shadow-[0_0_15px_rgba(6,182,212,0.1)]">
+                          <FolderOpen className="w-6 h-6 text-cyan-primary/75 animate-pulse" />
+                        </div>
+                        <div className="space-y-1.5">
+                          <h3 className="font-display font-bold text-base md:text-lg text-white">Your Academy Vault is Empty</h3>
+                          <p className="text-xs text-gray-400 max-w-sm mx-auto leading-relaxed">
+                            Select <span className="text-purple-300 font-semibold">"Create New Course"</span> in the top navigation bar to generate your first outline curriculum.
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => {
+                            setActiveTab('generate')
+                            setSimulatorPrompt('')
+                            if (!isGenerating) {
+                              resetGeneration()
+                            }
+                          }}
+                          className="px-5 py-2.5 rounded-full bg-gradient-to-r from-purple-primary to-cyan-primary text-white text-xs font-bold transition hover:opacity-95 shadow-[0_4px_12px_rgba(124,58,237,0.2)] hover:scale-[1.02] cursor-pointer flex items-center gap-1.5 mx-auto mt-2"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>Generate Your First Course</span>
+                        </button>
+                      </div>
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5 w-full">
