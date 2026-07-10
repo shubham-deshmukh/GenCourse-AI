@@ -296,12 +296,22 @@ export default function PremiumDashboard() {
     }
   }
 
+  const getNextMonthFirstDayString = () => {
+    const today = new Date()
+    const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, 1)
+    return nextMonth.toLocaleDateString('en-US', {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric'
+    })
+  }
+
   return (
     <div className="flex flex-col h-screen bg-[#030014] text-white overflow-hidden relative">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(124,58,237,0.03),transparent_40%)] pointer-events-none"></div>
 
       {/* Pane 1: Top Navigation Navbar */}
-      <nav className="w-full border-b border-white/5 bg-[#030014]/65 backdrop-blur-xl h-16 flex items-center justify-between px-6 shrink-0 z-40">
+      <nav className="w-full border-b border-white/5 bg-[#030014]/65 backdrop-blur-xl h-16 flex items-center justify-between px-6 shrink-0 z-40 relative">
         {/* Left Side: Brand Logo */}
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-2.5 cursor-pointer group">
@@ -318,7 +328,8 @@ export default function PremiumDashboard() {
         </div>
 
         {/* Center Side: Tab Navigation Menu (hidden on mobile, since bottom nav is active) */}
-        <div className="hidden md:flex items-center gap-2">
+        <div className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
+          <div className="flex items-center gap-1.5 p-1 rounded-full bg-white/2 border border-white/5 backdrop-blur-md">
           <button
             onClick={() => {
               setActiveTab('library')
@@ -326,13 +337,15 @@ export default function PremiumDashboard() {
               setTutorCourseId(null)
               setTutorLessonId(null)
             }}
-            className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold border transition-all duration-300 cursor-pointer ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold transition-all duration-300 cursor-pointer group border ${
               activeTab === 'library' && !selectedCourseForPlayer
-                ? 'bg-purple-primary/10 border-purple-primary/30 text-white shadow-[0_0_15px_rgba(124,58,237,0.08)]'
+                ? 'bg-cyan-500/10 border-cyan-500/30 text-white shadow-[0_0_15px_rgba(6,182,212,0.12)]'
                 : 'bg-transparent border-transparent text-gray-400 hover:text-white hover:bg-white/5'
             }`}
           >
-            <FolderOpen className="w-4 h-4 shrink-0" />
+            <FolderOpen className={`w-4 h-4 shrink-0 transition-colors duration-300 ${
+              activeTab === 'library' && !selectedCourseForPlayer ? 'text-cyan-primary' : 'text-cyan-400/70 group-hover:text-cyan-300'
+            }`} />
             <span>My Course Library</span>
           </button>
 
@@ -347,19 +360,21 @@ export default function PremiumDashboard() {
                 resetGeneration()
               }
             }}
-            className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold border transition-all duration-300 cursor-pointer ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold transition-all duration-300 cursor-pointer group border ${
               activeTab === 'generate'
-                ? 'bg-purple-primary/10 border-purple-primary/30 text-white shadow-[0_0_15px_rgba(124,58,237,0.08)]'
+                ? 'bg-purple-primary/10 border-purple-primary/30 text-white shadow-[0_0_15px_rgba(124,58,237,0.12)]'
                 : 'bg-transparent border-transparent text-gray-400 hover:text-white hover:bg-white/5'
             }`}
           >
             {isGenerating ? (
-              <div className="w-4 h-4 shrink-0 relative flex items-center justify-center">
+              <div className="w-4 h-4 shrink-0 relative flex items-center justify-center animate-pulse">
                 <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-purple-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-purple-500"></span>
               </div>
             ) : (
-              <Plus className="w-4 h-4 shrink-0" />
+              <Plus className={`w-4 h-4 shrink-0 transition-colors duration-300 ${
+                activeTab === 'generate' ? 'text-purple-primary' : 'text-purple-400/70 group-hover:text-purple-300'
+              }`} />
             )}
             <span className="flex items-center gap-2">
               <span>Create New Course</span>
@@ -378,15 +393,18 @@ export default function PremiumDashboard() {
               setTutorCourseId(null)
               setTutorLessonId(null)
             }}
-            className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold border transition-all duration-300 cursor-pointer ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold transition-all duration-300 cursor-pointer group border ${
               activeTab === 'settings'
-                ? 'bg-purple-primary/10 border-purple-primary/30 text-white shadow-[0_0_15px_rgba(124,58,237,0.08)]'
+                ? 'bg-amber-500/10 border-amber-500/30 text-white shadow-[0_0_15px_rgba(245,158,11,0.12)]'
                 : 'bg-transparent border-transparent text-gray-400 hover:text-white hover:bg-white/5'
             }`}
           >
-            <Settings className="w-4 h-4 shrink-0" />
+            <Settings className={`w-4 h-4 shrink-0 transition-colors duration-300 ${
+              activeTab === 'settings' ? 'text-amber-400' : 'text-amber-400/70 group-hover:text-amber-300'
+            }`} />
             <span>Account Settings</span>
           </button>
+          </div>
         </div>
 
         {/* Right Side: Usage & Profile details */}
@@ -544,8 +562,32 @@ export default function PremiumDashboard() {
                       <p className="text-xs">Loading academy courses...</p>
                     </div>
                   ) : courses.length === 0 ? (
-                    <div className="col-span-2 text-center py-20 text-gray-500 border border-dashed border-white/10 rounded-2xl bg-white/1">
-                      <p className="text-xs">Your course library is empty. Select "Create New Course" at the top to build your first curriculum!</p>
+                    <div className="w-full text-center py-16 px-6 rounded-2xl border border-white/5 bg-gradient-to-b from-white/3 to-transparent shadow-[0_8px_32px_rgba(0,0,0,0.4)] relative overflow-hidden">
+                      <div className="absolute -inset-10 bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.03),transparent_50%)] pointer-events-none"></div>
+                      <div className="relative z-10 space-y-4">
+                        <div className="w-12 h-12 rounded-full bg-cyan-primary/10 flex items-center justify-center mx-auto border border-cyan-primary/20 shadow-[0_0_15px_rgba(6,182,212,0.1)]">
+                          <FolderOpen className="w-6 h-6 text-cyan-primary/75 animate-pulse" />
+                        </div>
+                        <div className="space-y-1.5">
+                          <h3 className="font-display font-bold text-base md:text-lg text-white">Your Academy Vault is Empty</h3>
+                          <p className="text-xs text-gray-400 max-w-sm mx-auto leading-relaxed">
+                            Select <span className="text-purple-300 font-semibold">"Create New Course"</span> in the top navigation bar to generate your first outline curriculum.
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => {
+                            setActiveTab('generate')
+                            setSimulatorPrompt('')
+                            if (!isGenerating) {
+                              resetGeneration()
+                            }
+                          }}
+                          className="px-5 py-2.5 rounded-full bg-gradient-to-r from-purple-primary to-cyan-primary text-white text-xs font-bold transition hover:opacity-95 shadow-[0_4px_12px_rgba(124,58,237,0.2)] hover:scale-[1.02] cursor-pointer flex items-center gap-1.5 mx-auto mt-2"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>Generate Your First Course</span>
+                        </button>
+                      </div>
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5 w-full">
@@ -659,7 +701,7 @@ export default function PremiumDashboard() {
                           Active Plan
                         </span>
                         <h3 className="font-display font-bold text-lg text-white mt-1.5">Premium Educator Workspace</h3>
-                        <p className="text-xs text-gray-400 mt-1">Renewal scheduled on July 1, 2026 ($49/month)</p>
+                        <p className="text-xs text-gray-400 mt-1">Renewal scheduled on {getNextMonthFirstDayString()} (₹3,999/month)</p>
                       </div>
                       <button className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-white text-xs font-semibold transition cursor-pointer">
                         Manage Plan
@@ -873,11 +915,11 @@ export default function PremiumDashboard() {
           }}
           className={`flex flex-col items-center justify-center gap-1 flex-1 py-1 transition-all duration-200 cursor-pointer ${
             activeTab === 'library' && !selectedCourseForPlayer
-              ? 'text-cyan-primary'
+              ? 'text-cyan-primary font-semibold'
               : 'text-gray-400 hover:text-white'
           }`}
         >
-          <FolderOpen className="w-5 h-5" />
+          <FolderOpen className={`w-5 h-5 ${activeTab === 'library' && !selectedCourseForPlayer ? 'text-cyan-primary' : 'text-gray-400'}`} />
           <span className="text-[10px] font-bold tracking-wider">Library</span>
         </button>
 
@@ -893,7 +935,7 @@ export default function PremiumDashboard() {
             }
           }}
           className={`flex flex-col items-center justify-center gap-1 flex-1 py-1 transition-all duration-200 cursor-pointer relative ${
-            activeTab === 'generate' ? 'text-cyan-primary' : 'text-gray-400 hover:text-white'
+            activeTab === 'generate' ? 'text-purple-400 font-semibold' : 'text-gray-400 hover:text-white'
           }`}
         >
           {isGenerating ? (
@@ -902,7 +944,7 @@ export default function PremiumDashboard() {
               <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-purple-500"></span>
             </div>
           ) : (
-            <Plus className="w-5 h-5" />
+            <Plus className={`w-5 h-5 ${activeTab === 'generate' ? 'text-purple-primary' : 'text-gray-400'}`} />
           )}
           <span className="text-[10px] font-bold tracking-wider">
             {isGenerating ? 'Building' : 'Create'}
@@ -917,10 +959,10 @@ export default function PremiumDashboard() {
             setTutorLessonId(null)
           }}
           className={`flex flex-col items-center justify-center gap-1 flex-1 py-1 transition-all duration-200 cursor-pointer ${
-            activeTab === 'settings' ? 'text-cyan-primary' : 'text-gray-400 hover:text-white'
+            activeTab === 'settings' ? 'text-amber-400 font-semibold' : 'text-gray-400 hover:text-white'
           }`}
         >
-          <Settings className="w-5 h-5" />
+          <Settings className={`w-5 h-5 ${activeTab === 'settings' ? 'text-amber-400' : 'text-gray-400'}`} />
           <span className="text-[10px] font-bold tracking-wider">Settings</span>
         </button>
 
