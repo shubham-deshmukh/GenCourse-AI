@@ -9,12 +9,12 @@ import {
   LogOut,
   Clock,
   ChevronRight,
-  ChevronLeft,
   Send,
   MessageSquare,
   X,
   Sparkles,
   Trash2,
+  User,
 } from 'lucide-react'
 import PremiumInteractiveSimulator from './PremiumInteractiveSimulator'
 
@@ -25,11 +25,27 @@ export default function PremiumDashboard() {
 
   const [activeTab, setActiveTab] = useState<'library' | 'generate' | 'settings'>('library')
   const [isAiOpen, setIsAiOpen] = useState(false)
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
+  const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
 
   // Quiz and simulator control
   const [simulatorPrompt, setSimulatorPrompt] = useState('')
   const [selectedCourseForPlayer, setSelectedCourseForPlayer] = useState<string | null>(null)
+
+  // Click-outside listener for User profile dropdown
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsUserDropdownOpen(false)
+      }
+    }
+    if (isUserDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isUserDropdownOpen])
 
   // Active course/lesson context for the AI Tutor
   const [tutorCourseId, setTutorCourseId] = useState<string | null>(null)
@@ -42,6 +58,13 @@ export default function PremiumDashboard() {
   ])
   const [chatInput, setChatInput] = useState('')
   const chatEndRef = useRef<HTMLDivElement>(null)
+
+  // Automatically close the AI Tutor panel when exiting the course reader
+  useEffect(() => {
+    if (!selectedCourseForPlayer) {
+      setIsAiOpen(false)
+    }
+  }, [selectedCourseForPlayer])
 
   // Auto-scroll chat
   useEffect(() => {
@@ -273,217 +296,238 @@ export default function PremiumDashboard() {
     }
   }
 
+  const getNextMonthFirstDayString = () => {
+    const today = new Date()
+    const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, 1)
+    return nextMonth.toLocaleDateString('en-US', {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric'
+    })
+  }
+
   return (
-    <div className="flex h-screen bg-[#030014] text-white overflow-hidden relative">
+    <div className="flex flex-col h-screen bg-[#030014] text-white overflow-hidden relative">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(124,58,237,0.03),transparent_40%)] pointer-events-none"></div>
 
-      {/* Pane 1: Left Navigation Sidebar */}
-      <aside
-        className={`border-r border-white/5 bg-[#030014]/65 backdrop-blur-xl flex flex-col justify-between shrink-0 hidden md:flex transition-all duration-300 ${isSidebarCollapsed ? 'w-20' : 'w-64'
-          }`}
-      >
-        <div className={`transition-all duration-300 flex-1 flex flex-col min-h-0 ${isSidebarCollapsed ? 'p-4 space-y-6' : 'p-6 space-y-8'}`}>
-          {/* Logo & Project Title */}
-          {!isSidebarCollapsed ? (
-            <div className="flex items-center justify-between pb-5 border-b border-white/5 gap-2">
-              <div className="flex items-center gap-2.5 cursor-pointer group px-1">
-                <div className="relative">
-                  <div className="absolute -inset-0.5 rounded-lg bg-gradient-to-r from-purple-primary to-cyan-primary opacity-75 blur-sm group-hover:opacity-100 transition duration-300"></div>
-                  <div className="relative p-1.5 rounded-lg bg-black flex items-center justify-center">
-                    <Sparkles className="w-4 h-4 text-cyan-primary animate-pulse" />
-                  </div>
-                </div>
-                <span className="font-display font-bold text-base tracking-tight bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
-                  GenCourse<span className="text-purple-primary">AI</span>
-                </span>
+      {/* Pane 1: Top Navigation Navbar */}
+      <nav className="w-full border-b border-white/5 bg-[#030014]/65 backdrop-blur-xl h-16 flex items-center justify-between px-6 shrink-0 z-40 relative">
+        {/* Left Side: Brand Logo */}
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-2.5 cursor-pointer group">
+            <div className="relative">
+              <div className="absolute -inset-0.5 rounded-lg bg-gradient-to-r from-purple-primary to-cyan-primary opacity-75 blur-sm group-hover:opacity-100 transition duration-300"></div>
+              <div className="relative p-1.5 rounded-lg bg-black flex items-center justify-center">
+                <Sparkles className="w-4 h-4 text-cyan-primary animate-pulse" />
               </div>
-              <button
-                onClick={() => setIsSidebarCollapsed(true)}
-                className="p-1.5 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white transition cursor-pointer"
-                title="Collapse Sidebar"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
             </div>
-          ) : (
-            <div className="flex flex-col items-center gap-3.5 pb-5 border-b border-white/5">
-              <div
-                className="relative cursor-pointer group"
-                onClick={() => setIsSidebarCollapsed(false)}
-                title="Expand Sidebar"
-              >
-                <div className="absolute -inset-0.5 rounded-lg bg-gradient-to-r from-purple-primary to-cyan-primary opacity-75 blur-sm group-hover:opacity-100 transition duration-300"></div>
-                <div className="relative p-1.5 rounded-lg bg-black flex items-center justify-center">
-                  <Sparkles className="w-4 h-4 text-cyan-primary animate-pulse" />
-                </div>
-              </div>
-              <button
-                onClick={() => setIsSidebarCollapsed(false)}
-                className="p-1.5 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white transition cursor-pointer"
-                title="Expand Sidebar"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-          )}
-
-          {/* Menu Items */}
-          <div className="space-y-1.5">
-            {!isSidebarCollapsed && (
-              <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider pl-3 block mb-3">
-                Workspace Hub
-              </span>
-            )}
-
-            <button
-              onClick={() => {
-                setActiveTab('library')
-                setSelectedCourseForPlayer(null)
-                setTutorCourseId(null)
-                setTutorLessonId(null)
-              }}
-              className={`w-full flex items-center rounded-xl text-xs font-semibold transition-all duration-300 border cursor-pointer ${isSidebarCollapsed ? 'justify-center p-3' : 'gap-3 px-4 py-3'
-                } ${activeTab === 'library' && !selectedCourseForPlayer
-                  ? 'bg-purple-primary/10 border-purple-primary/30 text-white shadow-[0_0_15px_rgba(124,58,237,0.08)]'
-                  : 'bg-transparent border-transparent text-gray-400 hover:text-white hover:bg-white/5'
-                }`}
-              title={isSidebarCollapsed ? "My Course Library" : undefined}
-            >
-              <FolderOpen className="w-4 h-4 shrink-0" />
-              {!isSidebarCollapsed && <span>My Course Library</span>}
-            </button>
-
-            <button
-              onClick={() => {
-                setActiveTab('generate')
-                setSimulatorPrompt('')
-                setSelectedCourseForPlayer(null)
-                setTutorCourseId(null)
-                setTutorLessonId(null)
-                if (!isGenerating) {
-                  resetGeneration()
-                }
-              }}
-              className={`w-full flex items-center rounded-xl text-xs font-semibold transition-all duration-300 border cursor-pointer ${isSidebarCollapsed ? 'justify-center p-3' : 'gap-3 px-4 py-3'
-                } ${activeTab === 'generate'
-                  ? 'bg-purple-primary/10 border-purple-primary/30 text-white shadow-[0_0_15px_rgba(124,58,237,0.08)]'
-                  : 'bg-transparent border-transparent text-gray-400 hover:text-white hover:bg-white/5'
-                }`}
-              title={isSidebarCollapsed ? "Create New Course" : undefined}
-            >
-              {isGenerating ? (
-                <div className="w-4 h-4 shrink-0 relative flex items-center justify-center">
-                  <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-purple-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-purple-500"></span>
-                </div>
-              ) : (
-                <Plus className="w-4 h-4 shrink-0" />
-              )}
-              {!isSidebarCollapsed && (
-                <span className="flex-1 flex items-center justify-between">
-                  <span>Create New Course</span>
-                  {isGenerating && (
-                    <span className="text-[10px] text-purple-300 bg-purple-primary/20 px-1.5 py-0.5 rounded-md font-semibold animate-pulse">
-                      Building...
-                    </span>
-                  )}
-                </span>
-              )}
-            </button>
-
-            <button
-              onClick={() => {
-                setActiveTab('settings')
-                setSelectedCourseForPlayer(null)
-                setTutorCourseId(null)
-                setTutorLessonId(null)
-              }}
-              className={`w-full flex items-center rounded-xl text-xs font-semibold transition-all duration-300 border cursor-pointer ${isSidebarCollapsed ? 'justify-center p-3' : 'gap-3 px-4 py-3'
-                } ${activeTab === 'settings'
-                  ? 'bg-purple-primary/10 border-purple-primary/30 text-white shadow-[0_0_15px_rgba(124,58,237,0.08)]'
-                  : 'bg-transparent border-transparent text-gray-400 hover:text-white hover:bg-white/5'
-                }`}
-              title={isSidebarCollapsed ? "Account Settings" : undefined}
-            >
-              <Settings className="w-4 h-4 shrink-0" />
-              {!isSidebarCollapsed && <span>Account Settings</span>}
-            </button>
+            <span className="font-display font-bold text-base tracking-tight bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+              GenCourse<span className="text-purple-primary">AI</span>
+            </span>
           </div>
-
-          {/* Quick Metrics */}
-          {!selectedCourseForPlayer && !isSidebarCollapsed && (
-            <div className="p-4 rounded-xl border border-white/5 bg-white/2 space-y-3">
-              <span className="text-[9px] text-gray-500 font-bold uppercase tracking-wider block">
-                Resource Usage
-              </span>
-              <div className="space-y-1">
-                <div className="flex justify-between text-[10px] text-gray-400">
-                  <span>AI Outline Tokens</span>
-                  <span>45k / 100k</span>
-                </div>
-                <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
-                  <div className="bg-gradient-to-r from-purple-primary to-cyan-primary h-full w-[45%]"></div>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
 
-        {/* Sidebar Footer User Details */}
-        <div className={`border-t border-white/5 bg-black/20 flex flex-col transition-all duration-300 ${isSidebarCollapsed ? 'p-3 items-center gap-4' : 'p-4 gap-3'
-          }`}>
-          <div className="flex items-center gap-3 w-full justify-center">
-            <img
-              src={user?.picture || 'https://via.placeholder.com/150'}
-              alt={user?.name || 'User profile'}
-              className="w-9 h-9 rounded-full border border-purple-primary/30 object-cover shrink-0"
-              title={isSidebarCollapsed ? `${user?.name} (${user?.email})` : undefined}
-            />
-            {!isSidebarCollapsed && (
-              <div className="truncate flex-1">
-                <h4 className="text-xs font-semibold text-white truncate">{user?.name}</h4>
-                <p className="text-[10px] text-gray-500 truncate">{user?.email}</p>
-              </div>
-            )}
-          </div>
+        {/* Center Side: Tab Navigation Menu (hidden on mobile, since bottom nav is active) */}
+        <div className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
+          <div className="flex items-center gap-1.5 p-1 rounded-full bg-white/2 border border-white/5 backdrop-blur-md">
           <button
             onClick={() => {
-              localStorage.removeItem('gencourse_mock_mode');
-              localStorage.removeItem('gencourse_token');
-              const apiBase = import.meta.env.VITE_API_BASE_URL || '';
-              window.location.href = `${apiBase}/auth/logout`;
+              setActiveTab('library')
+              setSelectedCourseForPlayer(null)
+              setTutorCourseId(null)
+              setTutorLessonId(null)
             }}
-            className={`border border-red-500/20 hover:bg-red-500/5 text-red-400 hover:text-red-300 text-xs font-semibold transition cursor-pointer flex items-center justify-center ${isSidebarCollapsed ? 'p-2 rounded-xl w-9 h-9' : 'w-full py-2 rounded-lg gap-1.5'
-              }`}
-            title={isSidebarCollapsed ? "Sign Out" : undefined}
+            className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold transition-all duration-300 cursor-pointer group border ${
+              activeTab === 'library' && !selectedCourseForPlayer
+                ? 'bg-cyan-500/10 border-cyan-500/30 text-white shadow-[0_0_15px_rgba(6,182,212,0.12)]'
+                : 'bg-transparent border-transparent text-gray-400 hover:text-white hover:bg-white/5'
+            }`}
           >
-            <LogOut className="w-3.5 h-3.5 shrink-0" />
-            {!isSidebarCollapsed && <span>Sign Out</span>}
+            <FolderOpen className={`w-4 h-4 shrink-0 transition-colors duration-300 ${
+              activeTab === 'library' && !selectedCourseForPlayer ? 'text-cyan-primary' : 'text-cyan-400/70 group-hover:text-cyan-300'
+            }`} />
+            <span>My Course Library</span>
           </button>
-        </div>
-      </aside>
 
-      {/* Pane 2: Central Workspace Content */}
-      <main className="flex-1 overflow-y-auto p-6 md:p-8 pb-24 md:pb-8 scrollbar-thin scrollbar-thumb-white/10 flex flex-col justify-between">
-        <div className="w-full max-w-6xl mx-auto flex-1">
+          <button
+            onClick={() => {
+              setActiveTab('generate')
+              setSimulatorPrompt('')
+              setSelectedCourseForPlayer(null)
+              setTutorCourseId(null)
+              setTutorLessonId(null)
+              if (!isGenerating) {
+                resetGeneration()
+              }
+            }}
+            className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold transition-all duration-300 cursor-pointer group border ${
+              activeTab === 'generate'
+                ? 'bg-purple-primary/10 border-purple-primary/30 text-white shadow-[0_0_15px_rgba(124,58,237,0.12)]'
+                : 'bg-transparent border-transparent text-gray-400 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            {isGenerating ? (
+              <div className="w-4 h-4 shrink-0 relative flex items-center justify-center animate-pulse">
+                <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-purple-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-purple-500"></span>
+              </div>
+            ) : (
+              <Plus className={`w-4 h-4 shrink-0 transition-colors duration-300 ${
+                activeTab === 'generate' ? 'text-purple-primary' : 'text-purple-400/70 group-hover:text-purple-300'
+              }`} />
+            )}
+            <span className="flex items-center gap-2">
+              <span>Create New Course</span>
+              {isGenerating && (
+                <span className="text-[10px] text-purple-300 bg-purple-primary/20 px-1.5 py-0.5 rounded-md font-semibold animate-pulse">
+                  Building...
+                </span>
+              )}
+            </span>
+          </button>
+
+          <button
+            onClick={() => {
+              setActiveTab('settings')
+              setSelectedCourseForPlayer(null)
+              setTutorCourseId(null)
+              setTutorLessonId(null)
+            }}
+            className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold transition-all duration-300 cursor-pointer group border ${
+              activeTab === 'settings'
+                ? 'bg-amber-500/10 border-amber-500/30 text-white shadow-[0_0_15px_rgba(245,158,11,0.12)]'
+                : 'bg-transparent border-transparent text-gray-400 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <Settings className={`w-4 h-4 shrink-0 transition-colors duration-300 ${
+              activeTab === 'settings' ? 'text-amber-400' : 'text-amber-400/70 group-hover:text-amber-300'
+            }`} />
+            <span>Account Settings</span>
+          </button>
+          </div>
+        </div>
+
+        {/* Right Side: Usage & Profile details */}
+        <div className="flex items-center gap-4 relative">
+          {/* Quick Metrics (visible on desktop only) */}
+          <div className="hidden lg:flex items-center gap-3 bg-white/2 border border-white/5 rounded-full px-4 py-1.5 text-[10px]">
+            <span className="text-gray-500 font-bold uppercase tracking-wider">AI Tokens:</span>
+            <span className="text-gray-300 font-semibold">45k / 100k</span>
+            <div className="w-16 bg-white/10 h-1.5 rounded-full overflow-hidden shrink-0">
+              <div className="bg-gradient-to-r from-purple-primary to-cyan-primary h-full w-[45%]"></div>
+            </div>
+          </div>
+
+          {/* User profile dropdown button */}
+          <div ref={dropdownRef} className="border-l border-white/5 pl-4 relative">
+            <button
+              onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
+              className="flex items-center gap-2 hover:opacity-95 transition-all focus:outline-none cursor-pointer"
+            >
+              <img
+                src={user?.picture || 'https://via.placeholder.com/150'}
+                alt={user?.name || 'User profile'}
+                className="w-8 h-8 rounded-full border border-purple-primary/30 object-cover shrink-0 hover:scale-105 transition"
+              />
+              <span className="hidden sm:inline text-xs font-semibold text-gray-300 hover:text-white truncate max-w-[100px] select-none">
+                {user?.name || 'Guest Admin'}
+              </span>
+            </button>
+
+            {/* Dropdown Card */}
+            {isUserDropdownOpen && (
+              <div className="absolute right-0 mt-3 w-64 bg-[#141414] border border-white/10 rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.5)] z-50 overflow-hidden divide-y divide-white/5">
+                  {/* Header: User Info */}
+                  <div className="p-4 flex gap-3 items-center">
+                    {user?.picture ? (
+                      <img
+                        src={user.picture}
+                        alt={user.name || 'User profile'}
+                        className="w-10 h-10 rounded-full border border-purple-primary/30 object-cover"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-primary to-cyan-primary text-white font-bold flex items-center justify-center text-sm shadow">
+                        {(user?.name || 'G').charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <div className="truncate flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <h4 className="text-xs font-bold text-white truncate">{user?.name || 'Guest Admin'}</h4>
+                        {user?.role === 'admin' && (
+                          <span className="px-1.5 py-0.5 rounded-md bg-purple-primary/15 border border-purple-primary/30 text-[8px] text-purple-300 font-bold uppercase tracking-wider select-none">
+                            Admin
+                          </span>
+                        )}
+                        {user?.role === 'instructor' && (
+                          <span className="px-1.5 py-0.5 rounded-md bg-cyan-primary/15 border border-cyan-primary/30 text-[8px] text-cyan-300 font-bold uppercase tracking-wider select-none">
+                            Instructor
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[10px] text-gray-500 truncate mt-0.5">{user?.email || 'guest@example.com'}</p>
+                    </div>
+                  </div>
+
+                  {/* Menu Items */}
+                  <div className="p-2 space-y-1">
+                    <button
+                      onClick={() => {
+                        setActiveTab('settings')
+                        setSelectedCourseForPlayer(null)
+                        setTutorCourseId(null)
+                        setTutorLessonId(null)
+                        setIsUserDropdownOpen(false)
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-gray-300 hover:text-white hover:bg-white/5 transition cursor-pointer text-left"
+                    >
+                      <User className="w-4 h-4 text-gray-400" />
+                      <span>Profile</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setActiveTab('settings')
+                        setSelectedCourseForPlayer(null)
+                        setTutorCourseId(null)
+                        setTutorLessonId(null)
+                        setIsUserDropdownOpen(false)
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-gray-300 hover:text-white hover:bg-white/5 transition cursor-pointer text-left"
+                    >
+                      <Settings className="w-4 h-4 text-gray-400" />
+                      <span>Preferences</span>
+                    </button>
+                  </div>
+
+                  {/* Footer Action: Sign Out */}
+                  <div className="p-2">
+                    <button
+                      onClick={() => {
+                        setIsUserDropdownOpen(false)
+                        localStorage.removeItem('gencourse_mock_mode')
+                        localStorage.removeItem('gencourse_token')
+                        const apiBase = import.meta.env.VITE_API_BASE_URL || ''
+                        window.location.href = `${apiBase}/auth/logout`
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold text-red-400 hover:text-red-300 hover:bg-red-500/5 transition cursor-pointer text-left"
+                    >
+                      <LogOut className="w-4 h-4 text-red-500/70" />
+                      <span>Sign out</span>
+                    </button>
+                  </div>
+                </div>
+            )}
+          </div>
+        </div>
+      </nav>
+
+      {/* Horizontal Flex Wrapper for Workspace + Desktop Inline AI Tutor */}
+      <div className="flex flex-1 overflow-hidden relative">
+        {/* Pane 2: Central Workspace Content */}
+        <main className="flex-1 overflow-y-auto p-6 md:p-8 pb-24 md:pb-8 scrollbar-thin scrollbar-thumb-white/10 flex flex-col justify-between">
+          <div className={`${selectedCourseForPlayer ? 'w-full' : 'w-full max-w-6xl mx-auto'} flex-1`}>
           {/* Active Course Player Integration */}
           {selectedCourseForPlayer ? (
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <button
-                  onClick={() => {
-                    setSelectedCourseForPlayer(null)
-                    fetchCourses()
-                  }}
-                  className="text-xs font-semibold text-gray-400 hover:text-white transition flex items-center gap-1 cursor-pointer"
-                >
-                  ← Back to Library
-                </button>
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                  <span className="text-[10px] text-gray-400 uppercase tracking-widest font-semibold">Active Student Portal</span>
-                </div>
-              </div>
+            <div className="space-y-6 h-full">
               <PremiumInteractiveSimulator
                 prompt={selectedCourseForPlayer}
                 setPrompt={() => { }}
@@ -509,19 +553,6 @@ export default function PremiumDashboard() {
                         Resume where you left off or deploy new outlines to external LMS setups.
                       </p>
                     </div>
-                    <button
-                      onClick={() => {
-                        setActiveTab('generate')
-                        setSimulatorPrompt('')
-                        if (!isGenerating) {
-                          resetGeneration()
-                        }
-                      }}
-                      className="hidden sm:flex px-5 py-2.5 rounded-full bg-gradient-to-r from-purple-primary to-cyan-primary text-white text-xs font-bold transition hover:opacity-95 shadow-[0_4px_12px_rgba(124,58,237,0.2)] hover:scale-[1.02] cursor-pointer items-center gap-1.5"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span>Generate Course</span>
-                    </button>
                   </div>
 
                   {/* Course Cards Grid */}
@@ -531,8 +562,32 @@ export default function PremiumDashboard() {
                       <p className="text-xs">Loading academy courses...</p>
                     </div>
                   ) : courses.length === 0 ? (
-                    <div className="col-span-2 text-center py-20 text-gray-500 border border-dashed border-white/10 rounded-2xl bg-white/1">
-                      <p className="text-xs">Your course library is empty. Click "Generate Course" to build one!</p>
+                    <div className="w-full text-center py-16 px-6 rounded-2xl border border-white/5 bg-gradient-to-b from-white/3 to-transparent shadow-[0_8px_32px_rgba(0,0,0,0.4)] relative overflow-hidden">
+                      <div className="absolute -inset-10 bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.03),transparent_50%)] pointer-events-none"></div>
+                      <div className="relative z-10 space-y-4">
+                        <div className="w-12 h-12 rounded-full bg-cyan-primary/10 flex items-center justify-center mx-auto border border-cyan-primary/20 shadow-[0_0_15px_rgba(6,182,212,0.1)]">
+                          <FolderOpen className="w-6 h-6 text-cyan-primary/75 animate-pulse" />
+                        </div>
+                        <div className="space-y-1.5">
+                          <h3 className="font-display font-bold text-base md:text-lg text-white">Your Academy Vault is Empty</h3>
+                          <p className="text-xs text-gray-400 max-w-sm mx-auto leading-relaxed">
+                            Select <span className="text-purple-300 font-semibold">"Create New Course"</span> in the top navigation bar to generate your first outline curriculum.
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => {
+                            setActiveTab('generate')
+                            setSimulatorPrompt('')
+                            if (!isGenerating) {
+                              resetGeneration()
+                            }
+                          }}
+                          className="px-5 py-2.5 rounded-full bg-gradient-to-r from-purple-primary to-cyan-primary text-white text-xs font-bold transition hover:opacity-95 shadow-[0_4px_12px_rgba(124,58,237,0.2)] hover:scale-[1.02] cursor-pointer flex items-center gap-1.5 mx-auto mt-2"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>Generate Your First Course</span>
+                        </button>
+                      </div>
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5 w-full">
@@ -646,7 +701,7 @@ export default function PremiumDashboard() {
                           Active Plan
                         </span>
                         <h3 className="font-display font-bold text-lg text-white mt-1.5">Premium Educator Workspace</h3>
-                        <p className="text-xs text-gray-400 mt-1">Renewal scheduled on July 1, 2026 ($49/month)</p>
+                        <p className="text-xs text-gray-400 mt-1">Renewal scheduled on {getNextMonthFirstDayString()} (₹3,999/month)</p>
                       </div>
                       <button className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-white text-xs font-semibold transition cursor-pointer">
                         Manage Plan
@@ -686,85 +741,161 @@ export default function PremiumDashboard() {
             </div>
           </div>
         )}
-      </main>
+        </main>
 
-      {/* Pane 3: Right Collapsible AI Tutor Panel */}
+        {/* Desktop Inline AI Tutor Panel */}
+        {isAiOpen && (
+          <aside
+            className="w-80 bg-[#030014]/65 border-l border-white/5 backdrop-blur-xl flex flex-col justify-between shrink-0 hidden md:flex"
+          >
+            {/* Header */}
+            <div className="p-4 border-b border-white/5 flex justify-between items-center shrink-0">
+              <div className="flex items-center gap-2">
+                <MessageSquare className="w-4 h-4 text-purple-primary" />
+                <h3 className="text-xs font-bold text-white uppercase tracking-wider">AI Tutor Assistant</h3>
+              </div>
+              <button
+                onClick={() => setIsAiOpen(false)}
+                className="p-1.5 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Message Feed */}
+            <div className="flex-1 p-4 overflow-y-auto space-y-3.5 scrollbar-thin scrollbar-thumb-white/10 pr-2">
+              {chatMessages.map((m, idx) => {
+                const isAi = m.sender === 'ai'
+                return (
+                  <div key={idx} className={`flex flex-col ${isAi ? 'items-start' : 'items-end'} space-y-1.5`}>
+                    <div
+                      className={`p-3 rounded-2xl text-xs leading-relaxed max-w-[85%] border ${isAi
+                        ? 'bg-purple-primary/5 border-purple-primary/10 text-gray-300 rounded-tl-sm'
+                        : 'bg-gradient-to-r from-purple-primary to-cyan-primary border-transparent text-white rounded-tr-sm shadow-md'
+                        }`}
+                    >
+                      {isAi ? (
+                        <div className="space-y-1">{renderMessageText(m.text)}</div>
+                      ) : (
+                        <p>{m.text}</p>
+                      )}
+                    </div>
+                    <span className="text-[9px] text-gray-500 font-semibold px-1 font-mono">{m.time}</span>
+                  </div>
+                )
+              })}
+              {isTutorLoading && (
+                <div className="flex flex-col items-start space-y-1.5 animate-fade-in">
+                  <div className="p-3 rounded-2xl text-xs bg-purple-primary/5 border border-purple-primary/10 text-gray-400 rounded-tl-sm flex items-center gap-1">
+                    <span>AI Tutor is thinking</span>
+                    <span className="flex gap-0.5 ml-1">
+                      <span className="w-1 h-1 rounded-full bg-purple-400 animate-bounce [animation-delay:-0.3s]"></span>
+                      <span className="w-1 h-1 rounded-full bg-purple-400 animate-bounce [animation-delay:-0.15s]"></span>
+                      <span className="w-1 h-1 rounded-full bg-purple-400 animate-bounce"></span>
+                    </span>
+                  </div>
+                </div>
+              )}
+              <div ref={chatEndRef}></div>
+            </div>
+
+            {/* Input Bar */}
+            <form onSubmit={handleSendMessage} className="p-4 border-t border-white/5 bg-black/20 shrink-0 flex gap-2">
+              <input
+                type="text"
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                placeholder="Ask AI tutor..."
+                className="flex-1 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-purple-primary/50 transition-all duration-300"
+              />
+              <button
+                type="submit"
+                className="p-2 rounded-xl bg-gradient-to-r from-purple-primary to-cyan-primary text-white hover:scale-105 transition cursor-pointer flex items-center justify-center shadow-lg"
+              >
+                <Send className="w-4 h-4" />
+              </button>
+            </form>
+          </aside>
+        )}
+      </div>
+
+      {/* Pane 3: Mobile Right Collapsible AI Tutor Panel */}
       {isAiOpen && (
         <aside
-          className="fixed md:absolute right-0 top-0 h-full z-45 w-full md:w-80 bg-[#030014]/98 md:bg-[#030014]/90 backdrop-blur-xl flex flex-col justify-between shadow-2xl border-l border-white/5"
+          className="fixed right-0 top-0 h-full z-45 w-full bg-[#030014]/98 backdrop-blur-xl flex flex-col justify-between shadow-2xl border-l border-white/5 md:hidden"
         >
-        {/* Header */}
-        <div className="p-4 border-b border-white/5 flex justify-between items-center shrink-0">
-          <div className="flex items-center gap-2">
-            <MessageSquare className="w-4 h-4 text-purple-primary" />
-            <h3 className="text-xs font-bold text-white uppercase tracking-wider">AI Tutor Assistant</h3>
-          </div>
-          <button
-            onClick={() => setIsAiOpen(false)}
-            className="p-1.5 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white transition cursor-pointer"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-
-        {/* Message Feed */}
-        <div className="flex-1 p-4 overflow-y-auto space-y-3.5 scrollbar-thin scrollbar-thumb-white/10 pr-2">
-          {chatMessages.map((m, idx) => {
-            const isAi = m.sender === 'ai'
-            return (
-              <div key={idx} className={`flex flex-col ${isAi ? 'items-start' : 'items-end'} space-y-1.5`}>
-                <div
-                  className={`p-3 rounded-2xl text-xs leading-relaxed max-w-[85%] border ${isAi
-                    ? 'bg-purple-primary/5 border-purple-primary/10 text-gray-300 rounded-tl-sm'
-                    : 'bg-gradient-to-r from-purple-primary to-cyan-primary border-transparent text-white rounded-tr-sm shadow-md'
-                    }`}
-                >
-                  {isAi ? (
-                    <div className="space-y-1">{renderMessageText(m.text)}</div>
-                  ) : (
-                    <p>{m.text}</p>
-                  )}
-                </div>
-                <span className="text-[9px] text-gray-500 font-semibold px-1 font-mono">{m.time}</span>
-              </div>
-            )
-          })}
-          {isTutorLoading && (
-            <div className="flex flex-col items-start space-y-1.5 animate-fade-in">
-              <div className="p-3 rounded-2xl text-xs bg-purple-primary/5 border border-purple-primary/10 text-gray-400 rounded-tl-sm flex items-center gap-1">
-                <span>AI Tutor is thinking</span>
-                <span className="flex gap-0.5 ml-1">
-                  <span className="w-1 h-1 rounded-full bg-purple-400 animate-bounce [animation-delay:-0.3s]"></span>
-                  <span className="w-1 h-1 rounded-full bg-purple-400 animate-bounce [animation-delay:-0.15s]"></span>
-                  <span className="w-1 h-1 rounded-full bg-purple-400 animate-bounce"></span>
-                </span>
-              </div>
+          {/* Header */}
+          <div className="p-4 border-b border-white/5 flex justify-between items-center shrink-0">
+            <div className="flex items-center gap-2">
+              <MessageSquare className="w-4 h-4 text-purple-primary" />
+              <h3 className="text-xs font-bold text-white uppercase tracking-wider">AI Tutor Assistant</h3>
             </div>
-          )}
-          <div ref={chatEndRef}></div>
-        </div>
+            <button
+              onClick={() => setIsAiOpen(false)}
+              className="p-1.5 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white transition cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
 
-        {/* Input Bar */}
-        <form onSubmit={handleSendMessage} className="p-4 border-t border-white/5 bg-black/20 shrink-0 flex gap-2">
-          <input
-            type="text"
-            value={chatInput}
-            onChange={(e) => setChatInput(e.target.value)}
-            placeholder="Ask AI tutor..."
-            className="flex-1 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-purple-primary/50 transition-all duration-300"
-          />
-          <button
-            type="submit"
-            className="p-2 rounded-xl bg-gradient-to-r from-purple-primary to-cyan-primary text-white hover:scale-105 transition cursor-pointer flex items-center justify-center shadow-lg"
-          >
-            <Send className="w-4 h-4" />
-          </button>
-        </form>
-      </aside>
+          {/* Message Feed */}
+          <div className="flex-1 p-4 overflow-y-auto space-y-3.5 scrollbar-thin scrollbar-thumb-white/10 pr-2">
+            {chatMessages.map((m, idx) => {
+              const isAi = m.sender === 'ai'
+              return (
+                <div key={idx} className={`flex flex-col ${isAi ? 'items-start' : 'items-end'} space-y-1.5`}>
+                  <div
+                    className={`p-3 rounded-2xl text-xs leading-relaxed max-w-[85%] border ${isAi
+                      ? 'bg-purple-primary/5 border-purple-primary/10 text-gray-300 rounded-tl-sm'
+                      : 'bg-gradient-to-r from-purple-primary to-cyan-primary border-transparent text-white rounded-tr-sm shadow-md'
+                      }`}
+                  >
+                    {isAi ? (
+                      <div className="space-y-1">{renderMessageText(m.text)}</div>
+                    ) : (
+                      <p>{m.text}</p>
+                    )}
+                  </div>
+                  <span className="text-[9px] text-gray-500 font-semibold px-1 font-mono">{m.time}</span>
+                </div>
+              )
+            })}
+            {isTutorLoading && (
+              <div className="flex flex-col items-start space-y-1.5 animate-fade-in">
+                <div className="p-3 rounded-2xl text-xs bg-purple-primary/5 border border-purple-primary/10 text-gray-400 rounded-tl-sm flex items-center gap-1">
+                  <span>AI Tutor is thinking</span>
+                  <span className="flex gap-0.5 ml-1">
+                    <span className="w-1 h-1 rounded-full bg-purple-400 animate-bounce [animation-delay:-0.3s]"></span>
+                    <span className="w-1 h-1 rounded-full bg-purple-400 animate-bounce [animation-delay:-0.15s]"></span>
+                    <span className="w-1 h-1 rounded-full bg-purple-400 animate-bounce"></span>
+                  </span>
+                </div>
+              </div>
+            )}
+            <div ref={chatEndRef}></div>
+          </div>
+
+          {/* Input Bar */}
+          <form onSubmit={handleSendMessage} className="p-4 border-t border-white/5 bg-black/20 shrink-0 flex gap-2">
+            <input
+              type="text"
+              value={chatInput}
+              onChange={(e) => setChatInput(e.target.value)}
+              placeholder="Ask AI tutor..."
+              className="flex-1 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-purple-primary/50 transition-all duration-300"
+            />
+            <button
+              type="submit"
+              className="p-2 rounded-xl bg-gradient-to-r from-purple-primary to-cyan-primary text-white hover:scale-105 transition cursor-pointer flex items-center justify-center shadow-lg"
+            >
+              <Send className="w-4 h-4" />
+            </button>
+          </form>
+        </aside>
       )}
 
       {/* Floating Toggle Button for AI Panel when closed */}
-      {!isAiOpen && (
+      {!isAiOpen && selectedCourseForPlayer && (
         <button
           onClick={() => setIsAiOpen(true)}
           className="fixed bottom-20 md:bottom-6 right-6 p-3 rounded-full bg-gradient-to-r from-purple-primary to-cyan-primary text-white hover:scale-110 transition shadow-2xl z-30 cursor-pointer flex items-center justify-center"
@@ -784,11 +915,11 @@ export default function PremiumDashboard() {
           }}
           className={`flex flex-col items-center justify-center gap-1 flex-1 py-1 transition-all duration-200 cursor-pointer ${
             activeTab === 'library' && !selectedCourseForPlayer
-              ? 'text-cyan-primary'
+              ? 'text-cyan-primary font-semibold'
               : 'text-gray-400 hover:text-white'
           }`}
         >
-          <FolderOpen className="w-5 h-5" />
+          <FolderOpen className={`w-5 h-5 ${activeTab === 'library' && !selectedCourseForPlayer ? 'text-cyan-primary' : 'text-gray-400'}`} />
           <span className="text-[10px] font-bold tracking-wider">Library</span>
         </button>
 
@@ -804,7 +935,7 @@ export default function PremiumDashboard() {
             }
           }}
           className={`flex flex-col items-center justify-center gap-1 flex-1 py-1 transition-all duration-200 cursor-pointer relative ${
-            activeTab === 'generate' ? 'text-cyan-primary' : 'text-gray-400 hover:text-white'
+            activeTab === 'generate' ? 'text-purple-400 font-semibold' : 'text-gray-400 hover:text-white'
           }`}
         >
           {isGenerating ? (
@@ -813,7 +944,7 @@ export default function PremiumDashboard() {
               <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-purple-500"></span>
             </div>
           ) : (
-            <Plus className="w-5 h-5" />
+            <Plus className={`w-5 h-5 ${activeTab === 'generate' ? 'text-purple-primary' : 'text-gray-400'}`} />
           )}
           <span className="text-[10px] font-bold tracking-wider">
             {isGenerating ? 'Building' : 'Create'}
@@ -828,24 +959,11 @@ export default function PremiumDashboard() {
             setTutorLessonId(null)
           }}
           className={`flex flex-col items-center justify-center gap-1 flex-1 py-1 transition-all duration-200 cursor-pointer ${
-            activeTab === 'settings' ? 'text-cyan-primary' : 'text-gray-400 hover:text-white'
+            activeTab === 'settings' ? 'text-amber-400 font-semibold' : 'text-gray-400 hover:text-white'
           }`}
         >
-          <Settings className="w-5 h-5" />
+          <Settings className={`w-5 h-5 ${activeTab === 'settings' ? 'text-amber-400' : 'text-gray-400'}`} />
           <span className="text-[10px] font-bold tracking-wider">Settings</span>
-        </button>
-
-        <button
-          onClick={() => {
-            localStorage.removeItem('gencourse_mock_mode');
-            localStorage.removeItem('gencourse_token');
-            const apiBase = import.meta.env.VITE_API_BASE_URL || '';
-            window.location.href = `${apiBase}/auth/logout`;
-          }}
-          className="flex flex-col items-center justify-center gap-1 flex-1 py-1 text-red-400 hover:text-red-300 transition-all duration-200 cursor-pointer"
-        >
-          <LogOut className="w-5 h-5" />
-          <span className="text-[10px] font-bold tracking-wider">Logout</span>
         </button>
       </nav>
     </div>

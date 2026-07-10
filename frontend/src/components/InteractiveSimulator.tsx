@@ -14,6 +14,7 @@ import {
   Layers,
   Sparkles,
   Check,
+  Award,
 } from 'lucide-react'
 
 interface InteractiveSimulatorProps {
@@ -28,6 +29,7 @@ interface InteractiveSimulatorProps {
 
 // Sample Data Structure
 interface Lesson {
+  isPlaceholder?: boolean
   title: string
   content: {
     en: string
@@ -367,6 +369,7 @@ export default function InteractiveSimulator({
   const [activeLessonIndex, setActiveLessonIndex] = useState(0)
   const [activeTab, setActiveTab] = useState<'content' | 'quiz' | 'downloads'>('content')
   const [language, setLanguage] = useState<'en' | 'mr' | 'hi'>('en')
+  const [showCompletionModal, setShowCompletionModal] = useState(false)
 
   // Pipeline Simulation states
   const [currentStepIndex, setCurrentStepIndex] = useState(-1)
@@ -377,10 +380,28 @@ export default function InteractiveSimulator({
   const [isPlayingVideo, setIsPlayingVideo] = useState(false)
   const [, setVideoProgress] = useState(0)
   const videoTimerRef = useRef<any>(null)
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
+
+  // Scroll restoration on module/lesson change
+  useEffect(() => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = 0
+    }
+  }, [activeModuleIndex, activeLessonIndex])
 
   // Interactive tracking states
   const [completedLessons, setCompletedLessons] = useState<Record<string, boolean>>({})
   const [downloadProgress, setDownloadProgress] = useState<Record<string, number>>({})
+
+  // Course completion calculation helpers
+  const totalLessonsCount = activeCourse?.modules?.reduce((acc, m) => acc + (m.lessons?.length || 0), 0) || 0
+  const completedLessonsCount = activeCourse?.modules?.reduce((acc, m, mIdx) => {
+    return acc + (m.lessons?.filter((_, lIdx) => {
+      const lKey = activeCourse ? `${activeCourse.title}-${mIdx}-${lIdx}` : ''
+      return !!completedLessons[lKey]
+    }).length || 0)
+  }, 0) || 0
+  const progressPercent = totalLessonsCount > 0 ? Math.round((completedLessonsCount / totalLessonsCount) * 100) : 0
 
   // Load progress from localStorage on mount
   useEffect(() => {
@@ -599,7 +620,7 @@ export default function InteractiveSimulator({
       .replace(/>/g, '&gt;')
       .replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold text-white">$1</strong>')
       .replace(/\*(.*?)\*/g, '<em class="italic text-gray-200">$1</em>')
-      .replace(/`(.*?)`/g, '<code class="px-1.5 py-0.5 rounded bg-white/10 font-mono text-[10px] text-cyan-300">$1</code>')
+      .replace(/`(.*?)`/g, '<code class="px-1.5 py-0.5 rounded bg-white/10 font-mono text-xs md:text-[13px] text-cyan-300">$1</code>')
   }
 
   const renderFormattedContent = (contentString: string) => {
@@ -657,26 +678,29 @@ export default function InteractiveSimulator({
       // Headers
       if (part.trim().startsWith('###')) {
         return (
-          <h5 key={index} className="text-white text-sm font-bold font-display mt-5 mb-2.5 flex items-center gap-2" dangerouslySetInnerHTML={{ __html: `<span class="w-1 h-3.5 rounded-full bg-purple-primary shrink-0"></span>${parseInlineMarkdown(part.replace('###', '').trim())}` }} />
+          <h5 key={index} className="text-white text-base md:text-lg font-bold font-display mt-5 mb-2.5 flex items-center gap-2" dangerouslySetInnerHTML={{ __html: `<span class="w-1.5 h-4 rounded-full bg-purple-primary shrink-0"></span>${parseInlineMarkdown(part.replace('###', '').trim())}` }} />
         )
       }
       if (part.trim().startsWith('##')) {
         return (
-          <h4 key={index} className="text-white text-base font-bold font-display mt-6 mb-3 flex items-center gap-2" dangerouslySetInnerHTML={{ __html: `<span class="w-1 h-4 rounded-full bg-cyan-primary shrink-0"></span>${parseInlineMarkdown(part.replace('##', '').trim())}` }} />
+          <h4 key={index} className="text-white text-lg md:text-xl font-bold font-display mt-7 mb-3.5 flex items-center gap-2" dangerouslySetInnerHTML={{ __html: `<span class="w-1.5 h-4.5 rounded-full bg-cyan-primary shrink-0"></span>${parseInlineMarkdown(part.replace('##', '').trim())}` }} />
         )
       }
       if (part.trim().startsWith('#')) {
         return (
-          <h3 key={index} className="text-white text-lg font-bold font-display mt-7 mb-4" dangerouslySetInnerHTML={{ __html: parseInlineMarkdown(part.replace('#', '').trim()) }} />
+          <h3 key={index} className="text-white text-xl md:text-2xl font-extrabold font-display mt-9 mb-4.5" dangerouslySetInnerHTML={{ __html: parseInlineMarkdown(part.replace('#', '').trim()) }} />
         )
       }
 
       // Bullet items
-      if (part.trim().startsWith('-')) {
+      const trimmedPart = part.trim()
+      const isBullet = trimmedPart.startsWith('-') || (trimmedPart.startsWith('*') && !trimmedPart.startsWith('**'))
+      if (isBullet) {
+        const bulletText = trimmedPart.replace(/^[-*]\s*/, '').trim()
         return (
-          <div key={index} className="flex items-start gap-2 my-2 pl-1 text-gray-300 text-xs">
-            <Check className="w-3.5 h-3.5 text-cyan-primary shrink-0 mt-0.5" />
-            <span dangerouslySetInnerHTML={{ __html: parseInlineMarkdown(part.replace('-', '').trim()) }} />
+          <div key={index} className="flex items-start gap-3 my-3 pl-1 text-gray-300 text-sm md:text-base font-serif leading-relaxed">
+            <Check className="w-4 h-4 md:w-5 md:h-5 text-cyan-primary shrink-0 mt-1" />
+            <span dangerouslySetInnerHTML={{ __html: parseInlineMarkdown(bulletText) }} />
           </div>
         )
       }
@@ -686,8 +710,8 @@ export default function InteractiveSimulator({
         const number = part.match(/^\d+/)?.[0]
         const text = part.replace(/^\d+\.\s/, '').trim()
         return (
-          <div key={index} className="flex items-start gap-2 my-2 pl-1 text-gray-300 text-xs">
-            <span className="flex items-center justify-center w-4 h-4 rounded-full bg-purple-primary/20 text-purple-300 text-[9px] font-bold shrink-0 mt-0.5">
+          <div key={index} className="flex items-start gap-3 my-3 pl-1 text-gray-300 text-sm md:text-base font-serif leading-relaxed">
+            <span className="flex items-center justify-center w-4 h-4 md:w-5 md:h-5 rounded-full bg-purple-primary/20 text-purple-300 text-[9px] md:text-[10px] font-bold shrink-0 mt-1">
               {number}
             </span>
             <span dangerouslySetInnerHTML={{ __html: parseInlineMarkdown(text) }} />
@@ -698,7 +722,7 @@ export default function InteractiveSimulator({
       // Normal text paragraphs
       if (part.trim() === '') {return null}
       return (
-        <p key={index} className="my-2.5 text-gray-300 leading-relaxed font-sans text-xs" dangerouslySetInnerHTML={{ __html: parseInlineMarkdown(part) }} />
+        <p key={index} className="my-4 text-gray-300 leading-relaxed font-serif text-sm md:text-base" dangerouslySetInnerHTML={{ __html: parseInlineMarkdown(part) }} />
       )
     })
   }
@@ -760,9 +784,9 @@ export default function InteractiveSimulator({
 
         {/* Input Bar inside workspace */}
         {!hideInput && (
-          <div className="max-w-xl mx-auto mb-12">
-            <form onSubmit={handleManualTrigger} className="flex gap-2 p-1.5 rounded-full bg-white/2 border border-white/8 backdrop-blur-md focus-within:border-purple-primary/50 focus-within:shadow-[0_0_20px_rgba(124,58,237,0.15)] transition-all duration-300">
-              <div className="flex-1 flex items-center pl-3">
+          <div className="max-w-xl mx-auto mb-12 px-4">
+            <form onSubmit={handleManualTrigger} className="flex flex-col md:flex-row gap-3 md:gap-2 p-0 md:p-1.5 rounded-2xl md:rounded-full bg-transparent md:bg-white/2 border border-transparent md:border-white/8 backdrop-blur-md md:focus-within:border-purple-primary/50 md:focus-within:shadow-[0_0_20px_rgba(124,58,237,0.15)] transition-all duration-300">
+              <div className="flex-1 flex items-center pl-3.5 pr-3.5 py-3.5 md:py-0 rounded-2xl md:rounded-none bg-white/2 md:bg-transparent border border-white/8 md:border-none focus-within:border-purple-primary/50 md:focus-within:border-none focus-within:shadow-[0_0_15px_rgba(124,58,237,0.1)] md:focus-within:shadow-none transition-all duration-300">
                 <Search className="w-4 h-4 text-gray-500 mr-2 shrink-0" />
                 <input
                   type="text"
@@ -776,7 +800,7 @@ export default function InteractiveSimulator({
               <button
                 type="submit"
                 disabled={isGenerating}
-                className="px-6 py-2.5 rounded-full bg-gradient-to-r from-purple-primary to-cyan-primary hover:from-purple-600 hover:to-cyan-500 disabled:opacity-50 text-white text-xs font-bold transition-all duration-300 flex items-center gap-1.5 cursor-pointer shadow-[0_4px_12px_rgba(124,58,237,0.25)] hover:shadow-[0_4px_20px_rgba(124,58,237,0.4)] btn-glow"
+                className="w-full md:w-auto px-6 py-3.5 md:py-2.5 rounded-2xl md:rounded-full bg-gradient-to-r from-purple-primary to-cyan-primary hover:from-purple-600 hover:to-cyan-500 disabled:opacity-50 text-white text-xs font-bold transition-all duration-300 flex items-center justify-center gap-1.5 cursor-pointer shadow-[0_4px_12px_rgba(124,58,237,0.25)] hover:shadow-[0_4px_20px_rgba(124,58,237,0.4)] btn-glow shrink-0"
               >
                 {isGenerating ? (
                   <>
@@ -786,15 +810,15 @@ export default function InteractiveSimulator({
                 ) : (
                   <>
                     <span>Simulate</span>
-                    <Cpu className="w-3.5 h-3.5" />
+                    <Cpu className="w-3.5 h-3.5 animate-pulse" />
                   </>
                 )}
               </button>
             </form>
 
             {/* Quick suggest chips */}
-            <div className="flex flex-wrap justify-center gap-2 mt-4">
-              <span className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider self-center mr-1">
+            <div className="flex md:flex-wrap items-center justify-start md:justify-center gap-2 mt-4 overflow-x-auto md:overflow-x-visible whitespace-nowrap md:whitespace-normal scrollbar-none pb-2 md:pb-0 px-2 md:px-0 w-full">
+              <span className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider shrink-0 mr-1">
                 Suggested Topics:
               </span>
               {QUICK_SUGGESTIONS.map((sug) => {
@@ -824,7 +848,7 @@ export default function InteractiveSimulator({
 
         {/* Horizontal Progress Pipeline */}
         {!hideInput && (
-          <div className="mb-8">
+          <div className="mb-8 hidden md:block">
             <div className="glass-panel rounded-2xl p-4 border border-white/10 bg-black/40 backdrop-blur-md">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-center gap-2 shrink-0">
@@ -1001,16 +1025,48 @@ export default function InteractiveSimulator({
                 <div className="flex flex-1 min-h-0">
                   {/* Left Column: Outline index */}
                   <div className="w-60 border-r border-white/5 bg-[#030014]/40 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 hidden md:block">
-                    <div className="p-4 border-b border-white/5 flex items-center justify-between">
-                      <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Outline Modules</span>
-                      <span className="px-1.5 py-0.5 rounded-full bg-white/5 text-[9px] text-gray-400">
-                        {(activeCourse?.modules || []).reduce((acc, m) => acc + (m.lessons?.length || 0), 0)} Lessons
-                      </span>
+                    <div className="p-4 border-b border-white/5 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Outline Modules</span>
+                        <span className="px-1.5 py-0.5 rounded-full bg-white/5 text-[9px] text-gray-400">
+                          {totalLessonsCount} Lessons
+                        </span>
+                      </div>
+                      <div className="space-y-1.5 pt-1">
+                        <div className="flex items-center justify-between text-[9px] font-sans text-gray-400">
+                          <span className="font-semibold text-cyan-primary">{completedLessonsCount} / {totalLessonsCount} Completed</span>
+                          <span>{progressPercent}%</span>
+                        </div>
+                        <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
+                          <div
+                            className="bg-gradient-to-r from-purple-primary to-cyan-primary h-full transition-all duration-500 rounded-full"
+                            style={{ width: `${progressPercent}%` }}
+                          />
+                        </div>
+                      </div>
                     </div>
 
-                    {activeCourse?.modules?.map((mod, modIdx) => (
-                      <div key={mod.title} className="p-2 border-b border-white/5 last:border-b-0">
-                        <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-purple-400">{mod.title}</div>
+                    {activeCourse?.modules?.map((mod, modIdx) => {
+                      const modLessons = mod.lessons || []
+                      const modCompleted = modLessons.filter((_, lIdx) => {
+                        const lKey = activeCourse ? `${activeCourse.title}-${modIdx}-${lIdx}` : ''
+                        return !!completedLessons[lKey]
+                      }).length
+                      const modTotal = modLessons.length
+                      const isModFinished = modTotal > 0 && modCompleted === modTotal
+
+                      return (
+                        <div key={mod.title} className="p-2 border-b border-white/5 last:border-b-0">
+                          <div className="px-2 py-1 flex items-center justify-between gap-1.5 text-[10px] font-bold uppercase tracking-wider text-purple-400">
+                            <span className="truncate">{mod.title}</span>
+                            {modTotal > 0 && (
+                              isModFinished ? (
+                                <span className="px-1.5 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[8px] font-bold tracking-normal uppercase shrink-0">Done</span>
+                              ) : modCompleted > 0 ? (
+                                <span className="px-1.5 py-0.5 rounded-md bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 text-[8px] font-bold tracking-normal uppercase shrink-0">{modCompleted}/{modTotal}</span>
+                              ) : null
+                            )}
+                          </div>
                         <div className="space-y-1 mt-1.5">
                           {mod?.lessons?.map((les, lesIdx) => {
                             const isSelected = activeModuleIndex === modIdx && activeLessonIndex === lesIdx
@@ -1026,7 +1082,7 @@ export default function InteractiveSimulator({
                                   setVideoProgress(0)
                                   setIsPlayingVideo(false)
                                 }}
-                                className={`w-full text-left px-2.5 py-2 rounded-xl text-xs transition duration-200 flex items-center justify-between gap-2 border cursor-pointer ${isSelected
+                                className={`group relative w-full text-left px-2.5 py-2 rounded-xl text-xs transition duration-200 flex items-center justify-between gap-2 border cursor-pointer ${isSelected
                                     ? 'bg-purple-primary/15 border-purple-primary/30 text-white font-medium shadow-[inset_0_0_8px_rgba(124,58,237,0.05)]'
                                     : 'bg-transparent border-transparent text-gray-400 hover:text-white hover:bg-white/5'
                                   }`}
@@ -1039,50 +1095,70 @@ export default function InteractiveSimulator({
                                   )}
                                   <span className="truncate">{les.title}</span>
                                 </div>
+
+                                {/* Title Magnification Overlay on Hover */}
+                                <div className="absolute inset-0 bg-[#0e0a25] border border-purple-primary/40 px-2.5 py-2 rounded-xl text-xs text-white font-medium flex items-center z-10 opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none break-words leading-tight shadow-lg shadow-black/50">
+                                  <div className="flex items-center gap-2 w-full">
+                                    {isCompleted ? (
+                                      <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                                    ) : (
+                                      <FileText className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                                    )}
+                                    <span className="flex-1 pr-1 truncate-none whitespace-normal">{les.title}</span>
+                                  </div>
+                                </div>
                               </button>
                             )
                           })}
                         </div>
                       </div>
-                    ))}
+                    )})}
                   </div>
 
                   {/* Right Column: Tab details */}
-                  <div className="flex-1 p-6 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 bg-[#030014]/20 flex flex-col justify-between">
+                  <div ref={scrollContainerRef} className="flex-1 p-6 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 bg-[#030014]/20 flex flex-col justify-between">
 
                     <div>
                       {/* Outline Select for mobile devices */}
-                      <div className="mb-4 md:hidden">
-                        <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Select Lesson</label>
-                        <select
-                          value={`${activeModuleIndex}-${activeLessonIndex}`}
-                          onChange={(e) => {
-                            const [m, l] = e.target.value.split('-').map(Number)
-                            setActiveModuleIndex(m)
-                            setActiveLessonIndex(l)
-                            setVideoProgress(0)
-                            setIsPlayingVideo(false)
-                          }}
-                          className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-white"
-                        >
-                          {activeCourse?.modules?.map((m, mIdx) =>
-                            m.lessons?.map((l, lIdx) => (
-                              <option key={`${mIdx}-${lIdx}`} value={`${mIdx}-${lIdx}`} className="bg-[#030014]">
-                                {l.title}
-                              </option>
-                            ))
-                          )}
-                        </select>
+                      <div className="mb-6 md:hidden">
+                        <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 font-display">Select Lesson</label>
+                        <div className="relative">
+                          <select
+                            value={`${activeModuleIndex}-${activeLessonIndex}`}
+                            onChange={(e) => {
+                              const [m, l] = e.target.value.split('-').map(Number)
+                              setActiveModuleIndex(m)
+                              setActiveLessonIndex(l)
+                              setVideoProgress(0)
+                              setIsPlayingVideo(false)
+                            }}
+                            className="w-full appearance-none px-4 py-3 rounded-xl bg-white/2 border border-white/8 text-xs text-white font-medium focus:outline-none focus:border-purple-primary/50 focus:shadow-[0_0_15px_rgba(124,58,237,0.15)] transition-all duration-300 cursor-pointer pr-10"
+                          >
+                            {activeCourse?.modules?.map((m, mIdx) =>
+                              m.lessons?.map((l, lIdx) => (
+                                <option key={`${mIdx}-${lIdx}`} value={`${mIdx}-${lIdx}`} className="bg-[#0e0a25] text-white">
+                                  {m.title.split(':')[0]} • {l.title} {l.isPlaceholder ? '(Generating...)' : ''}
+                                </option>
+                              ))
+                            )}
+                          </select>
+                          <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-cyan-primary">
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </div>
+                        </div>
                       </div>
 
                       {/* Reader Tab */}
                       {activeTab === 'content' && currentLesson && (
                         <div className="space-y-8">
-                          <div className="prose prose-invert max-w-none text-sm text-gray-300 leading-relaxed font-sans">
-                            <h4 className="text-white text-lg font-bold font-display mb-4 pb-2 border-b border-white/5 flex items-center gap-2">
+                           <div className="prose prose-invert max-w-none text-gray-300 leading-relaxed font-serif">
+                            <h4 className="text-white text-xl md:text-2xl font-bold font-display mb-5 pb-2.5 border-b border-white/5 flex items-center gap-2">
                               <BookOpen className="w-5 h-5 text-purple-primary" />
                               {currentLesson.title}
                             </h4>
+
                             <div className="space-y-4">
                               {renderFormattedContent((currentLesson.content as any)?.[language] || '')}
                             </div>
@@ -1306,9 +1382,16 @@ export default function InteractiveSimulator({
                         </div>
                         <button
                           onClick={() => {
+                            const targetStatus = !isLessonDone
+
+                            // Check if this completes the course
+                            if (targetStatus && completedLessonsCount + 1 === totalLessonsCount) {
+                              setShowCompletionModal(true)
+                            }
+
                             setCompletedLessons(prev => ({
                               ...prev,
-                              [lessonKey]: !isLessonDone
+                              [lessonKey]: targetStatus
                             }))
                           }}
                           className={`px-4 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-2 cursor-pointer ${isLessonDone
@@ -1332,11 +1415,11 @@ export default function InteractiveSimulator({
                     <span>Academy deployment status: Active</span>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="hover:text-white cursor-pointer transition">SCORM Export</span>
+                    <span className="hover:text-white cursor-pointer transition">Download Lesson (Markdown)</span>
                     <span>•</span>
-                    <span className="hover:text-white cursor-pointer transition">LTI v1.3</span>
+                    <span className="hover:text-white cursor-pointer transition">Export Handbook (PDF)</span>
                     <span>•</span>
-                    <span className="hover:text-white cursor-pointer transition">PDF Package</span>
+                    <span className="hover:text-white cursor-pointer transition">Share Course Link</span>
                   </div>
                 </div>
               </div>
@@ -1392,6 +1475,52 @@ export default function InteractiveSimulator({
                     </div>
                   ))
                 )}
+              </div>
+            </div>
+          </div>
+        )}
+        {/* Course Completion Celebration Modal */}
+        {showCompletionModal && activeCourse && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+            <div className="relative w-full max-w-md p-8 rounded-3xl border border-purple-primary/30 bg-[#0e0a25] shadow-[0_20px_50px_rgba(124,58,237,0.3)] text-center space-y-6 overflow-hidden">
+              {/* Ambient glows inside modal */}
+              <div className="absolute -top-24 -left-24 w-48 h-48 bg-purple-primary/20 rounded-full blur-3xl pointer-events-none"></div>
+              <div className="absolute -bottom-24 -right-24 w-48 h-48 bg-cyan-primary/20 rounded-full blur-3xl pointer-events-none"></div>
+
+              {/* Glowing Icon */}
+              <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-purple-primary to-cyan-primary flex items-center justify-center mx-auto shadow-[0_0_20px_rgba(6,182,212,0.4)] animate-bounce">
+                <Award className="w-8 h-8 text-white" />
+              </div>
+
+              <div className="space-y-2">
+                <h3 className="font-display font-extrabold text-xl md:text-2xl text-white">Course Completed!</h3>
+                <p className="text-sm text-purple-300 font-semibold">You have mastered the curriculum of:</p>
+                <h4 className="font-display font-bold text-base text-cyan-300 px-4 py-2 rounded-xl bg-white/3 border border-white/5 inline-block max-w-full truncate">{activeCourse.title}</h4>
+              </div>
+
+              <p className="text-xs text-gray-400 leading-relaxed font-sans max-w-xs mx-auto">
+                Outstanding work! You have finished all lessons in this outline. Ready to export your files or build another custom topic?
+              </p>
+
+              <div className="flex flex-col gap-2.5 pt-2">
+                <button
+                  onClick={() => {
+                    setShowCompletionModal(false)
+                    setActiveTab('downloads')
+                  }}
+                  className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-purple-primary to-cyan-primary text-white text-xs font-bold transition hover:opacity-95 shadow-lg shadow-purple-500/20 cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Go to Downloads & Exports</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setShowCompletionModal(false)
+                  }}
+                  className="w-full py-3 px-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-gray-300 hover:text-white text-xs font-bold transition cursor-pointer"
+                >
+                  Keep Reading
+                </button>
               </div>
             </div>
           </div>
