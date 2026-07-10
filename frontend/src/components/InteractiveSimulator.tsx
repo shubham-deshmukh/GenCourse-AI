@@ -1026,7 +1026,7 @@ export default function InteractiveSimulator({
                                   setVideoProgress(0)
                                   setIsPlayingVideo(false)
                                 }}
-                                className={`w-full text-left px-2.5 py-2 rounded-xl text-xs transition duration-200 flex items-center justify-between gap-2 border cursor-pointer ${isSelected
+                                className={`group relative w-full text-left px-2.5 py-2 rounded-xl text-xs transition duration-200 flex items-center justify-between gap-2 border cursor-pointer ${isSelected
                                     ? 'bg-purple-primary/15 border-purple-primary/30 text-white font-medium shadow-[inset_0_0_8px_rgba(124,58,237,0.05)]'
                                     : 'bg-transparent border-transparent text-gray-400 hover:text-white hover:bg-white/5'
                                   }`}
@@ -1038,6 +1038,18 @@ export default function InteractiveSimulator({
                                     <FileText className={`w-3.5 h-3.5 shrink-0 ${isSelected ? 'text-cyan-400' : 'text-gray-500'}`} />
                                   )}
                                   <span className="truncate">{les.title}</span>
+                                </div>
+
+                                {/* Title Magnification Overlay on Hover */}
+                                <div className="absolute inset-0 bg-[#0e0a25] border border-purple-primary/40 px-2.5 py-2 rounded-xl text-xs text-white font-medium flex items-center z-10 opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none break-words leading-tight shadow-lg shadow-black/50">
+                                  <div className="flex items-center gap-2 w-full">
+                                    {isCompleted ? (
+                                      <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                                    ) : (
+                                      <FileText className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                                    )}
+                                    <span className="flex-1 pr-1 truncate-none whitespace-normal">{les.title}</span>
+                                  </div>
                                 </div>
                               </button>
                             )
