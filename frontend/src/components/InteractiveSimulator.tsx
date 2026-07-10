@@ -784,9 +784,9 @@ export default function InteractiveSimulator({
 
         {/* Input Bar inside workspace */}
         {!hideInput && (
-          <div className="max-w-xl mx-auto mb-12">
-            <form onSubmit={handleManualTrigger} className="flex gap-2 p-1.5 rounded-full bg-white/2 border border-white/8 backdrop-blur-md focus-within:border-purple-primary/50 focus-within:shadow-[0_0_20px_rgba(124,58,237,0.15)] transition-all duration-300">
-              <div className="flex-1 flex items-center pl-3">
+          <div className="max-w-xl mx-auto mb-12 px-4">
+            <form onSubmit={handleManualTrigger} className="flex flex-col md:flex-row gap-3 md:gap-2 p-0 md:p-1.5 rounded-2xl md:rounded-full bg-transparent md:bg-white/2 border border-transparent md:border-white/8 backdrop-blur-md md:focus-within:border-purple-primary/50 md:focus-within:shadow-[0_0_20px_rgba(124,58,237,0.15)] transition-all duration-300">
+              <div className="flex-1 flex items-center pl-3.5 pr-3.5 py-3.5 md:py-0 rounded-2xl md:rounded-none bg-white/2 md:bg-transparent border border-white/8 md:border-none focus-within:border-purple-primary/50 md:focus-within:border-none focus-within:shadow-[0_0_15px_rgba(124,58,237,0.1)] md:focus-within:shadow-none transition-all duration-300">
                 <Search className="w-4 h-4 text-gray-500 mr-2 shrink-0" />
                 <input
                   type="text"
@@ -800,7 +800,7 @@ export default function InteractiveSimulator({
               <button
                 type="submit"
                 disabled={isGenerating}
-                className="px-6 py-2.5 rounded-full bg-gradient-to-r from-purple-primary to-cyan-primary hover:from-purple-600 hover:to-cyan-500 disabled:opacity-50 text-white text-xs font-bold transition-all duration-300 flex items-center gap-1.5 cursor-pointer shadow-[0_4px_12px_rgba(124,58,237,0.25)] hover:shadow-[0_4px_20px_rgba(124,58,237,0.4)] btn-glow"
+                className="w-full md:w-auto px-6 py-3.5 md:py-2.5 rounded-2xl md:rounded-full bg-gradient-to-r from-purple-primary to-cyan-primary hover:from-purple-600 hover:to-cyan-500 disabled:opacity-50 text-white text-xs font-bold transition-all duration-300 flex items-center justify-center gap-1.5 cursor-pointer shadow-[0_4px_12px_rgba(124,58,237,0.25)] hover:shadow-[0_4px_20px_rgba(124,58,237,0.4)] btn-glow shrink-0"
               >
                 {isGenerating ? (
                   <>
@@ -810,15 +810,15 @@ export default function InteractiveSimulator({
                 ) : (
                   <>
                     <span>Simulate</span>
-                    <Cpu className="w-3.5 h-3.5" />
+                    <Cpu className="w-3.5 h-3.5 animate-pulse" />
                   </>
                 )}
               </button>
             </form>
 
             {/* Quick suggest chips */}
-            <div className="flex flex-wrap justify-center gap-2 mt-4">
-              <span className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider self-center mr-1">
+            <div className="flex md:flex-wrap items-center justify-start md:justify-center gap-2 mt-4 overflow-x-auto md:overflow-x-visible whitespace-nowrap md:whitespace-normal scrollbar-none pb-2 md:pb-0 px-2 md:px-0 w-full">
+              <span className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider shrink-0 mr-1">
                 Suggested Topics:
               </span>
               {QUICK_SUGGESTIONS.map((sug) => {
@@ -848,7 +848,7 @@ export default function InteractiveSimulator({
 
         {/* Horizontal Progress Pipeline */}
         {!hideInput && (
-          <div className="mb-8">
+          <div className="mb-8 hidden md:block">
             <div className="glass-panel rounded-2xl p-4 border border-white/10 bg-black/40 backdrop-blur-md">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-center gap-2 shrink-0">
