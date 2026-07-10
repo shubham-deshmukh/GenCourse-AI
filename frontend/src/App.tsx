@@ -42,8 +42,11 @@ axios.interceptors.response.use(
       localStorage.removeItem('gencourse_token');
       const state = useAuthStore.getState();
       
+      // Check if alert should be skipped for this request
+      const skipAlert = error.config && (error.config as any)._skipSessionAlert;
+      
       // Only alert once when transitioning from authenticated to logged out
-      if (state.isAuthenticated) {
+      if (state.isAuthenticated && !skipAlert) {
         state.logoutState();
         alert('Your session has expired. Please sign in again.');
       } else {
@@ -89,7 +92,9 @@ export default function App() {
 
     const checkAuth = async () => {
       try {
-        const response = await axios.get('/api/auth/me');
+        const response = await axios.get('/api/auth/me', {
+          _skipSessionAlert: true
+        } as any);
         const user = response.data;
         setAuthState(user, true, false);
       } catch (_err) {
