@@ -311,7 +311,7 @@ export default function PremiumDashboard() {
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(124,58,237,0.03),transparent_40%)] pointer-events-none"></div>
 
       {/* Pane 1: Top Navigation Navbar */}
-      <nav className="w-full border-b border-white/5 bg-[#030014]/65 backdrop-blur-xl h-16 flex items-center justify-between px-6 shrink-0 z-40">
+      <nav className="w-full border-b border-white/5 bg-[#030014]/65 backdrop-blur-xl h-16 flex items-center justify-between px-6 shrink-0 z-40 relative">
         {/* Left Side: Brand Logo */}
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-2.5 cursor-pointer group">
@@ -328,7 +328,8 @@ export default function PremiumDashboard() {
         </div>
 
         {/* Center Side: Tab Navigation Menu (hidden on mobile, since bottom nav is active) */}
-        <div className="hidden md:flex items-center gap-1.5 p-1 rounded-full bg-white/2 border border-white/5 backdrop-blur-md">
+        <div className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
+          <div className="flex items-center gap-1.5 p-1 rounded-full bg-white/2 border border-white/5 backdrop-blur-md">
           <button
             onClick={() => {
               setActiveTab('library')
@@ -403,6 +404,7 @@ export default function PremiumDashboard() {
             }`} />
             <span>Account Settings</span>
           </button>
+          </div>
         </div>
 
         {/* Right Side: Usage & Profile details */}
