@@ -535,19 +535,6 @@ export default function PremiumDashboard() {
                         Resume where you left off or deploy new outlines to external LMS setups.
                       </p>
                     </div>
-                    <button
-                      onClick={() => {
-                        setActiveTab('generate')
-                        setSimulatorPrompt('')
-                        if (!isGenerating) {
-                          resetGeneration()
-                        }
-                      }}
-                      className="hidden sm:flex px-5 py-2.5 rounded-full bg-gradient-to-r from-purple-primary to-cyan-primary text-white text-xs font-bold transition hover:opacity-95 shadow-[0_4px_12px_rgba(124,58,237,0.2)] hover:scale-[1.02] cursor-pointer items-center gap-1.5"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span>Generate Course</span>
-                    </button>
                   </div>
 
                   {/* Course Cards Grid */}
@@ -558,7 +545,7 @@ export default function PremiumDashboard() {
                     </div>
                   ) : courses.length === 0 ? (
                     <div className="col-span-2 text-center py-20 text-gray-500 border border-dashed border-white/10 rounded-2xl bg-white/1">
-                      <p className="text-xs">Your course library is empty. Click "Generate Course" to build one!</p>
+                      <p className="text-xs">Your course library is empty. Select "Create New Course" at the top to build your first curriculum!</p>
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5 w-full">
