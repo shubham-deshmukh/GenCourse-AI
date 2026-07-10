@@ -1103,11 +1103,25 @@ export default function PremiumInteractiveSimulator({
                 <div className="flex flex-1 min-h-0">
                   {/* Left Column: Outline index */}
                   <div className="w-60 border-r border-white/5 bg-[#030014]/40 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 hidden md:block">
-                    <div className="p-4 border-b border-white/5 flex items-center justify-between">
-                      <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Outline Modules</span>
-                      <span className="px-1.5 py-0.5 rounded-full bg-white/5 text-[9px] text-gray-400">
-                        {(activeCourse?.modules || []).reduce((acc, m) => acc + (m.lessons?.length || 0), 0)} Lessons
-                      </span>
+                                   <div className="p-4 border-b border-white/5 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Outline Modules</span>
+                        <span className="px-1.5 py-0.5 rounded-full bg-white/5 text-[9px] text-gray-400">
+                          {totalLessonsCount} Lessons
+                        </span>
+                      </div>
+                      <div className="space-y-1.5 pt-1">
+                        <div className="flex items-center justify-between text-[9px] font-sans text-gray-400">
+                          <span className="font-semibold text-cyan-primary">{completedLessonsCount} / {totalLessonsCount} Completed</span>
+                          <span>{progressPercent}%</span>
+                        </div>
+                        <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
+                          <div
+                            className="bg-gradient-to-r from-purple-primary to-cyan-primary h-full transition-all duration-500 rounded-full"
+                            style={{ width: `${progressPercent}%` }}
+                          />
+                        </div>
+                      </div>
                     </div>
 
                     {activeCourse?.modules?.map((mod, modIdx) => {
@@ -1243,24 +1257,6 @@ export default function PremiumInteractiveSimulator({
                                 <BookOpen className="w-5 h-5 text-purple-primary" />
                                 {currentLesson.title}
                               </h4>
-
-                              {/* Course Progress Banner */}
-                              <div className="mb-6 p-4 rounded-xl border border-white/5 bg-white/2 backdrop-blur-md flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs relative overflow-hidden">
-                                <div className="absolute -inset-10 bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.02),transparent_60%)] pointer-events-none"></div>
-                                <div className="space-y-1 relative z-10">
-                                  <div className="flex items-center gap-1.5 font-sans font-semibold text-white">
-                                    <span>Course Progress:</span>
-                                    <span className="text-cyan-primary">{completedLessonsCount} of {totalLessonsCount} Lessons ({progressPercent}%)</span>
-                                  </div>
-                                  <p className="text-[10px] text-gray-500 font-sans">Click "Mark as Complete" at the bottom of the page to unlock course materials.</p>
-                                </div>
-                                <div className="w-full sm:w-48 bg-white/5 h-2 rounded-full overflow-hidden shrink-0 relative z-10">
-                                  <div
-                                    className="bg-gradient-to-r from-purple-primary to-cyan-primary h-full transition-all duration-500 rounded-full"
-                                    style={{ width: `${progressPercent}%` }}
-                                  />
-                                </div>
-                              </div>
 
                               <div className="space-y-4">
                                 {renderFormattedContent((currentLesson.content as any)?.[language] || '')}
