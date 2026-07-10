@@ -28,7 +28,7 @@ export default function Navbar() {
           ? 'py-4 bg-[#030014] border-b border-white/10 shadow-lg'
           : isScrolled
           ? 'py-4 bg-[#030014]/80 backdrop-blur-md border-b border-white/10 shadow-lg'
-          : 'py-6 bg-transparent'
+          : 'py-6 bg-[#030014]/40 backdrop-blur-md border-b border-white/5'
       }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

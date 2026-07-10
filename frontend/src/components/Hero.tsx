@@ -20,9 +20,9 @@ export default function Hero({ prompt, setPrompt, onGenerate }: HeroProps) {
   }
 
   return (
-    <section className="relative pt-32 pb-20 md:pt-40 md:pb-28 overflow-hidden bg-grid-pattern bg-[#030014]">
-      {/* Background radial glow */}
-      {/* Background radial glow removed as requested */}
+    <section className="relative pt-32 pb-20 md:pt-40 md:pb-28 overflow-hidden bg-[#030014]">
+      {/* Fading Grid Pattern */}
+      <div className="absolute inset-0 bg-grid-faded pointer-events-none"></div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
         {/* Floating Badge */}
