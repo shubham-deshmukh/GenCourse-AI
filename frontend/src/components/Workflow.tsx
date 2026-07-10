@@ -4,31 +4,31 @@ const PIPELINE_NODES = [
   {
     icon: Sparkles,
     label: '1. Topic Analyzer',
-    desc: 'Analyzes the prompt, target audience, and sets key objectives.',
+    desc: 'Analyzes prompt keywords, target audience, and course objectives.',
     color: 'from-purple-500 to-indigo-600'
   },
   {
     icon: Network,
     label: '2. Curriculum Planner',
-    desc: 'Designs the module outline, lesson hierarchy, and flows.',
+    desc: 'Generates structural modules, outline hierarchies, and path graphs.',
     color: 'from-indigo-600 to-cyan-500'
   },
   {
     icon: BookOpen,
     label: '3. Lesson Generator',
-    desc: 'Writes lesson materials, slides, and voiceover scripts.',
+    desc: 'Writes textbook reading chapters and curates supplementary video lectures.',
     color: 'from-cyan-500 to-teal-500'
   },
   {
     icon: CheckSquare,
     label: '4. Quiz Builder',
-    desc: 'Constructs module quizzes and concept verification checks.',
+    desc: 'Builds interactive multiple-choice review questions with real-time AI explanations.',
     color: 'from-teal-500 to-emerald-500'
   },
   {
     icon: Globe,
     label: '5. Publishing Layer',
-    desc: 'Compiles localized portals, audio files, and exports PDFs.',
+    desc: 'Assembles student learning portal, handles translations, and exports PDFs.',
     color: 'from-emerald-500 to-purple-500'
   }
 ]
@@ -47,7 +47,7 @@ export default function Workflow() {
             How The Course Engine Works
           </h2>
           <p className="font-sans text-gray-400 text-lg max-w-2xl mx-auto">
-            Our multi-agent system collaborates to analyze, plan, write, and publish custom-tailored online courses.
+            Our generation engine coordinates to analyze, plan, write, and publish custom-tailored online courses.
           </p>
         </div>
 

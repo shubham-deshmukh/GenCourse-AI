@@ -20,10 +20,9 @@ export default function Hero({ prompt, setPrompt, onGenerate }: HeroProps) {
   }
 
   return (
-    <section className="relative pt-32 pb-20 md:pt-40 md:pb-28 overflow-hidden bg-grid-pattern bg-[#030014]">
-      {/* Background radial glow */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] md:w-[800px] md:h-[800px] rounded-full bg-radial from-purple-primary/15 via-transparent to-transparent blur-3xl pointer-events-none"></div>
-      <div className="absolute top-1/3 left-1/3 w-[300px] h-[300px] rounded-full bg-cyan-primary/10 blur-3xl pointer-events-none animate-pulse-slow"></div>
+    <section className="relative pt-32 pb-20 md:pt-40 md:pb-28 overflow-hidden bg-[#030014]">
+      {/* Fading Grid Pattern */}
+      <div className="absolute inset-0 bg-grid-faded pointer-events-none"></div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
         {/* Floating Badge */}
@@ -40,7 +39,7 @@ export default function Hero({ prompt, setPrompt, onGenerate }: HeroProps) {
 
         {/* Subtext */}
         <p className="font-sans text-gray-400 text-lg md:text-xl max-w-3xl mx-auto mb-10 leading-relaxed">
-          Input any prompt. Our agentic AI generates a complete course outline, deep modular lessons, audio scripts, PDF learning guides, and multilingual translations instantly.
+          Input any prompt. Our AI engine generates a complete course outline, deep modular lessons, audio scripts, PDF learning guides, and multilingual translations instantly.
         </p>
 
         {/* Generator Input Form */}

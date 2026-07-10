@@ -1,6 +1,6 @@
 import {
   BookOpen,
-  Play,
+  Video,
   FileDown,
   Languages,
   Award,
@@ -21,9 +21,9 @@ const FEATURE_LIST = [
     color: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20'
   },
   {
-    icon: Play,
-    title: 'Voiceover Slide Generator',
-    desc: 'Generates detailed presentation slide structures alongside written voiceover narrations matching the lesson outline.',
+    icon: Video,
+    title: 'Curated Video Lectures',
+    desc: 'Automatically curates and integrates highly relevant YouTube lectures and tutorials to supplement each lesson module with visual learning.',
     color: 'text-pink-400 bg-pink-500/10 border-pink-500/20'
   },
   {
@@ -35,7 +35,7 @@ const FEATURE_LIST = [
   {
     icon: Languages,
     title: 'Instant Multilingualism',
-    desc: 'Seamlessly translate your generated modules and slide decks into multiple languages with precise technical terms preservation.',
+    desc: 'Seamlessly translate your generated modules and lessons into multiple languages with precise technical terms preservation.',
     color: 'text-blue-400 bg-blue-500/10 border-blue-500/20'
   },
   {
