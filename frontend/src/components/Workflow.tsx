@@ -47,7 +47,7 @@ export default function Workflow() {
             How The Course Engine Works
           </h2>
           <p className="font-sans text-gray-400 text-lg max-w-2xl mx-auto">
-            Our multi-agent system collaborates to analyze, plan, write, and publish custom-tailored online courses.
+            Our generation engine coordinates to analyze, plan, write, and publish custom-tailored online courses.
           </p>
         </div>
 
