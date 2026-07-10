@@ -14,6 +14,7 @@ import {
   Layers,
   Sparkles,
   Check,
+  Award,
 } from 'lucide-react'
 
 interface InteractiveSimulatorProps {
@@ -368,6 +369,7 @@ export default function InteractiveSimulator({
   const [activeLessonIndex, setActiveLessonIndex] = useState(0)
   const [activeTab, setActiveTab] = useState<'content' | 'quiz' | 'downloads'>('content')
   const [language, setLanguage] = useState<'en' | 'mr' | 'hi'>('en')
+  const [showCompletionModal, setShowCompletionModal] = useState(false)
 
   // Pipeline Simulation states
   const [currentStepIndex, setCurrentStepIndex] = useState(-1)
@@ -390,6 +392,16 @@ export default function InteractiveSimulator({
   // Interactive tracking states
   const [completedLessons, setCompletedLessons] = useState<Record<string, boolean>>({})
   const [downloadProgress, setDownloadProgress] = useState<Record<string, number>>({})
+
+  // Course completion calculation helpers
+  const totalLessonsCount = activeCourse?.modules?.reduce((acc, m) => acc + (m.lessons?.length || 0), 0) || 0
+  const completedLessonsCount = activeCourse?.modules?.reduce((acc, m, mIdx) => {
+    return acc + (m.lessons?.filter((_, lIdx) => {
+      const lKey = activeCourse ? `${activeCourse.title}-${mIdx}-${lIdx}` : ''
+      return !!completedLessons[lKey]
+    }).length || 0)
+  }, 0) || 0
+  const progressPercent = totalLessonsCount > 0 ? Math.round((completedLessonsCount / totalLessonsCount) * 100) : 0
 
   // Load progress from localStorage on mount
   useEffect(() => {
@@ -1020,9 +1032,27 @@ export default function InteractiveSimulator({
                       </span>
                     </div>
 
-                    {activeCourse?.modules?.map((mod, modIdx) => (
-                      <div key={mod.title} className="p-2 border-b border-white/5 last:border-b-0">
-                        <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-purple-400">{mod.title}</div>
+                    {activeCourse?.modules?.map((mod, modIdx) => {
+                      const modLessons = mod.lessons || []
+                      const modCompleted = modLessons.filter((_, lIdx) => {
+                        const lKey = activeCourse ? `${activeCourse.title}-${modIdx}-${lIdx}` : ''
+                        return !!completedLessons[lKey]
+                      }).length
+                      const modTotal = modLessons.length
+                      const isModFinished = modTotal > 0 && modCompleted === modTotal
+
+                      return (
+                        <div key={mod.title} className="p-2 border-b border-white/5 last:border-b-0">
+                          <div className="px-2 py-1 flex items-center justify-between gap-1.5 text-[10px] font-bold uppercase tracking-wider text-purple-400">
+                            <span className="truncate">{mod.title}</span>
+                            {modTotal > 0 && (
+                              isModFinished ? (
+                                <span className="px-1.5 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[8px] font-bold tracking-normal uppercase shrink-0">Done</span>
+                              ) : modCompleted > 0 ? (
+                                <span className="px-1.5 py-0.5 rounded-md bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 text-[8px] font-bold tracking-normal uppercase shrink-0">{modCompleted}/{modTotal}</span>
+                              ) : null
+                            )}
+                          </div>
                         <div className="space-y-1 mt-1.5">
                           {mod?.lessons?.map((les, lesIdx) => {
                             const isSelected = activeModuleIndex === modIdx && activeLessonIndex === lesIdx
@@ -1068,7 +1098,7 @@ export default function InteractiveSimulator({
                           })}
                         </div>
                       </div>
-                    ))}
+                    )})}
                   </div>
 
                   {/* Right Column: Tab details */}
@@ -1114,6 +1144,25 @@ export default function InteractiveSimulator({
                               <BookOpen className="w-5 h-5 text-purple-primary" />
                               {currentLesson.title}
                             </h4>
+
+                            {/* Course Progress Banner */}
+                            <div className="mb-6 p-4 rounded-xl border border-white/5 bg-white/2 backdrop-blur-md flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs relative overflow-hidden">
+                              <div className="absolute -inset-10 bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.02),transparent_60%)] pointer-events-none"></div>
+                              <div className="space-y-1 relative z-10">
+                                <div className="flex items-center gap-1.5 font-sans font-semibold text-white">
+                                  <span>Course Progress:</span>
+                                  <span className="text-cyan-primary">{completedLessonsCount} of {totalLessonsCount} Lessons ({progressPercent}%)</span>
+                                </div>
+                                <p className="text-[10px] text-gray-500 font-sans">Click "Mark as Complete" at the bottom of the page to unlock course materials.</p>
+                              </div>
+                              <div className="w-full sm:w-48 bg-white/5 h-2 rounded-full overflow-hidden shrink-0 relative z-10">
+                                <div
+                                  className="bg-gradient-to-r from-purple-primary to-cyan-primary h-full transition-all duration-500 rounded-full"
+                                  style={{ width: `${progressPercent}%` }}
+                                />
+                              </div>
+                            </div>
+
                             <div className="space-y-4">
                               {renderFormattedContent((currentLesson.content as any)?.[language] || '')}
                             </div>
@@ -1337,9 +1386,16 @@ export default function InteractiveSimulator({
                         </div>
                         <button
                           onClick={() => {
+                            const targetStatus = !isLessonDone
+
+                            // Check if this completes the course
+                            if (targetStatus && completedLessonsCount + 1 === totalLessonsCount) {
+                              setShowCompletionModal(true)
+                            }
+
                             setCompletedLessons(prev => ({
                               ...prev,
-                              [lessonKey]: !isLessonDone
+                              [lessonKey]: targetStatus
                             }))
                           }}
                           className={`px-4 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-2 cursor-pointer ${isLessonDone
@@ -1423,6 +1479,52 @@ export default function InteractiveSimulator({
                     </div>
                   ))
                 )}
+              </div>
+            </div>
+          </div>
+        )}
+        {/* Course Completion Celebration Modal */}
+        {showCompletionModal && activeCourse && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+            <div className="relative w-full max-w-md p-8 rounded-3xl border border-purple-primary/30 bg-[#0e0a25] shadow-[0_20px_50px_rgba(124,58,237,0.3)] text-center space-y-6 overflow-hidden">
+              {/* Ambient glows inside modal */}
+              <div className="absolute -top-24 -left-24 w-48 h-48 bg-purple-primary/20 rounded-full blur-3xl pointer-events-none"></div>
+              <div className="absolute -bottom-24 -right-24 w-48 h-48 bg-cyan-primary/20 rounded-full blur-3xl pointer-events-none"></div>
+
+              {/* Glowing Icon */}
+              <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-purple-primary to-cyan-primary flex items-center justify-center mx-auto shadow-[0_0_20px_rgba(6,182,212,0.4)] animate-bounce">
+                <Award className="w-8 h-8 text-white" />
+              </div>
+
+              <div className="space-y-2">
+                <h3 className="font-display font-extrabold text-xl md:text-2xl text-white">Course Completed!</h3>
+                <p className="text-sm text-purple-300 font-semibold">You have mastered the curriculum of:</p>
+                <h4 className="font-display font-bold text-base text-cyan-300 px-4 py-2 rounded-xl bg-white/3 border border-white/5 inline-block max-w-full truncate">{activeCourse.title}</h4>
+              </div>
+
+              <p className="text-xs text-gray-400 leading-relaxed font-sans max-w-xs mx-auto">
+                Outstanding work! You have finished all lessons in this outline. Ready to export your files or build another custom topic?
+              </p>
+
+              <div className="flex flex-col gap-2.5 pt-2">
+                <button
+                  onClick={() => {
+                    setShowCompletionModal(false)
+                    setActiveTab('downloads')
+                  }}
+                  className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-purple-primary to-cyan-primary text-white text-xs font-bold transition hover:opacity-95 shadow-lg shadow-purple-500/20 cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Go to Downloads & Exports</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setShowCompletionModal(false)
+                  }}
+                  className="w-full py-3 px-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-gray-300 hover:text-white text-xs font-bold transition cursor-pointer"
+                >
+                  Keep Reading
+                </button>
               </div>
             </div>
           </div>
