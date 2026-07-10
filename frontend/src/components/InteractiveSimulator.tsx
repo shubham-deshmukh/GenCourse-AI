@@ -28,6 +28,7 @@ interface InteractiveSimulatorProps {
 
 // Sample Data Structure
 interface Lesson {
+  isPlaceholder?: boolean
   title: string
   content: {
     en: string
@@ -599,7 +600,7 @@ export default function InteractiveSimulator({
       .replace(/>/g, '&gt;')
       .replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold text-white">$1</strong>')
       .replace(/\*(.*?)\*/g, '<em class="italic text-gray-200">$1</em>')
-      .replace(/`(.*?)`/g, '<code class="px-1.5 py-0.5 rounded bg-white/10 font-mono text-[10px] text-cyan-300">$1</code>')
+      .replace(/`(.*?)`/g, '<code class="px-1.5 py-0.5 rounded bg-white/10 font-mono text-[13px] text-cyan-300">$1</code>')
   }
 
   const renderFormattedContent = (contentString: string) => {
@@ -657,26 +658,29 @@ export default function InteractiveSimulator({
       // Headers
       if (part.trim().startsWith('###')) {
         return (
-          <h5 key={index} className="text-white text-sm font-bold font-display mt-5 mb-2.5 flex items-center gap-2" dangerouslySetInnerHTML={{ __html: `<span class="w-1 h-3.5 rounded-full bg-purple-primary shrink-0"></span>${parseInlineMarkdown(part.replace('###', '').trim())}` }} />
+          <h5 key={index} className="text-white text-lg md:text-xl font-bold font-display mt-7 mb-3.5 flex items-center gap-2" dangerouslySetInnerHTML={{ __html: `<span class="w-1.5 h-4.5 rounded-full bg-purple-primary shrink-0"></span>${parseInlineMarkdown(part.replace('###', '').trim())}` }} />
         )
       }
       if (part.trim().startsWith('##')) {
         return (
-          <h4 key={index} className="text-white text-base font-bold font-display mt-6 mb-3 flex items-center gap-2" dangerouslySetInnerHTML={{ __html: `<span class="w-1 h-4 rounded-full bg-cyan-primary shrink-0"></span>${parseInlineMarkdown(part.replace('##', '').trim())}` }} />
+          <h4 key={index} className="text-white text-xl md:text-2xl font-bold font-display mt-9 mb-4.5 flex items-center gap-2" dangerouslySetInnerHTML={{ __html: `<span class="w-1.5 h-5.5 rounded-full bg-cyan-primary shrink-0"></span>${parseInlineMarkdown(part.replace('##', '').trim())}` }} />
         )
       }
       if (part.trim().startsWith('#')) {
         return (
-          <h3 key={index} className="text-white text-lg font-bold font-display mt-7 mb-4" dangerouslySetInnerHTML={{ __html: parseInlineMarkdown(part.replace('#', '').trim()) }} />
+          <h3 key={index} className="text-white text-2xl md:text-3xl font-extrabold font-display mt-11 mb-6.5" dangerouslySetInnerHTML={{ __html: parseInlineMarkdown(part.replace('#', '').trim()) }} />
         )
       }
 
       // Bullet items
-      if (part.trim().startsWith('-')) {
+      const trimmedPart = part.trim()
+      const isBullet = trimmedPart.startsWith('-') || (trimmedPart.startsWith('*') && !trimmedPart.startsWith('**'))
+      if (isBullet) {
+        const bulletText = trimmedPart.replace(/^[-*]\s*/, '').trim()
         return (
-          <div key={index} className="flex items-start gap-2 my-2 pl-1 text-gray-300 text-xs">
-            <Check className="w-3.5 h-3.5 text-cyan-primary shrink-0 mt-0.5" />
-            <span dangerouslySetInnerHTML={{ __html: parseInlineMarkdown(part.replace('-', '').trim()) }} />
+          <div key={index} className="flex items-start gap-3 my-3 pl-1 text-gray-300 text-base font-serif leading-relaxed">
+            <Check className="w-5 h-5 text-cyan-primary shrink-0 mt-1" />
+            <span dangerouslySetInnerHTML={{ __html: parseInlineMarkdown(bulletText) }} />
           </div>
         )
       }
@@ -686,8 +690,8 @@ export default function InteractiveSimulator({
         const number = part.match(/^\d+/)?.[0]
         const text = part.replace(/^\d+\.\s/, '').trim()
         return (
-          <div key={index} className="flex items-start gap-2 my-2 pl-1 text-gray-300 text-xs">
-            <span className="flex items-center justify-center w-4 h-4 rounded-full bg-purple-primary/20 text-purple-300 text-[9px] font-bold shrink-0 mt-0.5">
+          <div key={index} className="flex items-start gap-3 my-3 pl-1 text-gray-300 text-base font-serif leading-relaxed">
+            <span className="flex items-center justify-center w-5 h-5 rounded-full bg-purple-primary/20 text-purple-300 text-[10px] font-bold shrink-0 mt-1">
               {number}
             </span>
             <span dangerouslySetInnerHTML={{ __html: parseInlineMarkdown(text) }} />
@@ -698,7 +702,7 @@ export default function InteractiveSimulator({
       // Normal text paragraphs
       if (part.trim() === '') {return null}
       return (
-        <p key={index} className="my-2.5 text-gray-300 leading-relaxed font-sans text-xs" dangerouslySetInnerHTML={{ __html: parseInlineMarkdown(part) }} />
+        <p key={index} className="my-4 text-gray-300 leading-relaxed font-serif text-[16px] md:text-[18px]" dangerouslySetInnerHTML={{ __html: parseInlineMarkdown(part) }} />
       )
     })
   }
@@ -1026,7 +1030,7 @@ export default function InteractiveSimulator({
                                   setVideoProgress(0)
                                   setIsPlayingVideo(false)
                                 }}
-                                className={`w-full text-left px-2.5 py-2 rounded-xl text-xs transition duration-200 flex items-center justify-between gap-2 border cursor-pointer ${isSelected
+                                className={`group relative w-full text-left px-2.5 py-2 rounded-xl text-xs transition duration-200 flex items-center justify-between gap-2 border cursor-pointer ${isSelected
                                     ? 'bg-purple-primary/15 border-purple-primary/30 text-white font-medium shadow-[inset_0_0_8px_rgba(124,58,237,0.05)]'
                                     : 'bg-transparent border-transparent text-gray-400 hover:text-white hover:bg-white/5'
                                   }`}
@@ -1038,6 +1042,18 @@ export default function InteractiveSimulator({
                                     <FileText className={`w-3.5 h-3.5 shrink-0 ${isSelected ? 'text-cyan-400' : 'text-gray-500'}`} />
                                   )}
                                   <span className="truncate">{les.title}</span>
+                                </div>
+
+                                {/* Title Magnification Overlay on Hover */}
+                                <div className="absolute inset-0 bg-[#0e0a25] border border-purple-primary/40 px-2.5 py-2 rounded-xl text-xs text-white font-medium flex items-center z-10 opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none break-words leading-tight shadow-lg shadow-black/50">
+                                  <div className="flex items-center gap-2 w-full">
+                                    {isCompleted ? (
+                                      <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                                    ) : (
+                                      <FileText className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                                    )}
+                                    <span className="flex-1 pr-1 truncate-none whitespace-normal">{les.title}</span>
+                                  </div>
                                 </div>
                               </button>
                             )
@@ -1052,35 +1068,42 @@ export default function InteractiveSimulator({
 
                     <div>
                       {/* Outline Select for mobile devices */}
-                      <div className="mb-4 md:hidden">
-                        <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Select Lesson</label>
-                        <select
-                          value={`${activeModuleIndex}-${activeLessonIndex}`}
-                          onChange={(e) => {
-                            const [m, l] = e.target.value.split('-').map(Number)
-                            setActiveModuleIndex(m)
-                            setActiveLessonIndex(l)
-                            setVideoProgress(0)
-                            setIsPlayingVideo(false)
-                          }}
-                          className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-white"
-                        >
-                          {activeCourse?.modules?.map((m, mIdx) =>
-                            m.lessons?.map((l, lIdx) => (
-                              <option key={`${mIdx}-${lIdx}`} value={`${mIdx}-${lIdx}`} className="bg-[#030014]">
-                                {l.title}
-                              </option>
-                            ))
-                          )}
-                        </select>
+                      <div className="mb-6 md:hidden">
+                        <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 font-display">Select Lesson</label>
+                        <div className="relative">
+                          <select
+                            value={`${activeModuleIndex}-${activeLessonIndex}`}
+                            onChange={(e) => {
+                              const [m, l] = e.target.value.split('-').map(Number)
+                              setActiveModuleIndex(m)
+                              setActiveLessonIndex(l)
+                              setVideoProgress(0)
+                              setIsPlayingVideo(false)
+                            }}
+                            className="w-full appearance-none px-4 py-3 rounded-xl bg-white/2 border border-white/8 text-xs text-white font-medium focus:outline-none focus:border-purple-primary/50 focus:shadow-[0_0_15px_rgba(124,58,237,0.15)] transition-all duration-300 cursor-pointer pr-10"
+                          >
+                            {activeCourse?.modules?.map((m, mIdx) =>
+                              m.lessons?.map((l, lIdx) => (
+                                <option key={`${mIdx}-${lIdx}`} value={`${mIdx}-${lIdx}`} className="bg-[#0e0a25] text-white">
+                                  {m.title.split(':')[0]} • {l.title} {l.isPlaceholder ? '(Generating...)' : ''}
+                                </option>
+                              ))
+                            )}
+                          </select>
+                          <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-cyan-primary">
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </div>
+                        </div>
                       </div>
 
                       {/* Reader Tab */}
                       {activeTab === 'content' && currentLesson && (
                         <div className="space-y-8">
-                          <div className="prose prose-invert max-w-none text-sm text-gray-300 leading-relaxed font-sans">
-                            <h4 className="text-white text-lg font-bold font-display mb-4 pb-2 border-b border-white/5 flex items-center gap-2">
-                              <BookOpen className="w-5 h-5 text-purple-primary" />
+                           <div className="prose prose-invert max-w-none text-gray-300 leading-relaxed font-serif">
+                            <h4 className="text-white text-2xl md:text-3xl font-bold font-display mb-6 pb-3 border-b border-white/5 flex items-center gap-2.5">
+                              <BookOpen className="w-6 h-6 text-purple-primary" />
                               {currentLesson.title}
                             </h4>
                             <div className="space-y-4">
@@ -1332,11 +1355,11 @@ export default function InteractiveSimulator({
                     <span>Academy deployment status: Active</span>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="hover:text-white cursor-pointer transition">SCORM Export</span>
+                    <span className="hover:text-white cursor-pointer transition">Download Lesson (Markdown)</span>
                     <span>•</span>
-                    <span className="hover:text-white cursor-pointer transition">LTI v1.3</span>
+                    <span className="hover:text-white cursor-pointer transition">Export Handbook (PDF)</span>
                     <span>•</span>
-                    <span className="hover:text-white cursor-pointer transition">PDF Package</span>
+                    <span className="hover:text-white cursor-pointer transition">Share Course Link</span>
                   </div>
                 </div>
               </div>

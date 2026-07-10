@@ -26,10 +26,26 @@ export default function PremiumDashboard() {
   const [activeTab, setActiveTab] = useState<'library' | 'generate' | 'settings'>('library')
   const [isAiOpen, setIsAiOpen] = useState(false)
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
 
   // Quiz and simulator control
   const [simulatorPrompt, setSimulatorPrompt] = useState('')
   const [selectedCourseForPlayer, setSelectedCourseForPlayer] = useState<string | null>(null)
+
+  // Click-outside listener for User profile dropdown
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsUserDropdownOpen(false)
+      }
+    }
+    if (isUserDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isUserDropdownOpen])
 
   // Active course/lesson context for the AI Tutor
   const [tutorCourseId, setTutorCourseId] = useState<string | null>(null)
@@ -378,7 +394,7 @@ export default function PremiumDashboard() {
           </div>
 
           {/* User profile dropdown button */}
-          <div className="border-l border-white/5 pl-4 relative">
+          <div ref={dropdownRef} className="border-l border-white/5 pl-4 relative">
             <button
               onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
               className="flex items-center gap-2 hover:opacity-95 transition-all focus:outline-none cursor-pointer"
@@ -395,12 +411,7 @@ export default function PremiumDashboard() {
 
             {/* Dropdown Card */}
             {isUserDropdownOpen && (
-              <>
-                <div
-                  className="fixed inset-0 z-45 cursor-default"
-                  onClick={() => setIsUserDropdownOpen(false)}
-                />
-                <div className="absolute right-0 mt-3 w-64 bg-[#141414] border border-white/10 rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.5)] z-50 overflow-hidden divide-y divide-white/5">
+              <div className="absolute right-0 mt-3 w-64 bg-[#141414] border border-white/10 rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.5)] z-50 overflow-hidden divide-y divide-white/5">
                   {/* Header: User Info */}
                   <div className="p-4 flex gap-3 items-center">
                     {user?.picture ? (
@@ -479,33 +490,19 @@ export default function PremiumDashboard() {
                     </button>
                   </div>
                 </div>
-              </>
             )}
           </div>
         </div>
       </nav>
 
-      {/* Pane 2: Central Workspace Content */}
-      <main className="flex-1 overflow-y-auto p-6 md:p-8 pb-24 md:pb-8 scrollbar-thin scrollbar-thumb-white/10 flex flex-col justify-between">
-        <div className="w-full max-w-6xl mx-auto flex-1">
+      {/* Horizontal Flex Wrapper for Workspace + Desktop Inline AI Tutor */}
+      <div className="flex flex-1 overflow-hidden relative">
+        {/* Pane 2: Central Workspace Content */}
+        <main className="flex-1 overflow-y-auto p-6 md:p-8 pb-24 md:pb-8 scrollbar-thin scrollbar-thumb-white/10 flex flex-col justify-between">
+          <div className={`${selectedCourseForPlayer ? 'w-full' : 'w-full max-w-6xl mx-auto'} flex-1`}>
           {/* Active Course Player Integration */}
           {selectedCourseForPlayer ? (
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <button
-                  onClick={() => {
-                    setSelectedCourseForPlayer(null)
-                    fetchCourses()
-                  }}
-                  className="text-xs font-semibold text-gray-400 hover:text-white transition flex items-center gap-1 cursor-pointer"
-                >
-                  ← Back to Library
-                </button>
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                  <span className="text-[10px] text-gray-400 uppercase tracking-widest font-semibold">Active Student Portal</span>
-                </div>
-              </div>
+            <div className="space-y-6 h-full">
               <PremiumInteractiveSimulator
                 prompt={selectedCourseForPlayer}
                 setPrompt={() => { }}
@@ -708,81 +705,157 @@ export default function PremiumDashboard() {
             </div>
           </div>
         )}
-      </main>
+        </main>
 
-      {/* Pane 3: Right Collapsible AI Tutor Panel */}
+        {/* Desktop Inline AI Tutor Panel */}
+        {isAiOpen && (
+          <aside
+            className="w-80 bg-[#030014]/65 border-l border-white/5 backdrop-blur-xl flex flex-col justify-between shrink-0 hidden md:flex"
+          >
+            {/* Header */}
+            <div className="p-4 border-b border-white/5 flex justify-between items-center shrink-0">
+              <div className="flex items-center gap-2">
+                <MessageSquare className="w-4 h-4 text-purple-primary" />
+                <h3 className="text-xs font-bold text-white uppercase tracking-wider">AI Tutor Assistant</h3>
+              </div>
+              <button
+                onClick={() => setIsAiOpen(false)}
+                className="p-1.5 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Message Feed */}
+            <div className="flex-1 p-4 overflow-y-auto space-y-3.5 scrollbar-thin scrollbar-thumb-white/10 pr-2">
+              {chatMessages.map((m, idx) => {
+                const isAi = m.sender === 'ai'
+                return (
+                  <div key={idx} className={`flex flex-col ${isAi ? 'items-start' : 'items-end'} space-y-1.5`}>
+                    <div
+                      className={`p-3 rounded-2xl text-xs leading-relaxed max-w-[85%] border ${isAi
+                        ? 'bg-purple-primary/5 border-purple-primary/10 text-gray-300 rounded-tl-sm'
+                        : 'bg-gradient-to-r from-purple-primary to-cyan-primary border-transparent text-white rounded-tr-sm shadow-md'
+                        }`}
+                    >
+                      {isAi ? (
+                        <div className="space-y-1">{renderMessageText(m.text)}</div>
+                      ) : (
+                        <p>{m.text}</p>
+                      )}
+                    </div>
+                    <span className="text-[9px] text-gray-500 font-semibold px-1 font-mono">{m.time}</span>
+                  </div>
+                )
+              })}
+              {isTutorLoading && (
+                <div className="flex flex-col items-start space-y-1.5 animate-fade-in">
+                  <div className="p-3 rounded-2xl text-xs bg-purple-primary/5 border border-purple-primary/10 text-gray-400 rounded-tl-sm flex items-center gap-1">
+                    <span>AI Tutor is thinking</span>
+                    <span className="flex gap-0.5 ml-1">
+                      <span className="w-1 h-1 rounded-full bg-purple-400 animate-bounce [animation-delay:-0.3s]"></span>
+                      <span className="w-1 h-1 rounded-full bg-purple-400 animate-bounce [animation-delay:-0.15s]"></span>
+                      <span className="w-1 h-1 rounded-full bg-purple-400 animate-bounce"></span>
+                    </span>
+                  </div>
+                </div>
+              )}
+              <div ref={chatEndRef}></div>
+            </div>
+
+            {/* Input Bar */}
+            <form onSubmit={handleSendMessage} className="p-4 border-t border-white/5 bg-black/20 shrink-0 flex gap-2">
+              <input
+                type="text"
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                placeholder="Ask AI tutor..."
+                className="flex-1 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-purple-primary/50 transition-all duration-300"
+              />
+              <button
+                type="submit"
+                className="p-2 rounded-xl bg-gradient-to-r from-purple-primary to-cyan-primary text-white hover:scale-105 transition cursor-pointer flex items-center justify-center shadow-lg"
+              >
+                <Send className="w-4 h-4" />
+              </button>
+            </form>
+          </aside>
+        )}
+      </div>
+
+      {/* Pane 3: Mobile Right Collapsible AI Tutor Panel */}
       {isAiOpen && (
         <aside
-          className="fixed md:absolute right-0 top-0 h-full z-45 w-full md:w-80 bg-[#030014]/98 md:bg-[#030014]/90 backdrop-blur-xl flex flex-col justify-between shadow-2xl border-l border-white/5"
+          className="fixed right-0 top-0 h-full z-45 w-full bg-[#030014]/98 backdrop-blur-xl flex flex-col justify-between shadow-2xl border-l border-white/5 md:hidden"
         >
-        {/* Header */}
-        <div className="p-4 border-b border-white/5 flex justify-between items-center shrink-0">
-          <div className="flex items-center gap-2">
-            <MessageSquare className="w-4 h-4 text-purple-primary" />
-            <h3 className="text-xs font-bold text-white uppercase tracking-wider">AI Tutor Assistant</h3>
-          </div>
-          <button
-            onClick={() => setIsAiOpen(false)}
-            className="p-1.5 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white transition cursor-pointer"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-
-        {/* Message Feed */}
-        <div className="flex-1 p-4 overflow-y-auto space-y-3.5 scrollbar-thin scrollbar-thumb-white/10 pr-2">
-          {chatMessages.map((m, idx) => {
-            const isAi = m.sender === 'ai'
-            return (
-              <div key={idx} className={`flex flex-col ${isAi ? 'items-start' : 'items-end'} space-y-1.5`}>
-                <div
-                  className={`p-3 rounded-2xl text-xs leading-relaxed max-w-[85%] border ${isAi
-                    ? 'bg-purple-primary/5 border-purple-primary/10 text-gray-300 rounded-tl-sm'
-                    : 'bg-gradient-to-r from-purple-primary to-cyan-primary border-transparent text-white rounded-tr-sm shadow-md'
-                    }`}
-                >
-                  {isAi ? (
-                    <div className="space-y-1">{renderMessageText(m.text)}</div>
-                  ) : (
-                    <p>{m.text}</p>
-                  )}
-                </div>
-                <span className="text-[9px] text-gray-500 font-semibold px-1 font-mono">{m.time}</span>
-              </div>
-            )
-          })}
-          {isTutorLoading && (
-            <div className="flex flex-col items-start space-y-1.5 animate-fade-in">
-              <div className="p-3 rounded-2xl text-xs bg-purple-primary/5 border border-purple-primary/10 text-gray-400 rounded-tl-sm flex items-center gap-1">
-                <span>AI Tutor is thinking</span>
-                <span className="flex gap-0.5 ml-1">
-                  <span className="w-1 h-1 rounded-full bg-purple-400 animate-bounce [animation-delay:-0.3s]"></span>
-                  <span className="w-1 h-1 rounded-full bg-purple-400 animate-bounce [animation-delay:-0.15s]"></span>
-                  <span className="w-1 h-1 rounded-full bg-purple-400 animate-bounce"></span>
-                </span>
-              </div>
+          {/* Header */}
+          <div className="p-4 border-b border-white/5 flex justify-between items-center shrink-0">
+            <div className="flex items-center gap-2">
+              <MessageSquare className="w-4 h-4 text-purple-primary" />
+              <h3 className="text-xs font-bold text-white uppercase tracking-wider">AI Tutor Assistant</h3>
             </div>
-          )}
-          <div ref={chatEndRef}></div>
-        </div>
+            <button
+              onClick={() => setIsAiOpen(false)}
+              className="p-1.5 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white transition cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
 
-        {/* Input Bar */}
-        <form onSubmit={handleSendMessage} className="p-4 border-t border-white/5 bg-black/20 shrink-0 flex gap-2">
-          <input
-            type="text"
-            value={chatInput}
-            onChange={(e) => setChatInput(e.target.value)}
-            placeholder="Ask AI tutor..."
-            className="flex-1 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-purple-primary/50 transition-all duration-300"
-          />
-          <button
-            type="submit"
-            className="p-2 rounded-xl bg-gradient-to-r from-purple-primary to-cyan-primary text-white hover:scale-105 transition cursor-pointer flex items-center justify-center shadow-lg"
-          >
-            <Send className="w-4 h-4" />
-          </button>
-        </form>
-      </aside>
+          {/* Message Feed */}
+          <div className="flex-1 p-4 overflow-y-auto space-y-3.5 scrollbar-thin scrollbar-thumb-white/10 pr-2">
+            {chatMessages.map((m, idx) => {
+              const isAi = m.sender === 'ai'
+              return (
+                <div key={idx} className={`flex flex-col ${isAi ? 'items-start' : 'items-end'} space-y-1.5`}>
+                  <div
+                    className={`p-3 rounded-2xl text-xs leading-relaxed max-w-[85%] border ${isAi
+                      ? 'bg-purple-primary/5 border-purple-primary/10 text-gray-300 rounded-tl-sm'
+                      : 'bg-gradient-to-r from-purple-primary to-cyan-primary border-transparent text-white rounded-tr-sm shadow-md'
+                      }`}
+                  >
+                    {isAi ? (
+                      <div className="space-y-1">{renderMessageText(m.text)}</div>
+                    ) : (
+                      <p>{m.text}</p>
+                    )}
+                  </div>
+                  <span className="text-[9px] text-gray-500 font-semibold px-1 font-mono">{m.time}</span>
+                </div>
+              )
+            })}
+            {isTutorLoading && (
+              <div className="flex flex-col items-start space-y-1.5 animate-fade-in">
+                <div className="p-3 rounded-2xl text-xs bg-purple-primary/5 border border-purple-primary/10 text-gray-400 rounded-tl-sm flex items-center gap-1">
+                  <span>AI Tutor is thinking</span>
+                  <span className="flex gap-0.5 ml-1">
+                    <span className="w-1 h-1 rounded-full bg-purple-400 animate-bounce [animation-delay:-0.3s]"></span>
+                    <span className="w-1 h-1 rounded-full bg-purple-400 animate-bounce [animation-delay:-0.15s]"></span>
+                    <span className="w-1 h-1 rounded-full bg-purple-400 animate-bounce"></span>
+                  </span>
+                </div>
+              </div>
+            )}
+            <div ref={chatEndRef}></div>
+          </div>
+
+          {/* Input Bar */}
+          <form onSubmit={handleSendMessage} className="p-4 border-t border-white/5 bg-black/20 shrink-0 flex gap-2">
+            <input
+              type="text"
+              value={chatInput}
+              onChange={(e) => setChatInput(e.target.value)}
+              placeholder="Ask AI tutor..."
+              className="flex-1 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-purple-primary/50 transition-all duration-300"
+            />
+            <button
+              type="submit"
+              className="p-2 rounded-xl bg-gradient-to-r from-purple-primary to-cyan-primary text-white hover:scale-105 transition cursor-pointer flex items-center justify-center shadow-lg"
+            >
+              <Send className="w-4 h-4" />
+            </button>
+          </form>
+        </aside>
       )}
 
       {/* Floating Toggle Button for AI Panel when closed */}
