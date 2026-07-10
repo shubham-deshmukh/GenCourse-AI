@@ -118,13 +118,17 @@ export default function Navbar() {
               </button>
             )}
 
-            <a
-              href="#demo"
+            <button
+              onClick={() => {
+                localStorage.removeItem('gencourse_mock_mode');
+                const apiBase = import.meta.env.VITE_API_BASE_URL || '';
+                window.location.href = `${apiBase}/auth/login?screen_hint=signup`;
+              }}
               className="btn-glow relative flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-purple-primary via-indigo-600 to-cyan-primary text-sm font-semibold text-white shadow-[0_0_15px_rgba(124,58,237,0.4)] hover:shadow-[0_0_25px_rgba(124,58,237,0.6)] hover:scale-105 transition-all duration-300 cursor-pointer"
             >
-              Generate Free Course
+              Get Started Free
               <ArrowRight className="w-4 h-4" />
-            </a>
+            </button>
           </div>
 
           {/* Mobile Menu Button */}
@@ -207,14 +211,18 @@ export default function Navbar() {
               </button>
             )}
 
-            <a
-              href="#demo"
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="w-full py-3 text-center bg-gradient-to-r from-purple-primary to-cyan-primary rounded-xl text-white font-semibold hover:opacity-90 active:scale-[0.98] transition shadow-lg flex items-center justify-center gap-2"
+            <button
+              onClick={() => {
+                setIsMobileMenuOpen(false);
+                localStorage.removeItem('gencourse_mock_mode');
+                const apiBase = import.meta.env.VITE_API_BASE_URL || '';
+                window.location.href = `${apiBase}/auth/login?screen_hint=signup`;
+              }}
+              className="w-full py-3 text-center bg-gradient-to-r from-purple-primary to-cyan-primary rounded-xl text-white font-semibold hover:opacity-90 active:scale-[0.98] transition shadow-lg flex items-center justify-center gap-2 cursor-pointer"
             >
-              Generate Free Course
+              Get Started Free
               <ArrowRight className="w-4 h-4" />
-            </a>
+            </button>
           </div>
         </div>
       )}

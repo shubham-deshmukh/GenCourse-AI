@@ -29,13 +29,17 @@ export default function CTA() {
 
           {/* Action Button */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <a
-              href="#demo"
+            <button
+              onClick={() => {
+                localStorage.removeItem('gencourse_mock_mode');
+                const apiBase = import.meta.env.VITE_API_BASE_URL || '';
+                window.location.href = `${apiBase}/auth/login?screen_hint=signup`;
+              }}
               className="btn-glow flex items-center gap-2 px-8 py-4 rounded-full bg-gradient-to-r from-purple-primary via-indigo-600 to-cyan-primary text-white font-semibold shadow-lg hover:scale-105 transition-all duration-300 cursor-pointer"
             >
-              Start Generating Free
+              Create Free Account
               <ArrowRight className="w-5 h-5" />
-            </a>
+            </button>
             <a
               href="#features"
               className="px-8 py-4 rounded-full border border-white/10 hover:border-white/20 text-gray-300 hover:text-white font-semibold transition cursor-pointer"

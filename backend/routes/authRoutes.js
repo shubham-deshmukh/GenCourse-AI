@@ -55,7 +55,7 @@ router.get('/login', (req, res) => {
     ? `${req.protocol}://${host}/auth/callback`
     : `${getEnv('FRONTEND_URL')}/auth/callback`;
 
-  const authUrl = `${issuer}/authorize?` + new URLSearchParams({
+  const authParams = {
     response_type: 'code',
     client_id: clientId,
     redirect_uri: redirectUri,
@@ -64,7 +64,13 @@ router.get('/login', (req, res) => {
     code_challenge_method: 'S256',
     state: state,
     prompt: 'login'
-  }).toString();
+  };
+
+  if (req.query.screen_hint) {
+    authParams.screen_hint = req.query.screen_hint;
+  }
+
+  const authUrl = `${issuer}/authorize?` + new URLSearchParams(authParams).toString();
 
   console.log(`🔑 Redirecting client browser to Auth0 Authorize URL`);
   res.redirect(authUrl);
