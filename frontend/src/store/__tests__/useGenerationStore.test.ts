@@ -6,7 +6,7 @@ import axios from 'axios';
 vi.mock('axios');
 
 // Mock localStorage for Node environment
-global.localStorage = {
+(globalThis as any).localStorage = {
   getItem: vi.fn().mockReturnValue(null),
   setItem: vi.fn(),
   removeItem: vi.fn(),
@@ -45,7 +45,7 @@ class MockEventSource {
   }
 }
 
-global.EventSource = MockEventSource as any;
+(globalThis as any).EventSource = MockEventSource as any;
 
 describe('useGenerationStore', () => {
   beforeEach(() => {
@@ -118,7 +118,7 @@ describe('useGenerationStore', () => {
     expect(useGenerationStore.getState().isGenerating).toBe(false);
     expect(useGenerationStore.getState().progress).toBe(100);
     expect(useGenerationStore.getState().currentStepIndex).toBe(5);
-    expect(useGenerationStore.getState().activeCourse?.completed).toBe(true);
+    expect((useGenerationStore.getState().activeCourse as any)?.completed).toBe(true);
   });
 
   test('startGeneration fallback on axios error', async () => {
