@@ -17,13 +17,15 @@ import courseRoutes from './routes/courseRoutes.js';
 import tutorRoutes from './routes/tutorRoutes.js';
 import { protect } from './middlewares/authMiddleware.js';
 
-// Connect to database
-connectDB();
-
 const app = express();
 app.set('trust proxy', true);
 const PORT = getEnv('PORT', 5000);
 const NODE_ENV = getEnv('NODE_ENV', 'development');
+
+// Connect to database
+if (NODE_ENV !== 'test') {
+  connectDB();
+}
 
 
 // Middleware
@@ -88,6 +90,10 @@ app.use((err, req, res, next) => {
 });
 
 // Start the server
-app.listen(PORT, () => {
-  console.log(`🚀 Server running in ${NODE_ENV} mode on port ${PORT}`);
-});
+if (NODE_ENV !== 'test') {
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running in ${NODE_ENV} mode on port ${PORT}`);
+  });
+}
+
+export default app;

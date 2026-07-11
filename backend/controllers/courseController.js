@@ -243,10 +243,28 @@ export const createCourse = async (req, res, next) => {
     const { title } = req.body;
 
     if (!title || typeof title !== 'string') {
-      return res.status(400).json({ message: 'Course title is required' });
+      return res.status(400).json({ message: 'Course title is required and must be a string' });
     }
 
     const trimmedTitle = title.trim();
+
+    if (trimmedTitle.length === 0) {
+      return res.status(400).json({ message: 'Course title cannot be empty' });
+    }
+
+    if (trimmedTitle.length > 100) {
+      return res.status(400).json({ message: 'Course title cannot exceed 100 characters' });
+    }
+
+    // Block HTML/JS script tags and potential injection vectors
+    if (/[<>&\$]/g.test(trimmedTitle)) {
+      return res.status(400).json({ message: 'Course title contains invalid or unsafe characters' });
+    }
+
+    // Check if the scheduler queue is full (capacity limit of 20)
+    if (scheduler.queue && scheduler.queue.length >= 20) {
+      return res.status(429).json({ message: 'Generation queue is full, please try again later' });
+    }
 
     // Create shell Course structure in database
     const course = new Course({
