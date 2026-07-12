@@ -65,3 +65,23 @@ To package the app for production deployment:
 npm run build
 ```
 This generates optimized static files inside the `dist/` directory.
+
+---
+
+## 🧪 Testing
+
+The frontend contains component layout and state store tests with Vitest, and end-to-end user journey tests with Playwright.
+
+### Run Unit & Component Tests
+Executes Vitest tests:
+```bash
+npm run test
+```
+
+### Run End-to-End (E2E) Browser Tests
+Executes Playwright tests (make sure both the backend and frontend dev servers are active, or let the config build them dynamically):
+```bash
+npx playwright test
+```
+
+For detailed guides, see the [Frontend & E2E Testing Documentation](../docs/test/README.md).

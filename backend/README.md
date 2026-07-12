@@ -145,3 +145,27 @@ docker exec -it gencourse-backend npm run seed
 ### 🤖 AI Tutor assistant
 
 * **`POST /api/tutor/chat`**: Receives messages from the tutor sidebar. Accepts optional `courseId` and `lessonId` parameters to provide context-aware feedback referencing textbook materials. Requires authentication.
+
+---
+
+## 🧪 Testing
+
+The backend includes native node unit/integration suites and SSE load testing scripts.
+
+### Run Unit & Integration Tests
+Runs native `node:test` suites in memory:
+```bash
+npm run test
+```
+
+### Run Concurrency Load & Stress Tests
+1. Run programmatic Node.js client simulation test (100 concurrent streams):
+   ```bash
+   node load-test.js
+   ```
+2. Run standard `k6` load test:
+   ```bash
+   k6 run load-test-k6.js
+   ```
+
+For detailed guides, see the [Backend Unit & Integration Documentation](../docs/test/README.md).
