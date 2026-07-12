@@ -20,9 +20,9 @@ class MockEventSource {
   static instances: MockEventSource[] = [];
   url: string;
   options: any;
-  listeners: Record<string, Function> = {};
+  listeners: Record<string, (event: any) => void> = {};
   readyState: number = 1;
-  onerror: Function | null = null;
+  onerror: ((event: any) => void) | null = null;
 
   constructor(url: string, options: any) {
     this.url = url;
@@ -30,7 +30,7 @@ class MockEventSource {
     MockEventSource.instances.push(this);
   }
 
-  addEventListener(event: string, cb: Function) {
+  addEventListener(event: string, cb: (event: any) => void) {
     this.listeners[event] = cb;
   }
 

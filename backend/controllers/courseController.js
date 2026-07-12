@@ -257,7 +257,7 @@ export const createCourse = async (req, res, next) => {
     }
 
     // Block HTML/JS script tags and potential injection vectors
-    if (/[<>&\$]/g.test(trimmedTitle)) {
+    if (/[<>&$]/g.test(trimmedTitle)) {
       return res.status(400).json({ message: 'Course title contains invalid or unsafe characters' });
     }
 
