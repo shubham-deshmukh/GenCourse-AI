@@ -1,12 +1,8 @@
 {
   "rewrites": [
     {
-      "source": "/api/:path*",
-      "destination": "https://gencourse-ai.duckdns.org/api/:path*"
-    },
-    {
-      "source": "/auth/:path*",
-      "destination": "https://gencourse-ai.duckdns.org/auth/:path*"
+      "source": "/((?!assets/|favicon.ico|manifest.json).*|$)",
+      "destination": "/index.html"
     }
   ]
 }
