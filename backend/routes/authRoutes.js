@@ -50,10 +50,7 @@ router.get('/login', (req, res) => {
   const issuer = getEnv('AUTH0_ISSUER_BASE_URL');
   const clientId = getEnv('AUTH0_CLIENT_ID');
   const host = req.get('host') || '';
-  const isLocal = host.includes('localhost') || host.includes('127.0.0.1');
-  const redirectUri = isLocal
-    ? `${req.protocol}://${host}/auth/callback`
-    : `${getEnv('FRONTEND_URL')}/auth/callback`;
+  const redirectUri = `${req.protocol}://${host}/auth/callback`;
 
   const authParams = {
     response_type: 'code',
@@ -125,10 +122,7 @@ router.get('/callback', async (req, res) => {
     const clientId = getEnv('AUTH0_CLIENT_ID');
     const clientSecret = process.env.AUTH0_CLIENT_SECRET || '';
     const host = req.get('host') || '';
-    const isLocal = host.includes('localhost') || host.includes('127.0.0.1');
-    const redirectUri = isLocal
-      ? `${req.protocol}://${host}/auth/callback`
-      : `${getEnv('FRONTEND_URL')}/auth/callback`;
+    const redirectUri = `${req.protocol}://${host}/auth/callback`;
 
     // 1. Exchange auth code for tokens
     const exchangePayload = {
