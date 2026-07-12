@@ -853,6 +853,190 @@ test('Utility - getEnvJSON Safe Quote Stripping', () => {
   process.env.LLM_WORKERS_CONFIG = originalConfig;
 });
 
+test('LessonScheduler - 10 jobs running through 3 workers, no duplicates', async () => {
+  const originalLessonSave = Lesson.prototype.save;
+  Lesson.prototype.save = async function() {
+    this._id = this._id || 'mock-lesson-id';
+    return this;
+  };
+
+  const executionLog = [];
+  // Setup 3 workers, each with maxConcurrency: 1
+  const w1 = new MockWorker({ name: 'Worker-1', provider: 'gemini', maxConcurrency: 1, executionLog, delay: 20 });
+  const w2 = new MockWorker({ name: 'Worker-2', provider: 'ollama', maxConcurrency: 1, executionLog, delay: 20 });
+  const w3 = new MockWorker({ name: 'Worker-3', provider: 'cerebras', maxConcurrency: 1, executionLog, delay: 20 });
+
+  scheduler.queue = [];
+  scheduler.workers = [w1, w2, w3];
+
+  // Queue up 10 jobs
+  for (let i = 1; i <= 10; i++) {
+    scheduler.queue.push(new Job({ id: `concurrent-job-${i}`, courseId: 'c1', type: 'lesson', priority: 2 }));
+  }
+
+  // Trigger tick 1 -> Starts 3 jobs
+  scheduler.tick();
+  await new Promise(r => setTimeout(r, 5));
+  assert.strictEqual(w1.activeJobsCount + w2.activeJobsCount + w3.activeJobsCount, 3);
+
+  // Trigger ticks repeatedly to simulate schedule execution and verify active counts never exceed 3
+  for (let t = 0; t < 10; t++) {
+    scheduler.tick();
+    await new Promise(r => setTimeout(r, 10));
+    const activeCount = w1.activeJobsCount + w2.activeJobsCount + w3.activeJobsCount;
+    assert.ok(activeCount <= 3, `Expected active count to be at most 3, got ${activeCount}`);
+  }
+
+  // Wait for all remaining jobs to finish
+  await new Promise(r => setTimeout(r, 100));
+
+  // Run final tick to clean up any remaining queued items
+  scheduler.tick();
+  await new Promise(r => setTimeout(r, 5));
+
+  // Verify all 10 jobs finished
+  assert.strictEqual(executionLog.length, 10);
+
+  // Ensure no duplicates: check if every job ID in executionLog is unique
+  const executedJobIds = executionLog.map(log => log.split(':')[1]);
+  const uniqueJobIds = new Set(executedJobIds);
+  assert.strictEqual(uniqueJobIds.size, 10, 'Expected exactly 10 unique executions');
+
+  scheduler.queue = [];
+  Lesson.prototype.save = originalLessonSave;
+});
+
+test('LessonScheduler - Worker crashes, job retries, eventually succeeds', async () => {
+  const originalLessonSave = Lesson.prototype.save;
+  Lesson.prototype.save = async function() {
+    this._id = this._id || 'mock-lesson-id';
+    return this;
+  };
+
+  const executionLog = [];
+  
+  // Define a custom worker mock that crashes on the first call, but succeeds subsequently
+  let failCount = 0;
+  const crashingWorker = {
+    name: 'CrashingWorker',
+    provider: 'gemini',
+    maxConcurrency: 1,
+    activeJobsCount: 0,
+    coolDownUntil: null,
+    isAvailable: () => true,
+    execute: async (job) => {
+      crashingWorker.activeJobsCount++;
+      job.start();
+      executionLog.push(`run-${failCount}`);
+      if (failCount === 0) {
+        failCount++;
+        crashingWorker.activeJobsCount--;
+        job.fail(new Error('Simulated worker crash'));
+        throw new Error('Simulated worker crash');
+      } else {
+        crashingWorker.activeJobsCount--;
+        job.complete('{"result": "success"}');
+        return '{"result": "success"}';
+      }
+    }
+  };
+
+  scheduler.queue = [];
+  scheduler.workers = [crashingWorker];
+
+  // Enqueue a single job
+  const job = new Job({ id: 'crash-retry-job', courseId: 'c1', type: 'lesson', priority: 2, maxRetries: 3 });
+  scheduler.queue.push(job);
+
+  // Run tick - since the worker is marked available, the failure is caught and retried immediately
+  scheduler.tick();
+  await new Promise(r => setTimeout(r, 15));
+
+  // Assert both attempts ran (the crash first, then the immediate retry)
+  assert.strictEqual(executionLog[0], 'run-0');
+  assert.strictEqual(executionLog[1], 'run-1');
+
+  // Verify the job completed successfully on the retry
+  assert.strictEqual(job.status, 'completed');
+  assert.strictEqual(job.retries, 1);
+
+  scheduler.queue = [];
+  Lesson.prototype.save = originalLessonSave;
+});
+
+test('LessonScheduler - Rate limit cooldown, job waits, runs later', async () => {
+  const originalLessonSave = Lesson.prototype.save;
+  Lesson.prototype.save = async function() {
+    this._id = this._id || 'mock-lesson-id';
+    return this;
+  };
+
+  const executionLog = [];
+  
+  // Mock worker that hits rate limit on the first run, cooldowns for 50ms, then succeeds on the next run
+  let isRateLimited = true;
+  const rateLimitWorker = {
+    name: 'RateLimitWorker',
+    provider: 'gemini',
+    maxConcurrency: 1,
+    activeJobsCount: 0,
+    coolDownUntil: null,
+    isAvailable: function() {
+      if (this.coolDownUntil && new Date() < this.coolDownUntil) return false;
+      return this.activeJobsCount < this.maxConcurrency;
+    },
+    execute: async function(job) {
+      this.activeJobsCount++;
+      job.start();
+      if (isRateLimited) {
+        isRateLimited = false;
+        this.activeJobsCount--;
+        job.fail(new Error('Rate limit exceeded (429)'));
+        this.coolDownUntil = new Date(Date.now() + 50); // cooldown 50ms
+        throw new Error('Rate limit exceeded (429)');
+      } else {
+        this.activeJobsCount--;
+        job.complete('{"result": "success"}');
+        executionLog.push(job.id);
+        return '{"result": "success"}';
+      }
+    }
+  };
+
+  scheduler.queue = [];
+  scheduler.workers = [rateLimitWorker];
+
+  // Enqueue a job
+  const job = new Job({ id: 'ratelimit-job', courseId: 'c1', type: 'lesson', priority: 2, maxRetries: 3 });
+  scheduler.queue.push(job);
+
+  // 1. Tick 1 -> Rate limited, worker coolDown set, job goes back to pending/retry
+  scheduler.tick();
+  await new Promise(r => setTimeout(r, 5));
+  assert.strictEqual(job.status, 'pending');
+  assert.strictEqual(job.retries, 1);
+  assert.notStrictEqual(rateLimitWorker.coolDownUntil, null);
+
+  // 2. Tick 2 (during cooldown) -> worker is NOT available, job does not execute
+  scheduler.tick();
+  await new Promise(r => setTimeout(r, 5));
+  assert.strictEqual(job.status, 'pending');
+  assert.strictEqual(job.retries, 1);
+  assert.strictEqual(executionLog.length, 0);
+
+  // 3. Wait out the 50ms cooldown
+  await new Promise(r => setTimeout(r, 55));
+
+  // 4. Tick 3 (after cooldown) -> worker is available now, job executes and succeeds
+  scheduler.tick();
+  await new Promise(r => setTimeout(r, 5));
+  assert.strictEqual(job.status, 'completed');
+  assert.strictEqual(executionLog[0], 'ratelimit-job');
+
+  scheduler.queue = [];
+  Lesson.prototype.save = originalLessonSave;
+});
+
 after(async () => {
   await mongoose.disconnect();
 });
