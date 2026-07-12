@@ -1,40 +1,49 @@
-# GenCourse AI: Testing Documentation
+# GenCourse AI: Testing Documentation Index
 
-This directory contains execution guides, test specifications, and architectural documentation for the GenCourse AI test suite.
-
----
-
-## Directory Structure
-
-```text
-/docs/
-└── test/
-    ├── README.md               # Main testing documentation (this file)
-    ├── unit-tests.md           # Documentation for prompt builders, parsers, and validation
-    ├── api-tests.md            # Details on Supertest route test cases
-    └── queue-scheduler-tests.md # Concurrency, crash-recovery, and rate limit queue workflows
-```
+Welcome to the central index for GenCourse AI testing documentation. This folder is structured into categories to help QA and developers locate test execution guides and architecture references.
 
 ---
 
-## Testing Frameworks & Tools
+## 📂 Testing Directory Structure
 
-| Scope | Tooling Choice | Command | Description |
-| :--- | :--- | :--- | :--- |
-| **Backend Unit & Integration** | Native Node.js test runner (`node:test`) | `npm run test` (inside `/backend`) | Runs native tests without external dependencies. |
-| **API Endpoints** | `supertest` & `node:test` | `npm run test` (inside `/backend`) | Simulates requests against Express controllers offline. |
-| **Frontend Unit / Store** | `Vitest` & `React Testing Library` | `npm run test` (inside `/frontend`) | Tests Zustand store hooks and UI components inside jsdom. |
-| **End-to-End (E2E)** | `Playwright` | `npx playwright test` | Tests full user generation and tutoring flows. |
+Use the links below to explore the specifications for each tier of the testing hierarchy:
+
+### 1. 🧪 [Unit Testing](file:///d:/Projects/GenCourse%20AI/docs/test/unit/)
+Low-level logic verification for prompt engines, parsers, and schemas:
+*   [Course Generation Service Prompt Builders & JSON Repairs](file:///d:/Projects/GenCourse%20AI/docs/test/unit/course-generation-service-tests.md)
+*   [LLM Workers & API Templates Provider Tests](file:///d:/Projects/GenCourse%20AI/docs/test/unit/llm-workers-tests.md)
+*   [Mongoose Schema & Constraints Model Validation](file:///d:/Projects/GenCourse%20AI/docs/test/unit/model-validation-tests.md)
+
+### 2. 🔌 [Integration & API Testing](file:///d:/Projects/GenCourse%20AI/docs/test/integration/)
+End-point controller actions, SSE event stream emissions, and queues:
+*   [Course Validation API Route Controller Integration](file:///d:/Projects/GenCourse%20AI/docs/test/integration/api-tests.md)
+*   [OAuth JIT Provisioning Auth Integration](file:///d:/Projects/GenCourse%20AI/docs/test/integration/auth-routes-tests.md)
+*   [Course SSE Outline, Lesson completed, and Progress Streams](file:///d:/Projects/GenCourse%20AI/docs/test/integration/course-streaming-tests.md)
+*   [AI Tutor System Prompt Sidebar Chat Endpoint Integration](file:///d:/Projects/GenCourse%20AI/docs/test/integration/ai-tutor-chat-tests.md)
+*   [Task Scheduler Multi-Worker Capacity Concurrency Queue](file:///d:/Projects/GenCourse%20AI/docs/test/integration/queue-scheduler-tests.md)
+*   [Cookie Security & Load Session Verification](file:///d:/Projects/GenCourse%20AI/docs/test/integration/security-load-tests.md)
+
+### 3. 💻 [Frontend Unit & Component Testing](file:///d:/Projects/GenCourse%20AI/docs/test/frontend/)
+UI component render checks and Zustand stores:
+*   [Zustand State Stores & Response Caches Store Tests](file:///d:/Projects/GenCourse%20AI/docs/test/frontend/frontend-tests.md)
+*   [Marketing Hero, Features, & Dropdown Layout Component Tests](file:///d:/Projects/GenCourse%20AI/docs/test/frontend/frontend-components-tests.md)
+
+### 4. 🎭 [End-to-End (E2E) Browser Testing](file:///d:/Projects/GenCourse%20AI/docs/test/e2e/)
+Playwright automated client-journey scripts:
+*   [Visitor Generator, AI Tutor Chat Drawer, & RBAC Privilege E2E Guides](file:///d:/Projects/GenCourse%20AI/docs/test/e2e/e2e-tests.md)
+
+### 5. ⚡ [Load & Stress Concurrency Testing](file:///d:/Projects/GenCourse%20AI/docs/test/load/)
+Performance monitoring under high active loads:
+*   [Programmatic Node & k6 Concurrency SSE Load Testing Specifications](file:///d:/Projects/GenCourse%20AI/docs/test/load/load-testing.md)
 
 ---
 
-## Workflow & Branching Guidelines
+## 🛠️ Execution Commands Summary
 
-Before starting work on implementing tests, follow these rules:
-
-1. **Ask for Permission:** Present the scope of the test cases to the user in the workspace and get approval.
-2. **Branch Naming:**
-   * Parent Branch: `test`
-   * Child Branch format: `test/<test-scope-slug>` (e.g. `test/api-courses-validation`, `test/queue-scheduler-concurrency`).
-3. **Mocking External APIs:** Never invoke live Gemini, Ollama, Cerebras, or Auth0 APIs in unit/integration/API suites. Use robust mocks or stubs.
-4. **Documentation:** Along with the code for each test, add/update the corresponding guide inside this folder (`/docs/test/`).
+| Testing Tier | Execution command | Location |
+| :--- | :--- | :--- |
+| **Backend Unit & Integration** | `npm run test` | `/backend` |
+| **Frontend Unit & Component** | `npm run test` | `/frontend` |
+| **Playwright E2E Browser** | `npx playwright test` | `/frontend` |
+| **Programmatic Load Tests** | `node load-test.js` | `/backend` |
+| **k6 Concurrency Load Tests** | `k6 run load-test-k6.js` | `/backend` |
