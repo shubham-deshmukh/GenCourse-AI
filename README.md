@@ -1,6 +1,6 @@
 # GenCourse AI - Custom Syllabus & Lesson Builder
 
-GenCourse AI is a dynamic, LLM-powered custom syllabus builder and lesson playground. It enables students and educators to type any topic, generate detailed multi-modular course structures (including textbook chapters and voiceover scripts), and chat with an interactive context-aware AI Tutor in real time.
+GenCourse AI is a dynamic, LLM-powered custom syllabus builder and lesson playground. It enables students and educators to type any topic, generate detailed multi-modular course structures (including textbook chapters, relevant YouTube videos and downloadable PDFs), track lesson completion progress, and chat with an interactive context-aware AI Tutor in real time.
 
 ---
 
@@ -10,17 +10,28 @@ This project is organized as a monorepo containing the following components:
 
 ```text
 /
-├── backend/            # Express.js API Server
-│   ├── load-test.js    # Programmatic SSE stream load test runner
-│   ├── load-test-k6.js # k6 load test script
-│   └── server.js       # Main server entry point
-├── frontend/           # Vite + React + Tailwind CSS v4 Landing & Player app
-│   ├── e2e/            # Playwright E2E browser tests
-│   └── src/            # Client source code
-├── docs/               # Architecture, schemas, and testing documentation
-│   ├── architecture/   # Detailed workflow and subsystem architecture diagrams
-│   └── test/           # Grouped unit, integration, component, E2E, and load test docs
-└── docker-compose.yml  # Docker environment config for backend and database
+├── backend/               # Express.js API Server
+│   ├── config/            # Database and environment configurations
+│   ├── controllers/       # API controllers (courses, AI tutor)
+│   ├── middlewares/       # Auth (OIDC/JWT) & error middlewares
+│   ├── models/            # Mongoose schemas (Course, Module, Lesson, User, Progress)
+│   ├── routes/            # Express endpoint routing
+│   ├── services/          # Core engines (LLM Scheduler, PDF Exporter, Video Service)
+│   ├── storage/           # Server-side artifacts (generated PDFs)
+│   ├── utils/             # Database seeder and helper utilities
+│   ├── docker-compose.yml # Docker environment config (MongoDB, Gotenberg, Backend)
+│   ├── Dockerfile         # Backend container definition
+│   ├── load-test.js       # Programmatic SSE stream load test runner
+│   ├── load-test-k6.js    # k6 load test script
+│   └── server.js          # Express server entry point
+├── frontend/              # Vite + React + Tailwind CSS v4 Landing & Player app
+│   ├── e2e/               # Playwright E2E browser tests
+│   └── src/               # Client source code
+│       ├── components/    # UI & interactive playground components
+│       └── store/         # Zustand state stores (auth, generation)
+└── docs/                  # Architecture, schemas, and testing documentation
+    ├── architecture/      # Detailed workflow and subsystem architecture diagrams
+    └── test/              # Grouped unit, integration, component, E2E, and load test docs
 ```
 
 For detailed system specifications, sequence diagrams, and operational flows, review the [GenCourse AI Architecture Overview](docs/architecture/overview.md).
@@ -59,17 +70,27 @@ To spin up the platform manually, you will need to start both services:
    ```bash
    npm run dev
    ```
-3. Open **[http://localhost:5173/](http://localhost:5173/)** in your browser. Pass `?mockUser=true` in the URL to automatically bypass Auth0 validation in local development.
+3. Open **[http://localhost:5173/](http://localhost:5173/)** (or `http://localhost:5174/` depending on your `FRONTEND_URL` in `.env`) in your browser. Pass `?mockUser=true` in the URL to automatically bypass Auth0 validation in local development.
 
 ---
 
 ### 🐳 2. Running with Docker Compose
 
-You can containerize the database and backend. From the root directory, run:
+You can containerize the database, PDF engine, and backend. 
+
+> **Note:** `docker-compose.yml` includes an external `proxy` network for production reverse proxying. Before running compose locally, create the network once via `docker network create proxy` (or comment out the `proxy` network blocks in `backend/docker-compose.yml`).
+
+From the `backend` directory, run:
 ```bash
-docker compose up --build
+cd backend
+docker compose up -d --build
 ```
-This starts MongoDB on `localhost:27017` and the Express server on `localhost:5000`. To seed the MongoDB database inside the running container, execute:
+This spins up:
+* **MongoDB** on `localhost:27017`
+* **Gotenberg v8 PDF Engine** on `localhost:3000`
+* **GenCourse Express Server** on `localhost:5000`
+
+To seed the MongoDB database inside the running container, execute:
 ```bash
 docker exec -it gencourse-backend npm run seed
 ```

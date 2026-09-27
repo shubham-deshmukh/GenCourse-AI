@@ -481,7 +481,7 @@ export default function InteractiveSimulator({
       `[LESSON-GEN] Synthesizing voiceover transcripts and slide outlines...`,
       `[QUIZ-BUILDER] Constructing dynamic knowledge checkups for each module...`,
       `[QUIZ-BUILDER] Generated 10 test questions with adaptive hints...`,
-      `[PUBLISH-LAYER] Processing multilingual localizations (ES, FR, EN)...`,
+      `[PUBLISH-LAYER] Processing multilingual localizations (MR, HI, EN)...`,
       `[PUBLISH-LAYER] Packaging offline assets and rendering printable PDF workbooks...`,
       `[SYSTEM] Generation complete. Launching student workspace portal...`
     ]

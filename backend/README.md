@@ -9,10 +9,13 @@ The backend supports local Ollama models (`qwen2.5:1.5b-instruct`), falls back t
 ## Features
 
 * **Real-time Course Outline Synthesis**: Generates modular course structures including objectives, resource lists, and quizzes using LLM configurations.
-* **Chapter-by-Chapter Lesson textbook Generation**: Compiles detailed textbook lessons in English, Spanish, and French, with automatic code block sanitization for non-technical courses.
+* **Chapter-by-Chapter Lesson Textbook Generation**: Compiles detailed textbook lessons in English, Marathi (`MR`), and Hindi (`HI`), with automatic code block sanitization for non-technical courses.
+* **YouTube Video Recommendation**: Automatically enriches lessons with relevant video IDs via the YouTube Data API v3, gracefully falling back to search scraping.
+* **Automated PDF Export**: Compiles courses into complete printable PDF textbooks with custom styling and table of contents using Gotenberg or Puppeteer.
+* **Lesson Progress Tracking**: Persists student completion states (`NOT_STARTED`, `IN_PROGRESS`, `COMPLETED`) and dynamically computes overall progress percentages.
 * **SSE Generation Streaming**: Streams live compiler logs, generated outlines, and parsed modules directly to the client to avoid request timeouts.
 * **Context-Aware AI Tutor Chat**: Hosts an intelligent tutoring assistant endpoint that dynamically compiles active course/lesson context into prompts to answer student queries.
-* **Backend-Driven Authentication**: Implements state-of-the-art secure OIDC session authentication using Auth0 (`express-openid-connect`), mitigating token exposure to client-side scripts.
+* **Backend-Driven Authentication**: Implements state-of-the-art secure OIDC session authentication using Auth0, mitigating token exposure to client-side scripts.
 * **Local Development Mock Mode**: Supports a signature-free mock authentication override using header/query parameters for offline development.
 * **Just-in-Time (JIT) Provisioning**: Automatically registers user documents in MongoDB upon first successful authentication callback.
 
@@ -23,8 +26,10 @@ The backend supports local Ollama models (`qwen2.5:1.5b-instruct`), falls back t
 * **Runtime**: Node.js (v18+)
 * **Framework**: Express.js
 * **Database**: MongoDB (Mongoose ODM)
-* **Authentication**: Auth0, Express OpenID Connect
-* **LLM Engine Integration**: Axios (Ollama HTTP API) & `@google/genai` (Google Gemini SDK)
+* **Authentication**: Auth0, Express OpenID Connect, JWT
+* **LLM Engine Integration**: Axios (Ollama HTTP API, Cerebras) & `@google/genai` (Google Gemini SDK)
+* **PDF Engine**: Gotenberg v8 / Puppeteer
+* **Video Matching**: Google YouTube Data API v3 & `yt-search`
 
 ---
 
@@ -63,18 +68,29 @@ Open `.env` and fill in the required parameters:
 ```env
 PORT=5000
 NODE_ENV=development
+FRONTEND_URL=http://localhost:5174
+
+# MongoDB Configuration
 MONGO_URI=mongodb://<username>:<password>@localhost:27017/gencourse_ai?authSource=admin
+MONGO_ROOT_USER=<root_user>
+MONGO_ROOT_PASSWORD=<root_password>
 
 # LLM Workers Configuration
 LLM_WORKERS_CONFIG='[{"provider":"gemini","name":"GeminiPrimaryWorker","apiKey":"your_gemini_key","model":"gemini-3.1-flash-lite","maxConcurrency":2}]'
 
-# Auth0 & Session Session Configuration
+# Auth0 & Session Configuration
 SESSION_SECRET=your_32_character_long_session_secret_key
 AUTH0_CLIENT_ID=your_auth0_client_id_here
 AUTH0_ISSUER_BASE_URL=https://your-auth0-domain.auth0.com
+JWT_SECRET=your_jwt_secret_here
 
 # YouTube API Configuration (Optional: if omitted, searches fall back to yt-search scraping)
 YOUTUBE_API_KEY=your_youtube_data_api_v3_key
+
+# PDF Exporter Configuration
+PDF_PROVIDER=gotenberg
+GOTENBERG_URL=http://localhost:3000
+PDF_LOAD_GOOGLE_FONTS=false
 ```
 
 ### 3. Seed the Database
@@ -104,19 +120,22 @@ The server will bind to the configured port (default: `5000`).
 
 ### Option B: Docker Containerization
 
-You can run the backend and database inside Docker containers.
+You can run the backend, database, and PDF export service inside Docker containers.
 
 #### 1. Setup Environment
-Ensure your `.env` contains the required keys (e.g., `LLM_WORKERS_CONFIG`, Auth0 configurations). These will be injected into the container by Docker Compose.
+Ensure your `.env` contains the required keys (e.g., `LLM_WORKERS_CONFIG`, `JWT_SECRET`, Auth0 configurations, and PDF engine options). These will be injected into the container by Docker Compose.
+
+> **Note:** `docker-compose.yml` references an external `proxy` network for production reverse proxying. Before running compose locally, create the network once via `docker network create proxy` (or comment out the `proxy` network references in `docker-compose.yml`).
 
 #### 2. Start Services
-From the **root workspace directory**, run:
+From the **`backend` directory**, run:
 ```bash
-docker compose up --build
+docker compose up -d --build
 ```
 This spins up:
-- A MongoDB instance at `localhost:27017`
-- The backend API service at `localhost:5000`
+- **MongoDB** at `localhost:27017`
+- **Gotenberg v8 PDF Engine** at `localhost:3000`
+- **GenCourse Express Server** at `localhost:5000`
 
 #### 3. Database Seeding (Optional)
 To seed the database inside the container with developer/mock data:
@@ -128,8 +147,9 @@ docker exec -it gencourse-backend npm run seed
 
 ## API Reference
 
-### 🔐 Authentication Endpoints
+### 🔐 Authentication & System Endpoints
 
+* **`GET /api/health`**: Service health check returning uptime, timestamp, and environment.
 * **`GET /auth/login`**: Initiates the Auth0 redirection handshake.
 * **`GET /auth/logout`**: Clears the backend session cookie and logs out of the Auth0 SSO session.
 * **`GET /auth/callback`**: Internal endpoint for Auth0 authentication callback processing.
@@ -141,6 +161,13 @@ docker exec -it gencourse-backend npm run seed
 * **`POST /api/courses`**: Initializes a new course shell with a title. Returns a `courseId`. Requires authentication.
 * **`DELETE /api/courses/:id`**: Deletes the specified course, its modules, lessons, and pulls user references. **Restricted to Instructors and Admins**.
 * **`GET /api/courses/:id/stream`**: Establishes a Server-Sent Events (SSE) connection that compiles the syllabus outline and streams detailed chapters one-by-one.
+* **`POST /api/courses/:id/pdf`**: Queues an asynchronous course textbook PDF generation job and emits real-time status updates (`queued`, `generating`, `completed`, `failed`) via SSE. Requires authentication.
+* **`GET /api/courses/:id/download-pdf`**: Streams and downloads the compiled course PDF from secure storage. Requires authentication.
+
+### 🎯 Lesson Progress & Completion
+
+* **`POST /api/courses/:id/lessons/:lessonId/complete`**: Marks a specific lesson as completed for the authenticated user and returns updated overall course completion progress. Requires authentication.
+* **`DELETE /api/courses/:id/lessons/:lessonId/complete`**: Undoes/reverts the completion status of a lesson. Requires authentication.
 
 ### 🤖 AI Tutor assistant
 

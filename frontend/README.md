@@ -21,13 +21,14 @@ The application is hosted locally. You can spin up the workspace and preview the
 ## 🎨 Key Features & Components
 
 ### 1. Interactive Course Generator Simulator
-Typing a topic (e.g. *Intro to React Hooks*) and triggering "Generate" launches a mock pipeline simulation in the workspace.
+Typing a topic (e.g. *Intro to React Hooks*) and triggering "Generate" launches a real-time compilation simulation in the workspace.
 - **Workflow Checklist:** Monitors live generation milestones from analysis to final translation.
 - **System Telemetry Logs:** Prints step-by-step agent activities in an animated terminal shell.
-- **Lesson Reader:** Shows full formatted study text with highlights and code blocks.
-- **Video Script Renderer:** Displays generated slide structures alongside voiceover transcripts and an active audio waveform visualizer.
-- **Downloads Module:** Simulates exporting worksheets and cheat sheets.
-- **Multilingual localization:** Toggles UI curriculum views instantly between English, Spanish, and French.
+- **Lesson Reader & Audio Scripts:** Displays formatted study text with syntax-highlighted code blocks, slide structures, voiceover transcripts, and an active audio waveform visualizer.
+- **Interactive Lesson Progress:** Allows students to mark individual lessons as complete/incomplete, dynamically updating course completion percentages and triggering an achievement modal.
+- **Context-Aware AI Tutor Drawer:** Real-time conversational tutoring drawer grounded in the active lesson content and syllabus context.
+- **Downloads Module & PDF Handbook:** Simulates and facilitates downloading cheat sheets, worksheets, and full printable course PDF handbooks.
+- **Multilingual Localization:** Toggles UI curriculum views instantly between English, Marathi (`MR`), and Hindi (`HI`).
 
 ### 2. The 6-Step Pipeline Visualizer
 Detailed step-by-step visual map representing the course compiler:
@@ -58,6 +59,8 @@ npm install
 npm run dev
 ```
 Open **[http://localhost:5173](http://localhost:5173)** in your browser.
+
+> **Tip:** Append `?mockUser=true` to the URL (e.g., `http://localhost:5173/?mockUser=true`) to bypass Auth0 and test the platform in local mock developer mode.
 
 ### 3. Build for Production
 To package the app for production deployment:
