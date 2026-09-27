@@ -9,7 +9,7 @@ The backend supports local Ollama models (`qwen2.5:1.5b-instruct`), falls back t
 ## Features
 
 * **Real-time Course Outline Synthesis**: Generates modular course structures including objectives, resource lists, and quizzes using LLM configurations.
-* **Chapter-by-Chapter Lesson Textbook Generation**: Compiles detailed textbook lessons in English, Spanish, and French, with automatic code block sanitization for non-technical courses.
+* **Chapter-by-Chapter Lesson Textbook Generation**: Compiles detailed textbook lessons in English, Marathi (`MR`), and Hindi (`HI`), with automatic code block sanitization for non-technical courses.
 * **YouTube Video Recommendation**: Automatically enriches lessons with relevant video IDs via the YouTube Data API v3, gracefully falling back to search scraping.
 * **Automated PDF Export**: Compiles courses into complete printable PDF textbooks with custom styling and table of contents using Gotenberg or Puppeteer.
 * **Lesson Progress Tracking**: Persists student completion states (`NOT_STARTED`, `IN_PROGRESS`, `COMPLETED`) and dynamically computes overall progress percentages.
